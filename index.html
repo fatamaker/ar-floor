@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no"/>
-<title>FloorAR v4 · WebXR</title>
+<title>FloorAR v5 · Fixed</title>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -157,7 +157,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
       </svg>
     </div>
     <div id="splashTitle">FloorAR</div>
-    <div id="splashSub">Délimitez votre sol · visualisez vos carreaux en AR · textures GLB réelles</div>
+    <div id="splashSub">Délimitez votre sol · Carreaux côte à côte · Textures GLB réelles</div>
     <div id="prodCountBadge"></div>
     <button id="splashBtn">Commencer</button>
   </div>
@@ -219,7 +219,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
       <div class="jointSwatch" style="background:#444" data-j="#444"></div>
       <div class="jointSwatch" style="background:#222" data-j="#222"></div>
       <span class="jointLabel" style="margin-left:4px">Larg.</span>
-      <input type="range" id="jointSize" min="1" max="14" value="3" step="1" style="flex:1;min-width:50px"/>
+      <input type="range" id="jointSize" min="0" max="12" value="3" step="1" style="flex:1;min-width:50px"/>
       <span id="jointSizeVal" style="font-size:10px;font-weight:700;color:var(--secondary);min-width:20px">3</span>px
     </div>
 
@@ -254,6 +254,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
 
 <script>
 'use strict';
+
 /* ═══════════════════════════════════════
    STATE
 ═══════════════════════════════════════ */
@@ -263,13 +264,16 @@ const S = {
   hitMatrix:null, reticleVisible:false,
   fallback:false,
   products:[], selProduct:null, selVariant:null,
-  tileCM:{w:60,h:60}, tileRot:0,
+  tileCM:{w:60, h:60}, tileRot:0,
   polyMode:false, polyPts:[], polyClosed:false, polyValidated:false,
   opacity:0.88, jointColor:'#e8e0d8', jointSize:3,
-  floorMesh:null,
-  texImg:null,
-  glbTexCanvas:null,
-  useGlbTex:false,
+
+  /* ── FLOOR TILE GROUP (replaces single floorMesh) ── */
+  floorGroup: null,          // THREE.Group containing all tile meshes
+  tileMaterial: null,        // shared MeshStandardMaterial
+  tileTexture: null,         // shared CanvasTexture
+  tileCanvas: null,          // the canvas with the tile image
+
   glbLoading:false,
 };
 const CLOSE_SNAP = 32;
@@ -315,7 +319,7 @@ function initThree() {
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.xr.enabled = true;
 
-  // PBR environment (PlaceAR quality)
+  // PBR environment
   const pmrem = new THREE.PMREMGenerator(renderer);
   pmrem.compileEquirectangularShader();
   scene.environment = pmrem.fromScene(new THREE.RoomEnvironment()).texture;
@@ -504,7 +508,7 @@ function selectProduct(p) {
   }
   buildVariants(p);
   if(p.variants?.length) selectVariant(p.variants[0]);
-  else { S.texImg=null; S.glbTexCanvas=null; S.useGlbTex=false; rebuildFloor(); }
+  else { S.tileCanvas=null; rebuildFloor(); }
   setStatus(p.name,'ok');
 }
 
@@ -543,38 +547,42 @@ function selectVariant(v){
   if(modelUrl.toLowerCase().endsWith('.glb')){
     loadGLBForTile(modelUrl, texUrl);
   } else if(texUrl){
-    S.useGlbTex=false;
     setTileSourceBadge('tex','🖼 Texture image');
-    loadTexImg(texUrl);
+    loadTexImgAsync(texUrl).then(img=>{
+      S.tileCanvas = buildSingleTileCanvas(img);
+      rebuildFloor();
+    });
   } else {
-    S.texImg=null; S.glbTexCanvas=null; S.useGlbTex=false;
+    S.tileCanvas = null;
     document.getElementById('tileSourceBadge').style.display='none';
     rebuildFloor();
   }
 }
 
 /* ═══════════════════════════════════════
-   GLB LOADING PIPELINE (PlaceAR quality)
-   Loads via GLTFLoader → extracts bbox dims
-   → extracts baked diffuse texture → renders
-   onto tile canvas for floor tiling
+   ★ GLB LOADING — PlaceAR quality pipeline
+   Uses GLTFLoader.load() (same as PlaceAR)
+   → full material sRGBEncoding fix
+   → BBox → tile dims
+   → extract diffuse map image → tile canvas
+   → fallback to URL texture if CORS blocks
 ═══════════════════════════════════════ */
 async function loadGLBForTile(url, texUrl) {
   if(S.glbLoading) return;
-  S.glbLoading=true;
-  showGlbLoader('Analyse du modèle 3D…');
+  S.glbLoading = true;
+  showGlbLoader('Chargement modèle 3D…');
   setStatus('Chargement GLB…','loading');
   setTileSourceBadge('glb','🧊 Texture GLB 3D');
 
   try {
-    // Full GLTFLoader load (same as PlaceAR)
+    /* ── Step 1: load with GLTFLoader (PlaceAR identical approach) ── */
     const gltf = await new Promise((resolve, reject) => {
       gltfLoader.load(
         url,
         resolve,
-        (progress) => {
-          if(progress.total > 0){
-            const pct = Math.round(progress.loaded / progress.total * 100);
+        (prog) => {
+          if(prog.total > 0){
+            const pct = Math.round(prog.loaded / prog.total * 100);
             document.getElementById('glbProgress').textContent = pct + '%';
             document.getElementById('glbLoaderTxt').textContent = 'Chargement GLB ' + pct + '%…';
           }
@@ -584,13 +592,12 @@ async function loadGLBForTile(url, texUrl) {
     });
 
     const model = gltf.scene;
-    // Normalize transform before measuring
     model.position.set(0,0,0);
     model.rotation.set(0,0,0);
     model.scale.set(1,1,1);
     model.updateMatrixWorld(true);
 
-    // Apply same material fixes as PlaceAR
+    /* ── Step 2: Apply PlaceAR material fixes ── */
     model.traverse(c => {
       if(!c.isMesh) return;
       const mats = Array.isArray(c.material) ? c.material : [c.material];
@@ -602,9 +609,10 @@ async function loadGLBForTile(url, texUrl) {
       });
     });
 
-    // BBox → tile dimensions
+    /* ── Step 3: BBox → real tile dimensions ── */
     const bb = new THREE.Box3().setFromObject(model);
     const size = bb.getSize(new THREE.Vector3());
+    // Sort descending: biggest two = width × height of the flat tile
     const sorted = [size.x, size.y, size.z].sort((a,b)=>b-a);
     const wCm = sorted[0]*100, hCm = sorted[1]*100;
     if(wCm>=1 && wCm<=1000 && hCm>=1 && hCm<=1000){
@@ -613,32 +621,31 @@ async function loadGLBForTile(url, texUrl) {
       showDims('GLB: '+wCm.toFixed(1)+'×'+hCm.toFixed(1)+' cm');
       setStatus('GLB chargé · '+wCm.toFixed(0)+'×'+hCm.toFixed(0)+' cm','ok');
     } else {
-      setStatus('GLB analysé · dims produit','ok');
+      setStatus('GLB analysé · dims produit conservées','ok');
     }
 
-    // Extract baked diffuse texture from first mesh
+    /* ── Step 4: Extract diffuse texture → tile canvas ── */
     const tileCanvas = extractGLBTextureToCanvas(model);
     if(tileCanvas){
-      S.glbTexCanvas = tileCanvas;
-      S.useGlbTex = true;
-      S.texImg = null;
+      S.tileCanvas = tileCanvas;
+      setTileSourceBadge('glb','🧊 Texture GLB 3D');
     } else {
-      // Fallback to URL texture
-      S.useGlbTex = false;
+      // CORS blocked or no map → fall through to URL texture
+      console.warn('GLB texture not accessible, falling back to URL texture');
+      setTileSourceBadge('tex','🖼 Texture (fallback)');
       if(texUrl){
-        setTileSourceBadge('tex','🖼 Texture image (fallback)');
-        await loadTexImgAsync(texUrl);
+        const img = await loadTexImgAsync(texUrl);
+        S.tileCanvas = buildSingleTileCanvas(img);
       } else {
-        S.texImg = null; S.glbTexCanvas = null;
+        S.tileCanvas = null;
       }
     }
 
   } catch(err) {
     console.warn('GLB load failed:', err);
-    setStatus('GLB inaccessible · texture URL','ok');
-    S.useGlbTex = false;
+    setStatus('GLB inaccessible · texture URL utilisée','ok');
 
-    // Try raw buffer for dims only
+    // Dims fallback via raw buffer
     try {
       const buf = await fetch(url, {mode:'cors'}).then(r=>r.arrayBuffer());
       const dims = extractGLBBBoxFromBuffer(buf);
@@ -648,16 +655,17 @@ async function loadGLBForTile(url, texUrl) {
         if(wCm>=1 && wCm<=1000){
           S.tileCM={w:wCm,h:hCm};
           syncTileSliders();
-          showDims('GLB (buffer): '+wCm.toFixed(1)+'×'+hCm.toFixed(1)+' cm');
+          showDims('GLB bbox: '+wCm.toFixed(1)+'×'+hCm.toFixed(1)+' cm');
         }
       }
     } catch(e2){}
 
     if(texUrl){
       setTileSourceBadge('tex','🖼 Texture image');
-      await loadTexImgAsync(texUrl);
+      const img = await loadTexImgAsync(texUrl);
+      S.tileCanvas = buildSingleTileCanvas(img);
     } else {
-      S.texImg=null; S.glbTexCanvas=null;
+      S.tileCanvas = null;
     }
   }
 
@@ -667,44 +675,25 @@ async function loadGLBForTile(url, texUrl) {
 }
 
 /**
- * Extracts the primary diffuse texture from a loaded THREE.js GLTF model
- * and draws it onto a canvas at tile resolution.
- * Returns null if no texture found or CORS prevents access.
+ * Extract primary diffuse texture from a loaded GLTF model.
+ * Same approach as PlaceAR's material fix traversal.
+ * Returns canvas or null if CORS blocks pixel read.
  */
 function extractGLBTextureToCanvas(model) {
-  const PX_PER_CM = 4;
-  const W = Math.max(8, Math.round(S.tileCM.w * PX_PER_CM));
-  const H = Math.max(8, Math.round(S.tileCM.h * PX_PER_CM));
-
   let foundImage = null;
   model.traverse(c => {
     if(foundImage || !c.isMesh) return;
     const mats = Array.isArray(c.material) ? c.material : [c.material];
     for(const mat of mats){
-      if(mat.map && mat.map.image){
-        foundImage = mat.map.image;
-        break;
-      }
+      // Priority: diffuse map
+      if(mat.map && mat.map.image){ foundImage = mat.map.image; break; }
     }
   });
-
   if(!foundImage) return null;
-
-  const cv = document.createElement('canvas');
-  cv.width = W; cv.height = H;
-  const ctx = cv.getContext('2d');
-  try {
-    ctx.drawImage(foundImage, 0, 0, W, H);
-    // test pixel read to detect CORS tainting
-    ctx.getImageData(0, 0, 1, 1);
-  } catch(e) {
-    console.warn('GLB texture CORS tainted – falling back to URL texture');
-    return null;
-  }
-  return cv;
+  return buildSingleTileCanvas(foundImage);
 }
 
-/** Raw ArrayBuffer GLB bbox extraction (for dims when GLTFLoader fails) */
+/** Raw ArrayBuffer GLB BBox for dims-only fallback */
 function extractGLBBBoxFromBuffer(buffer) {
   try {
     const view=new DataView(buffer);
@@ -747,16 +736,74 @@ function extractGLBBBoxFromBuffer(buffer) {
 /* ═══════════════════════════════════════
    TEXTURE IMAGE
 ═══════════════════════════════════════ */
-function loadTexImg(url) {
-  loadTexImgAsync(url).then(()=>rebuildFloor());
-}
 function loadTexImgAsync(url){
   return new Promise(res=>{
+    if(!url){res(null);return;}
     const img=new Image();img.crossOrigin='anonymous';
-    img.onload=()=>{S.texImg=img;res();};
-    img.onerror=()=>{S.texImg=null;res();};
+    img.onload=()=>res(img);
+    img.onerror=()=>res(null);
     img.src=url;
   });
+}
+
+/* ═══════════════════════════════════════
+   ★ BUILD SINGLE TILE CANVAS
+   Renders ONE tile (image + joint border + rotation)
+   This canvas is used as the texture for EVERY tile mesh.
+   Tiles are laid side-by-side via geometry, not via UV repeat.
+═══════════════════════════════════════ */
+function buildSingleTileCanvas(imgOrCanvas) {
+  const PX = 4; // pixels per cm
+  const W = Math.max(8, Math.round(S.tileCM.w * PX));
+  const H = Math.max(8, Math.round(S.tileCM.h * PX));
+  const cv = document.createElement('canvas');
+  cv.width = W; cv.height = H;
+  const ctx = cv.getContext('2d');
+
+  if(imgOrCanvas){
+    try {
+      ctx.drawImage(imgOrCanvas, 0, 0, W, H);
+      // CORS check
+      ctx.getImageData(0,0,1,1);
+    } catch(e){
+      console.warn('Tile canvas CORS tainted, using procedural');
+      drawProceduralTile(ctx, W, H);
+    }
+  } else {
+    drawProceduralTile(ctx, W, H);
+  }
+
+  // Apply rotation to the tile image
+  if(S.tileRot !== 0){
+    const tmp=document.createElement('canvas');tmp.width=W;tmp.height=H;
+    const tc=tmp.getContext('2d');
+    tc.save();tc.translate(W/2,H/2);tc.rotate(S.tileRot*Math.PI/180);
+    tc.drawImage(cv,-W/2,-H/2,W,H);tc.restore();
+    ctx.clearRect(0,0,W,H);ctx.drawImage(tmp,0,0);
+  }
+
+  // Joint border on all 4 sides
+  if(S.jointColor && S.jointSize > 0){
+    const jPx = Math.max(1, Math.round(S.jointSize * PX / 10));
+    ctx.strokeStyle = S.jointColor;
+    ctx.lineWidth = jPx * 2; // stroke is centered on border, so double to clip inside
+    ctx.strokeRect(0, 0, W, H);
+  }
+
+  return cv;
+}
+
+function drawProceduralTile(ctx, W, H){
+  const grd = ctx.createLinearGradient(0,0,W,H);
+  grd.addColorStop(0,'#dedad4');
+  grd.addColorStop(0.5,'#d2cec8');
+  grd.addColorStop(1,'#cac6be');
+  ctx.fillStyle = grd;
+  ctx.fillRect(0,0,W,H);
+  for(let i=0;i<120;i++){
+    ctx.fillStyle='rgba(0,0,0,'+(Math.random()*0.035)+')';
+    ctx.fillRect(Math.random()*W,Math.random()*H,2,2);
+  }
 }
 
 /* ═══════════════════════════════════════
@@ -933,169 +980,184 @@ function screenToFloorPlane(sx, sy, yFloor) {
 }
 
 /* ═══════════════════════════════════════
-   BUILD TILE CANVAS
-   Priority: GLB baked texture > URL image > procedural
+   ★ POINT-IN-POLYGON (XZ plane)
+   Used to clip tiles to the drawn polygon zone.
 ═══════════════════════════════════════ */
-function buildTileCanvas() {
-  const PX_PER_CM = 4;
-  const W = Math.max(8, Math.round(S.tileCM.w * PX_PER_CM));
-  const H = Math.max(8, Math.round(S.tileCM.h * PX_PER_CM));
-  const cv = document.createElement('canvas');
-  cv.width=W; cv.height=H;
-  const ctx = cv.getContext('2d');
-
-  if(S.useGlbTex && S.glbTexCanvas){
-    // Baked GLB texture
-    ctx.drawImage(S.glbTexCanvas, 0, 0, W, H);
-  } else if(S.texImg){
-    // URL image texture
-    ctx.drawImage(S.texImg, 0, 0, W, H);
-  } else {
-    // Procedural fallback
-    const grd=ctx.createLinearGradient(0,0,W,H);
-    grd.addColorStop(0,'#dedad4');
-    grd.addColorStop(0.5,'#d2cec8');
-    grd.addColorStop(1,'#cac6be');
-    ctx.fillStyle=grd;ctx.fillRect(0,0,W,H);
-    // subtle noise
-    for(let i=0;i<150;i++){
-      ctx.fillStyle='rgba(0,0,0,'+(Math.random()*0.04)+')';
-      ctx.fillRect(Math.random()*W,Math.random()*H,2,2);
-    }
+function pointInPolygonXZ(px, pz, poly3d) {
+  let inside = false;
+  for(let i=0, j=poly3d.length-1; i<poly3d.length; j=i++){
+    const xi=poly3d[i].x, zi=poly3d[i].z;
+    const xj=poly3d[j].x, zj=poly3d[j].z;
+    if(((zi>pz)!==(zj>pz)) && (px < (xj-xi)*(pz-zi)/(zj-zi)+xi))
+      inside = !inside;
   }
-
-  // Rotation
-  if(S.tileRot!==0){
-    const tmp=document.createElement('canvas');tmp.width=W;tmp.height=H;
-    const tc=tmp.getContext('2d');
-    tc.save();tc.translate(W/2,H/2);tc.rotate(S.tileRot*Math.PI/180);
-    tc.drawImage(cv,-W/2,-H/2,W,H);tc.restore();
-    ctx.clearRect(0,0,W,H);ctx.drawImage(tmp,0,0);
-  }
-
-  // Grout joint
-  if(S.jointColor && S.jointSize>0){
-    const jPx=Math.max(1,Math.round(S.jointSize*PX_PER_CM/10));
-    ctx.strokeStyle=S.jointColor;ctx.lineWidth=jPx;
-    ctx.strokeRect(jPx/2,jPx/2,W-jPx,H-jPx);
-  }
-
-  return cv;
+  return inside;
 }
 
 /* ═══════════════════════════════════════
-   REBUILD FLOOR MESH
-   Polygon zone → ShapeGeometry → tiled PBR material
+   ★ DISPOSE FLOOR GROUP
+═══════════════════════════════════════ */
+function disposeFloorGroup() {
+  if(!S.floorGroup) return;
+  scene.remove(S.floorGroup);
+  S.floorGroup.traverse(obj => {
+    if(obj.geometry) obj.geometry.dispose();
+  });
+  if(S.tileMaterial){
+    if(S.tileTexture) S.tileTexture.dispose();
+    S.tileMaterial.dispose();
+    S.tileMaterial = null;
+    S.tileTexture = null;
+  }
+  S.floorGroup = null;
+}
+
+/* ═══════════════════════════════════════
+   ★ REBUILD FLOOR — TILE GRID APPROACH
+   ─────────────────────────────────────
+   FIXES the triangle/distortion problem:
+   Instead of one ShapeGeometry with broken UVs,
+   we create a GRID of individual PlaneGeometry tiles
+   each placed side-by-side in world space.
+   Only tiles whose CENTER falls inside the polygon are shown.
+   Each tile is a proper flat plane with correct UV (0→1).
+   The texture is ONE tile image (with joint border drawn on it).
+   Result: tiles appear perfectly side-by-side, no distortion.
 ═══════════════════════════════════════ */
 function rebuildFloor() {
-  if(!S.polyValidated || S.polyPts.length<3) return;
+  if(!S.polyValidated || S.polyPts.length < 3) return;
   if(S.glbLoading) return;
 
-  // Dispose previous
-  if(S.floorMesh){
-    scene.remove(S.floorMesh);
-    S.floorMesh.geometry.dispose();
-    if(S.floorMesh.material.map) S.floorMesh.material.map.dispose();
-    S.floorMesh.material.dispose();
-    S.floorMesh=null;
-  }
+  disposeFloorGroup();
 
-  // Y floor level
-  let yFloor=0;
+  /* ── Y floor level ── */
+  let yFloor = 0;
   if(S.xrMode && S.hitMatrix){
-    const pos=new THREE.Vector3();
-    new THREE.Matrix4().fromArray(S.hitMatrix).decompose(pos,new THREE.Quaternion(),new THREE.Vector3());
-    yFloor=pos.y;
+    const pos = new THREE.Vector3();
+    new THREE.Matrix4().fromArray(S.hitMatrix).decompose(pos, new THREE.Quaternion(), new THREE.Vector3());
+    yFloor = pos.y;
   }
 
-  // Project 2D screen points → 3D floor plane
-  const pts3=[];
+  /* ── Project 2D screen points → 3D floor plane ── */
+  const pts3 = [];
   for(const p of S.polyPts){
-    let w3=screenToFloorPlane(p.x,p.y,yFloor);
+    let w3 = screenToFloorPlane(p.x, p.y, yFloor);
     if(!w3){
       const ndcX=(p.x/innerWidth)*2-1;
       const ndcY=-(p.y/innerHeight)*2+1;
-      w3=new THREE.Vector3(ndcX*3,yFloor,-ndcY*3+camera.position.z-1);
+      w3 = new THREE.Vector3(ndcX*3, yFloor, -ndcY*3+camera.position.z-1);
     }
     pts3.push(w3);
   }
 
-  // Anchor to XR surface centroid
+  /* ── Anchor to XR surface centroid ── */
   if(S.xrMode && S.hitMatrix){
-    const ref=new THREE.Vector3();
-    new THREE.Matrix4().fromArray(S.hitMatrix).decompose(ref,new THREE.Quaternion(),new THREE.Vector3());
-    const cx3=pts3.reduce((s,p)=>s+p.x,0)/pts3.length;
-    const cz3=pts3.reduce((s,p)=>s+p.z,0)/pts3.length;
-    pts3.forEach(p=>{p.x+=ref.x-cx3;p.z+=ref.z-cz3;p.y=ref.y;});
+    const ref = new THREE.Vector3();
+    new THREE.Matrix4().fromArray(S.hitMatrix).decompose(ref, new THREE.Quaternion(), new THREE.Vector3());
+    const cx3 = pts3.reduce((s,p)=>s+p.x,0)/pts3.length;
+    const cz3 = pts3.reduce((s,p)=>s+p.z,0)/pts3.length;
+    pts3.forEach(p=>{p.x+=ref.x-cx3; p.z+=ref.z-cz3; p.y=ref.y;});
   }
 
-  // THREE.Shape in XZ plane
-  const shape=new THREE.Shape();
-  shape.moveTo(pts3[0].x,pts3[0].z);
-  for(let i=1;i<pts3.length;i++) shape.lineTo(pts3[i].x,pts3[i].z);
-  shape.closePath();
-
-  const geo=new THREE.ShapeGeometry(shape);
-
-  // Tile-sized UV mapping (repeat texture per tile)
-  const tW=S.tileCM.w/100;
-  const tH=S.tileCM.h/100;
-  const posArr=geo.attributes.position.array;
-  const uvArr=new Float32Array(posArr.length/3*2);
-  for(let i=0;i<posArr.length/3;i++){
-    uvArr[i*2]  =posArr[i*3]  /tW;
-    uvArr[i*2+1]=posArr[i*3+1]/tH;
-  }
-  geo.setAttribute('uv',new THREE.BufferAttribute(uvArr,2));
-
-  // Flip XY → XZ (ShapeGeometry is in XY; floor is in XZ)
-  for(let i=0;i<posArr.length/3;i++){
-    posArr[i*3+2]=posArr[i*3+1];
-    posArr[i*3+1]=yFloor+0.003;
-  }
-  geo.attributes.position.needsUpdate=true;
-  geo.computeVertexNormals();
-
-  // Build tile canvas & texture
-  const tileCanvas=buildTileCanvas();
-  const tex=new THREE.CanvasTexture(tileCanvas);
-  tex.wrapS=tex.wrapT=THREE.RepeatWrapping;
-  tex.encoding=THREE.sRGBEncoding;
-  tex.anisotropy=renderer.capabilities.getMaxAnisotropy();
-
-  // PBR material (PlaceAR quality)
-  const mat=new THREE.MeshStandardMaterial({
-    map:tex,
-    transparent:true,
-    opacity:S.opacity,
-    roughness:0.42,
-    metalness:0.04,
-    envMapIntensity:0.55,
-    side:THREE.DoubleSide,
+  /* ── Compute bounding box of projected polygon ── */
+  let minX=Infinity, maxX=-Infinity, minZ=Infinity, maxZ=-Infinity;
+  pts3.forEach(p=>{
+    minX=Math.min(minX,p.x); maxX=Math.max(maxX,p.x);
+    minZ=Math.min(minZ,p.z); maxZ=Math.max(maxZ,p.z);
   });
 
-  S.floorMesh=new THREE.Mesh(geo,mat);
-  S.floorMesh.receiveShadow=true;
-  scene.add(S.floorMesh);
+  /* ── Tile size in meters ── */
+  const tW = S.tileCM.w / 100;
+  const tH = S.tileCM.h / 100;
+
+  /* ── Build tile texture from canvas ── */
+  const tileCanvas = S.tileCanvas || buildSingleTileCanvas(null);
+  S.tileTexture = new THREE.CanvasTexture(tileCanvas);
+  S.tileTexture.encoding = THREE.sRGBEncoding;
+  S.tileTexture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+  // NO wrapS/wrapT repeat — each plane uses UV 0→1, texture fills the whole tile
+
+  /* ── Shared PBR material (PlaceAR quality) ── */
+  S.tileMaterial = new THREE.MeshStandardMaterial({
+    map: S.tileTexture,
+    transparent: true,
+    opacity: S.opacity,
+    roughness: 0.42,
+    metalness: 0.04,
+    envMapIntensity: 0.55,
+    side: THREE.DoubleSide,
+  });
+
+  /* ── Create group to hold all tiles ── */
+  S.floorGroup = new THREE.Group();
+  scene.add(S.floorGroup);
+
+  /* ── Align grid start to a round multiple of tile size
+        so tiles don't shift on rebuild ── */
+  const startX = Math.floor(minX / tW) * tW;
+  const startZ = Math.floor(minZ / tH) * tH;
+
+  const colsMax = Math.ceil((maxX - startX) / tW) + 1;
+  const rowsMax = Math.ceil((maxZ - startZ) / tH) + 1;
+
+  /* ── Generate tile grid ── */
+  let tileCount = 0;
+  for(let row = 0; row < rowsMax; row++){
+    for(let col = 0; col < colsMax; col++){
+      const cx = startX + col * tW + tW * 0.5;
+      const cz = startZ + row * tH + tH * 0.5;
+
+      /* Only render tile if its CENTER is inside the polygon */
+      if(!pointInPolygonXZ(cx, cz, pts3)) continue;
+
+      const geo = new THREE.PlaneGeometry(tW, tH);
+      // PlaneGeometry is in XY; rotate to lie flat on XZ floor plane
+      geo.rotateX(-Math.PI / 2);
+
+      const mesh = new THREE.Mesh(geo, S.tileMaterial);
+      mesh.position.set(cx, yFloor + 0.003, cz);
+      mesh.receiveShadow = true;
+      S.floorGroup.add(mesh);
+      tileCount++;
+    }
+  }
+
+  console.log(`FloorAR: ${tileCount} tiles rendered (${colsMax}×${rowsMax} grid)`);
 }
 
+/* ═══════════════════════════════════════
+   REFRESH helpers — update material without full rebuild
+═══════════════════════════════════════ */
 function refreshTexture(){
-  if(!S.floorMesh){rebuildFloor();return;}
-  const old=S.floorMesh.material.map;
-  const tc=buildTileCanvas();
-  const tex=new THREE.CanvasTexture(tc);
-  tex.wrapS=tex.wrapT=THREE.RepeatWrapping;
-  tex.encoding=THREE.sRGBEncoding;
-  tex.anisotropy=renderer.capabilities.getMaxAnisotropy();
-  if(old) old.dispose();
-  S.floorMesh.material.map=tex;
-  S.floorMesh.material.needsUpdate=true;
+  if(!S.floorGroup){ rebuildFloor(); return; }
+  const newCanvas = S.tileCanvas ? buildSingleTileCanvas(
+    S.tileCanvas // re-render with current tileRot/joint settings
+  ) : buildSingleTileCanvas(null);
+  // Actually rebuild S.tileCanvas from scratch for new settings
+  _refreshTileCanvasInPlace();
+  const newTex = new THREE.CanvasTexture(S.tileCanvas || buildSingleTileCanvas(null));
+  newTex.encoding = THREE.sRGBEncoding;
+  newTex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+  const oldTex = S.tileTexture;
+  S.tileTexture = newTex;
+  if(S.tileMaterial){
+    S.tileMaterial.map = newTex;
+    S.tileMaterial.needsUpdate = true;
+  }
+  if(oldTex) oldTex.dispose();
+}
+
+function _refreshTileCanvasInPlace(){
+  // Re-bake the single tile canvas with current rotation/joint settings
+  // We need the source image — re-draw from stored state
+  // For simplicity, full rebuild is more reliable when rotation/joint changes
+  rebuildFloor();
 }
 
 function refreshOpacity(){
-  if(!S.floorMesh) return;
-  S.floorMesh.material.opacity=S.opacity;
-  S.floorMesh.material.needsUpdate=true;
+  if(!S.tileMaterial) return;
+  S.tileMaterial.opacity = S.opacity;
+  S.tileMaterial.needsUpdate = true;
 }
 
 /* ═══════════════════════════════════════
@@ -1104,13 +1166,14 @@ function refreshOpacity(){
 document.querySelectorAll('.jointSwatch').forEach(sw=>{
   sw.addEventListener('click',()=>{
     document.querySelectorAll('.jointSwatch').forEach(s=>s.classList.remove('active'));
-    sw.classList.add('active');S.jointColor=sw.dataset.j;refreshTexture();
+    sw.classList.add('active'); S.jointColor=sw.dataset.j;
+    rebuildFloor();
   });
 });
 document.getElementById('jointSize').addEventListener('input',e=>{
   S.jointSize=parseInt(e.target.value);
   document.getElementById('jointSizeVal').textContent=e.target.value;
-  refreshTexture();
+  rebuildFloor();
 });
 document.getElementById('opacSlider').addEventListener('input',e=>{
   S.opacity=parseInt(e.target.value)/100;
@@ -1130,7 +1193,7 @@ document.getElementById('tileHSlider').addEventListener('input',e=>{
 document.getElementById('rotSlider').addEventListener('input',e=>{
   S.tileRot=parseInt(e.target.value);
   document.getElementById('rotDisplay').textContent=e.target.value;
-  refreshTexture();
+  rebuildFloor();
 });
 
 /* ═══════════════════════════════════════
@@ -1138,14 +1201,8 @@ document.getElementById('rotSlider').addEventListener('input',e=>{
 ═══════════════════════════════════════ */
 document.getElementById('resetBtn').addEventListener('click',()=>{
   if(S.polyMode) cancelPoly();
-  S.polyValidated=false;S.polyPts=[];S.polyClosed=false;
-  if(S.floorMesh){
-    scene.remove(S.floorMesh);
-    S.floorMesh.geometry.dispose();
-    if(S.floorMesh.material.map) S.floorMesh.material.map.dispose();
-    S.floorMesh.material.dispose();
-    S.floorMesh=null;
-  }
+  S.polyValidated=false; S.polyPts=[]; S.polyClosed=false;
+  disposeFloorGroup();
   polyCtx&&polyCtx.clearRect(0,0,polyCanvasEl.width,polyCanvasEl.height);
   document.getElementById('polyHint').classList.remove('visible');
   setStatus('Réinitialisé · Délimitez une zone','ok');
@@ -1155,13 +1212,13 @@ document.getElementById('resetBtn').addEventListener('click',()=>{
 document.getElementById('captureBtn').addEventListener('click',()=>{
   renderer.render(scene,camera);
   const cap=document.createElement('canvas');
-  cap.width=innerWidth;cap.height=innerHeight;
+  cap.width=innerWidth; cap.height=innerHeight;
   const cc=cap.getContext('2d');
   cc.drawImage(renderer.domElement,0,0);
   cc.drawImage(polyCanvasEl,0,0);
   const a=document.createElement('a');
-  a.download='floorAR.png';a.href=cap.toDataURL('image/png');
-  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  a.download='floorAR.png'; a.href=cap.toDataURL('image/png');
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
   setStatus('Capture sauvegardée ✓','ok');
   postToFlutter({type:'capture'});
 });
@@ -1169,12 +1226,12 @@ document.getElementById('captureBtn').addEventListener('click',()=>{
 /* ═══════════════════════════════════════
    SHEET DRAG
 ═══════════════════════════════════════ */
-const SHEET_PEEK=92,SHEET_MID=440,SHEET_FULL=Math.round(innerHeight*.92);
-let dragY=null,dragH=0;
+const SHEET_PEEK=92, SHEET_MID=440, SHEET_FULL=Math.round(innerHeight*.92);
+let dragY=null, dragH=0;
 function setSheetH(h,anim=true){
   const s=document.getElementById('sheet');
   s.style.transition=anim?'height .35s cubic-bezier(.32,.72,0,1)':'none';
-  s.style.height=h+'px';s.classList.toggle('collapsed',h<=SHEET_PEEK+10);
+  s.style.height=h+'px'; s.classList.toggle('collapsed',h<=SHEET_PEEK+10);
 }
 const handle=document.getElementById('sheetHandle');
 handle.addEventListener('mousedown',e=>{dragY=e.clientY;dragH=document.getElementById('sheet').getBoundingClientRect().height;document.getElementById('sheet').style.transition='none';});
@@ -1193,15 +1250,21 @@ function ingestDemo(){
     {id:'d1',name:'Carreau 60×60 Blanc',image:'',category:'Carrelage',
      dimensions:{width:60,height:60},
      variants:[
-       {id:'v1',colorName:'Blanc mat',texture:'',model3D:''},
-       {id:'v2',colorName:'Gris perle',texture:'',model3D:''},
+       {id:'v1',colorName:'Blanc mat',texture:'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=256&h=256&fit=crop',model3D:''},
+       {id:'v2',colorName:'Gris perle',texture:'https://images.unsplash.com/photo-1615971677499-5467cbab01b0?w=256&h=256&fit=crop',model3D:''},
      ]},
     {id:'d2',name:'Carreau 30×60 Gris',image:'',category:'Carrelage',
-     dimensions:{width:30,height:60},variants:[]},
-    {id:'d3',name:'Mosaïque 20×20',image:'',category:'Carrelage',
+     dimensions:{width:30,height:60},
+     variants:[
+       {id:'v3',colorName:'Gris anthracite',texture:'https://images.unsplash.com/photo-1580100586938-02822d99c4a8?w=256&h=256&fit=crop',model3D:''},
+     ]},
+    {id:'d3',name:'Parquet 12×120',image:'',category:'Parquet',
+     dimensions:{width:12,height:120},
+     variants:[
+       {id:'v4',colorName:'Chêne clair',texture:'https://images.unsplash.com/photo-1541123437800-1bb1317badc2?w=256&h=256&fit=crop',model3D:''},
+     ]},
+    {id:'d4',name:'Mosaïque 20×20',image:'',category:'Carrelage',
      dimensions:{width:20,height:20},variants:[]},
-    {id:'d4',name:'Parquet 12×120',image:'',category:'Parquet',
-     dimensions:{width:12,height:120},variants:[]},
   ]);
 }
 
