@@ -24,6 +24,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#0a0a0f;font-family:
 #splashTitle{font-size:30px;font-weight:700;color:#fff;letter-spacing:-1px;margin-bottom:10px}
 #splashSub{font-size:13px;font-weight:500;color:rgba(255,255,255,.65);line-height:1.7;max-width:280px;margin-bottom:36px}
 #splashBtn{padding:14px 38px;background:var(--primary);color:#fff;border:none;border-radius:var(--r-xl);font-family:var(--font);font-size:14px;font-weight:700;cursor:pointer;box-shadow:0 4px 20px rgba(245,144,100,.4)}
+#prodCountBadge{margin-bottom:18px;background:rgba(245,144,100,.18);border:1px solid rgba(245,144,100,.4);border-radius:var(--r-xl);padding:6px 18px;font-size:12px;font-weight:600;color:var(--primary);display:none}
 
 /* Top bar */
 #topBar{position:fixed;top:0;left:0;right:0;z-index:20;display:flex;align-items:center;justify-content:space-between;padding:14px 18px 10px;background:linear-gradient(to bottom,rgba(17,17,17,.7),transparent);pointer-events:none}
@@ -148,6 +149,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
     </div>
     <div id="splashTitle">FloorAR</div>
     <div id="splashSub">Visualisez vos carreaux en réalité augmentée · WebXR natif · modèles 3D réels</div>
+    <div id="prodCountBadge"></div>
     <button id="splashBtn">Commencer</button>
   </div>
 </div>
@@ -191,7 +193,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
   <div id="sheetContent">
 
     <div class="secLabel">Produits</div>
-    <div id="productScroll"><div style="padding:16px;color:var(--grey);font-size:11px">En attente des produits…</div></div>
+    <div id="productScroll"><div style="padding:16px;color:var(--grey);font-size:11px">Chargement des produits…</div></div>
 
     <div class="secLabel" id="varSecLabel" style="display:none">Variante / couleur</div>
     <div id="variantRow" style="display:none"></div>
@@ -260,6 +262,32 @@ const S = {
 const CLOSE_SNAP = 32;
 
 /* ═══════════════════════════════════════════════════════════
+   LIRE LES PRODUITS DEPUIS L'URL (?products=…)
+   Appelé AVANT le splash, pour afficher le badge.
+═══════════════════════════════════════════════════════════ */
+function parseProductsFromURL() {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const raw = params.get('products');
+    if (!raw) return null;
+    const decoded = decodeURIComponent(raw);
+    const prods = JSON.parse(decoded);
+    if (Array.isArray(prods) && prods.length > 0) return prods;
+  } catch(e) { console.warn('[FloorAR] URL products parse error:', e); }
+  return null;
+}
+
+/* Afficher le badge produits sur le splash dès le chargement */
+(function showSplashBadge() {
+  const prods = parseProductsFromURL();
+  if (prods && prods.length) {
+    const badge = document.getElementById('prodCountBadge');
+    badge.textContent = prods.length + ' produit' + (prods.length > 1 ? 's' : '') + ' chargé' + (prods.length > 1 ? 's' : '');
+    badge.style.display = 'block';
+  }
+})();
+
+/* ═══════════════════════════════════════════════════════════
    THREE.JS
 ═══════════════════════════════════════════════════════════ */
 let scene, camera, renderer, gltfLoader, xrReticleMesh;
@@ -275,14 +303,12 @@ function initThree() {
   renderer.outputEncoding = THREE.sRGBEncoding;
   renderer.xr.enabled = true;
 
-  /* Éclairage */
   scene.add(new THREE.AmbientLight(0xffffff, 1.1));
   const sun = new THREE.DirectionalLight(0xffffff, 1.3);
   sun.position.set(3,8,5); scene.add(sun);
   const fill = new THREE.DirectionalLight(0xffffff, 0.4);
   fill.position.set(-4,2,-4); scene.add(fill);
 
-  /* Anneau réticule (affiché dans la scène 3D) */
   const rg = new THREE.RingGeometry(0.09,0.12,32).rotateX(-Math.PI/2);
   const rm = new THREE.MeshBasicMaterial({color:0x52B46B, side:THREE.DoubleSide});
   xrReticleMesh = new THREE.Mesh(rg, rm);
@@ -358,7 +384,6 @@ async function startXR() {
 
 function xrLoop(timestamp, frame) {
   if (!frame) { renderer.render(scene, camera); return; }
-
   if (S.hitReady && S.hitTestSrc) {
     const results = frame.getHitTestResults(S.hitTestSrc);
     if (results.length) {
@@ -378,7 +403,7 @@ function xrLoop(timestamp, frame) {
 }
 
 /* ═══════════════════════════════════════════════════════════
-   FALLBACK caméra classique (si WebXR non dispo)
+   FALLBACK caméra classique
 ═══════════════════════════════════════════════════════════ */
 async function startFallback() {
   S.fallback = true;
@@ -393,7 +418,6 @@ async function startFallback() {
     scene.background = vt;
   } catch(e) { setStatus('Caméra refusée','error'); }
 
-  /* Caméra fixe regardant le sol en avant */
   camera.position.set(0, 1.6, 0.1);
   camera.lookAt(0, 0, -1.5);
   renderer.setAnimationLoop(() => renderer.render(scene, camera));
@@ -403,7 +427,7 @@ async function startFallback() {
 }
 
 /* ═══════════════════════════════════════════════════════════
-   BRIDGE FLUTTER
+   BRIDGE FLUTTER (WebView fallback — non utilisé en launchUrl)
 ═══════════════════════════════════════════════════════════ */
 window.receiveFromFlutter = function(jsonStr) {
   try {
@@ -441,14 +465,19 @@ function ingestProducts(prods) {
 function buildProductScroll() {
   const el = document.getElementById('productScroll');
   el.innerHTML='';
-  if (!S.products.length) { el.innerHTML='<div style="padding:16px;color:var(--grey);font-size:11px">Aucun produit</div>'; return; }
+  if (!S.products.length) {
+    el.innerHTML='<div style="padding:16px;color:var(--grey);font-size:11px">Aucun produit disponible</div>';
+    return;
+  }
   S.products.forEach(p=>{
     const card = document.createElement('div');
     card.className='prodCard'; card.dataset.id=p.id;
+    /* Chercher l'image : champ image ou imageUrl (compatibilité ARProductScreen) */
+    const imgSrc = p.image || p.imageUrl || '';
     const dim = p.dimensions
       ? normCm(p.dimensions.width).toFixed(0)+'×'+normCm(p.dimensions.height).toFixed(0)+' cm' : '';
     card.innerHTML=
-      '<img class="prodCard-img" src="'+(p.image||'')+'" onerror="this.style.background=\'#ccc\'">'+
+      '<img class="prodCard-img" src="'+imgSrc+'" onerror="this.style.background=\'#ccc\'">'+
       '<div class="prodCard-body">'+
         '<div class="prodCard-name">'+(p.name||'Produit')+'</div>'+
         '<div class="prodCard-dims">'+dim+'</div>'+
@@ -491,7 +520,9 @@ function buildVariants(p) {
     wrap.style.cssText='display:flex;flex-direction:column;align-items:center;gap:2px';
     const sw=document.createElement('div');
     sw.className='varSwatch';sw.dataset.id=v.id;
-    sw.innerHTML='<img src="'+(v.texture||'')+'" onerror="this.style.display=\'none\'">';
+    /* Support texture ou imageUrl */
+    const texSrc = v.texture || v.imageUrl || '';
+    sw.innerHTML='<img src="'+texSrc+'" onerror="this.style.display=\'none\'">';
     const nm=document.createElement('div');
     nm.className='varName';nm.textContent=v.colorName||'';
     sw.addEventListener('click',()=>selectVariant(v));
@@ -502,10 +533,13 @@ function buildVariants(p) {
 function selectVariant(v) {
   S.selVariant=v;
   document.querySelectorAll('.varSwatch').forEach(s=>s.classList.toggle('active',s.dataset.id===v.id));
-  if (v.model3D?.toLowerCase().endsWith('.glb')) {
-    loadGLBDims(v.model3D, v.texture);
-  } else if (v.texture) {
-    loadTexImg(v.texture);
+  /* Support model3D ou modelUrl (compatibilité ARProductScreen) */
+  const modelUrl = v.model3D || v.modelUrl || '';
+  const texUrl = v.texture || v.imageUrl || '';
+  if (modelUrl.toLowerCase().endsWith('.glb')) {
+    loadGLBDims(modelUrl, texUrl);
+  } else if (texUrl) {
+    loadTexImg(texUrl);
   } else {
     S.texImg=null; rebuildFloor();
   }
@@ -674,7 +708,6 @@ function updatePolyUI(){
   document.getElementById('pbValidate').style.display=S.polyClosed?'block':'none';
 }
 
-/* ─── Entrée mode poly ─── */
 function enterPolyMode(){
   S.polyMode=true;S.polyPts=[];S.polyClosed=false;
   polyCanvasEl.classList.add('active');
@@ -718,7 +751,6 @@ function cancelPoly(){
   setStatus('Annulé');
 }
 
-/* Events polygone */
 polyCanvasEl.addEventListener('click',e=>{
   if(!S.polyMode||S.polyClosed) return;
   const pts=S.polyPts;
@@ -745,22 +777,13 @@ document.getElementById('pbCancel').addEventListener('click',cancelPoly);
 document.getElementById('polyBtn').addEventListener('click',()=>{if(S.polyMode)validatePoly();else enterPolyMode();});
 
 /* ═══════════════════════════════════════════════════════════
-   PROJECTION 2D ÉCRAN → PLAN 3D (Y=yFloor)
-
-   En WebXR le hit-test nous donne un point réel sur le sol.
-   On utilise ce point comme référence Y pour projeter
-   tous les points 2D du polygone sur le même plan horizontal.
-
-   En mode fallback, on intersecte avec le plan Y=0.
+   PROJECTION 2D → PLAN 3D
 ═══════════════════════════════════════════════════════════ */
 function screenToFloorPlane(sx, sy, yFloor) {
-  /* NDC */
   const ndcX=(sx/innerWidth)*2-1;
   const ndcY=-(sy/innerHeight)*2+1;
-  /* Ray caméra */
   const ray=new THREE.Vector3(ndcX,ndcY,0.5).unproject(camera);
   ray.sub(camera.position).normalize();
-  /* t d'intersection avec Y=yFloor */
   const dY=ray.y;
   if (Math.abs(dY)<0.0001) return null;
   const t=(yFloor-camera.position.y)/dY;
@@ -773,10 +796,9 @@ function screenToFloorPlane(sx, sy, yFloor) {
 }
 
 /* ═══════════════════════════════════════════════════════════
-   TEXTURE CANVAS CARREAU (canvas 2D → Three.CanvasTexture)
+   TEXTURE CANVAS CARREAU
 ═══════════════════════════════════════════════════════════ */
 function buildTileCanvas() {
-  /* 1 px = 0.5 cm → une résolution suffisante et pas trop lourde */
   const PX_PER_CM = 3;
   const W = Math.max(4, Math.round(S.tileCM.w * PX_PER_CM));
   const H = Math.max(4, Math.round(S.tileCM.h * PX_PER_CM));
@@ -784,17 +806,14 @@ function buildTileCanvas() {
   cv.width=W; cv.height=H;
   const ctx=cv.getContext('2d');
 
-  /* Fond / texture */
   if (S.texImg) {
     ctx.drawImage(S.texImg,0,0,W,H);
   } else {
-    /* Dégradé neutre imitation pierre */
     const grd=ctx.createLinearGradient(0,0,W,H);
     grd.addColorStop(0,'#dedad4');grd.addColorStop(1,'#cac6be');
     ctx.fillStyle=grd;ctx.fillRect(0,0,W,H);
   }
 
-  /* Rotation de la texture (option) */
   if (S.tileRot!==0) {
     const tmp=document.createElement('canvas');tmp.width=W;tmp.height=H;
     const tc=tmp.getContext('2d');
@@ -803,7 +822,6 @@ function buildTileCanvas() {
     ctx.clearRect(0,0,W,H);ctx.drawImage(tmp,0,0);
   }
 
-  /* Joint */
   if (S.jointColor&&S.jointSize>0) {
     const jPx=Math.max(1,Math.round(S.jointSize*PX_PER_CM/10));
     ctx.strokeStyle=S.jointColor;ctx.lineWidth=jPx;
@@ -814,19 +832,12 @@ function buildTileCanvas() {
 }
 
 /* ═══════════════════════════════════════════════════════════
-   CONSTRUCTION DU MESH SOL THREE.JS
-
-   1. Projeter les points 2D → 3D sur le plan du sol.
-   2. Créer une Shape Three.js depuis les points XZ.
-   3. Trianguler → ShapeGeometry.
-   4. Appliquer la texture carreau avec repeat.
-   5. Ajouter à la scène.
+   CONSTRUCTION MESH SOL
 ═══════════════════════════════════════════════════════════ */
 function rebuildFloor() {
   if (!S.polyValidated||S.polyPts.length<3) return;
   if (S.glbLoading) return;
 
-  /* Supprimer l'ancien mesh */
   if (S.floorMesh) {
     scene.remove(S.floorMesh);
     S.floorMesh.geometry.dispose();
@@ -835,7 +846,6 @@ function rebuildFloor() {
     S.floorMesh=null;
   }
 
-  /* Déterminer Y du sol : depuis le hit-test XR ou Y=0 */
   let yFloor=0;
   if (S.xrMode&&S.hitMatrix) {
     const m=new THREE.Matrix4().fromArray(S.hitMatrix);
@@ -844,12 +854,10 @@ function rebuildFloor() {
     yFloor=pos.y;
   }
 
-  /* Projeter chaque point 2D → 3D */
   const pts3=[];
   for (const p of S.polyPts) {
     let w3=screenToFloorPlane(p.x,p.y,yFloor);
     if (!w3) {
-      /* Si rayon parallèle au sol : estimation plane directe */
       const ndcX=(p.x/innerWidth)*2-1;
       const ndcY=-(p.y/innerHeight)*2+1;
       w3=new THREE.Vector3(ndcX*3,yFloor,-ndcY*3+camera.position.z-1);
@@ -857,7 +865,6 @@ function rebuildFloor() {
     pts3.push(w3);
   }
 
-  /* En mode XR : centrer la zone autour du dernier hit-test */
   if (S.xrMode&&S.hitMatrix) {
     const ref=new THREE.Vector3();
     new THREE.Matrix4().fromArray(S.hitMatrix).decompose(ref,new THREE.Quaternion(),new THREE.Vector3());
@@ -867,7 +874,6 @@ function rebuildFloor() {
     pts3.forEach(p=>{p.x+=dx;p.z+=dz;p.y=ref.y;});
   }
 
-  /* Shape Three.js (plan XZ → ShapeGeometry travaille en XY) */
   const shape=new THREE.Shape();
   shape.moveTo(pts3[0].x,pts3[0].z);
   for(let i=1;i<pts3.length;i++) shape.lineTo(pts3[i].x,pts3[i].z);
@@ -875,17 +881,9 @@ function rebuildFloor() {
 
   const geo=new THREE.ShapeGeometry(shape);
 
-  /* Recalculer les UV basés sur les dimensions réelles du carreau en mètres */
-  const tW=S.tileCM.w/100; /* m */
+  const tW=S.tileCM.w/100;
   const tH=S.tileCM.h/100;
   const pos=geo.attributes.position.array;
-
-  /* Bounding box 2D pour normalisation UV */
-  let minX=Infinity,maxX=-Infinity,minY=Infinity,maxY=-Infinity;
-  for(let i=0;i<pos.length/3;i++){
-    minX=Math.min(minX,pos[i*3]);maxX=Math.max(maxX,pos[i*3]);
-    minY=Math.min(minY,pos[i*3+1]);maxY=Math.max(maxY,pos[i*3+1]);
-  }
 
   const uvArr=new Float32Array(pos.length/3*2);
   for(let i=0;i<pos.length/3;i++){
@@ -894,21 +892,18 @@ function rebuildFloor() {
   }
   geo.setAttribute('uv',new THREE.BufferAttribute(uvArr,2));
 
-  /* ShapeGeometry est dans le plan XY → transformer en XZ */
   const posArr=geo.attributes.position.array;
   for(let i=0;i<posArr.length/3;i++){
-    posArr[i*3+2]=posArr[i*3+1];   /* z ← y */
-    posArr[i*3+1]=yFloor+0.003;     /* y = sol + 3mm */
+    posArr[i*3+2]=posArr[i*3+1];
+    posArr[i*3+1]=yFloor+0.003;
   }
   geo.attributes.position.needsUpdate=true;
   geo.computeVertexNormals();
 
-  /* Texture */
   const tileCanvas=buildTileCanvas();
   const tex=new THREE.CanvasTexture(tileCanvas);
   tex.wrapS=tex.wrapT=THREE.RepeatWrapping;
   tex.encoding=THREE.sRGBEncoding;
-  /* Le repeat est géré par les UV — pas besoin de tex.repeat */
 
   const mat=new THREE.MeshStandardMaterial({
     map:tex,
@@ -923,7 +918,6 @@ function rebuildFloor() {
   scene.add(S.floorMesh);
 }
 
-/* Mise à jour texture uniquement (sans reconstruire la géo) */
 function refreshTexture() {
   if (!S.floorMesh) { rebuildFloor(); return; }
   const old=S.floorMesh.material.map;
@@ -998,7 +992,6 @@ document.getElementById('resetBtn').addEventListener('click',()=>{
 
 document.getElementById('captureBtn').addEventListener('click',()=>{
   renderer.render(scene,camera);
-  /* Fusionner Three.js canvas + poly canvas */
   const cap=document.createElement('canvas');
   cap.width=innerWidth;cap.height=innerHeight;
   const cc=cap.getContext('2d');
@@ -1031,7 +1024,7 @@ window.addEventListener('mouseup',endDrag);window.addEventListener('touchend',en
 handle.addEventListener('click',()=>{const h=document.getElementById('sheet').getBoundingClientRect().height;setSheetH(h<=SHEET_PEEK+10?SHEET_MID:h>=SHEET_FULL-20?SHEET_PEEK:SHEET_FULL);});
 
 /* ═══════════════════════════════════════════════════════════
-   PRODUITS DÉMO (si Flutter ne pousse rien après 2.5s)
+   PRODUITS DÉMO (fallback si aucun produit reçu)
 ═══════════════════════════════════════════════════════════ */
 function ingestDemo() {
   ingestProducts([
@@ -1052,21 +1045,40 @@ function ingestDemo() {
 
 /* ═══════════════════════════════════════════════════════════
    SPLASH → DÉMARRAGE
+   Ordre de priorité pour les produits :
+   1. URL params (?products=…)  ← Flutter via launchUrl
+   2. window.receiveFromFlutter ← Flutter via WebView bridge
+   3. ingestDemo()              ← fallback développement
 ═══════════════════════════════════════════════════════════ */
 document.getElementById('splashBtn').addEventListener('click', async()=>{
   document.getElementById('splash').classList.add('hidden');
   initThree();
   initPolyCanvas();
+
   const xrOk = await checkXR();
   if (xrOk) {
     await startXR();
   } else {
     await startFallback();
   }
-  /* Signaler Flutter que la page est prête */
+
   postToFlutter({type:'ready'});
-  /* Produits démo si pas de Flutter */
-  setTimeout(()=>{ if(!S.products.length) ingestDemo(); }, 2500);
+
+  /* ── Priorité 1 : produits depuis l'URL ── */
+  const urlProds = parseProductsFromURL();
+  if (urlProds && urlProds.length) {
+    console.log('[FloorAR] ' + urlProds.length + ' produits depuis URL params');
+    ingestProducts(urlProds);
+    return; /* Pas besoin du fallback */
+  }
+
+  /* ── Priorité 2 & 3 : attendre Flutter bridge ou démo ── */
+  setTimeout(()=>{
+    if (!S.products.length) {
+      console.log('[FloorAR] Aucun produit reçu → démo');
+      ingestDemo();
+    }
+  }, 2500);
 });
 </script>
 </body>
