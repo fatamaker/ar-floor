@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no"/>
-<title>FloorAR v4 · WebXR</title>
+<title>FloorAR · WebXR 3D Tiles</title>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -15,8 +15,9 @@
 }
 html,body{width:100%;height:100%;overflow:hidden;background:#0a0a0f;font-family:var(--font)}
 #threeCanvas{position:fixed;inset:0;width:100%;height:100%;z-index:0}
+#polyDrawCanvas{position:fixed;inset:0;width:100%;height:100%;z-index:3;pointer-events:none}
+#interactionCanvas{position:fixed;inset:0;width:100%;height:100%;z-index:4;cursor:crosshair}
 
-/* Splash */
 #splash{position:fixed;inset:0;z-index:100;background:var(--secondary);display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity .5s}
 #splash.hidden{opacity:0;pointer-events:none}
 .splashInner{display:flex;flex-direction:column;align-items:center;padding:0 32px;text-align:center}
@@ -24,1212 +25,692 @@ html,body{width:100%;height:100%;overflow:hidden;background:#0a0a0f;font-family:
 #splashTitle{font-size:30px;font-weight:700;color:#fff;letter-spacing:-1px;margin-bottom:10px}
 #splashSub{font-size:13px;font-weight:500;color:rgba(255,255,255,.65);line-height:1.7;max-width:280px;margin-bottom:36px}
 #splashBtn{padding:14px 38px;background:var(--primary);color:#fff;border:none;border-radius:var(--r-xl);font-family:var(--font);font-size:14px;font-weight:700;cursor:pointer;box-shadow:0 4px 20px rgba(245,144,100,.4)}
-#prodCountBadge{margin-bottom:18px;background:rgba(245,144,100,.18);border:1px solid rgba(245,144,100,.4);border-radius:var(--r-xl);padding:6px 18px;font-size:12px;font-weight:600;color:var(--primary);display:none}
 
-/* Top bar */
 #topBar{position:fixed;top:0;left:0;right:0;z-index:20;display:flex;align-items:center;justify-content:space-between;padding:14px 18px 10px;background:linear-gradient(to bottom,rgba(17,17,17,.7),transparent);pointer-events:none}
 #topBar>*{pointer-events:auto}
 #appLogoText{font-size:16px;font-weight:700;color:#fff;letter-spacing:-.3px}
-.topPill{display:flex;align-items:center;gap:5px;padding:5px 12px;border-radius:var(--r-xl);font-size:10px;font-weight:600;backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.15);color:#fff;background:rgba(17,17,17,.5);cursor:pointer;transition:all .25s}
-.topPill.active{background:rgba(245,144,100,.2);border-color:rgba(245,144,100,.5);color:var(--primary)}
+.topPill{display:flex;align-items:center;gap:5px;padding:5px 12px;border-radius:var(--r-xl);font-size:10px;font-weight:600;backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.15);color:#fff;background:rgba(17,17,17,.5);cursor:pointer}
+.topPill.active{background:rgba(82,180,107,.2);border-color:rgba(82,180,107,.5);color:#52B46B}
 .topPill-dot{width:5px;height:5px;border-radius:50%;background:currentColor}
 .topPill.active .topPill-dot{animation:blink 1.4s infinite}
 @keyframes blink{0%,100%{opacity:.9}50%{opacity:.2}}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
 @keyframes spin{to{transform:rotate(360deg)}}
-@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 
-/* Status */
-#statusToast{position:fixed;top:68px;left:50%;transform:translateX(-50%);z-index:21;display:flex;align-items:center;gap:7px;padding:7px 16px;border-radius:var(--r-xl);font-size:11px;font-weight:500;color:rgba(255,255,255,.9);background:rgba(17,17,17,.82);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,.12);white-space:nowrap;pointer-events:none;max-width:92vw;animation:fadeUp .3s ease}
-#statusDot{width:6px;height:6px;border-radius:50%;background:var(--grey);flex-shrink:0;transition:background .3s}
+#statusToast{position:fixed;top:68px;left:50%;transform:translateX(-50%);z-index:21;display:flex;align-items:center;gap:7px;padding:7px 16px;border-radius:var(--r-xl);font-size:11px;font-weight:500;color:rgba(255,255,255,.9);background:rgba(17,17,17,.82);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,.12);white-space:nowrap;pointer-events:none;max-width:92vw}
+#statusDot{width:6px;height:6px;border-radius:50%;background:var(--grey);flex-shrink:0}
 #statusToast.ok #statusDot{background:var(--green)}
 #statusToast.scanning #statusDot{background:var(--primary);animation:pulse .8s infinite}
 #statusToast.error #statusDot{background:var(--red)}
-#statusToast.loading #statusDot{background:var(--primary);animation:pulse .6s infinite}
-#statusToast.poly #statusDot{background:#FF3B30;animation:pulse .8s infinite}
+#statusToast.poly #statusDot{background:#FF3B30}
 
-/* GLB loader */
 #glbLoader{position:fixed;inset:0;z-index:50;background:rgba(10,10,15,.8);display:none;align-items:center;justify-content:center;flex-direction:column;gap:14px}
 #glbLoader.visible{display:flex}
 .spin{width:34px;height:34px;border:3px solid rgba(245,144,100,.25);border-top-color:var(--primary);border-radius:50%;animation:spin .75s linear infinite}
-#glbLoader p{color:rgba(255,255,255,.7);font-size:12px;font-weight:500}
-#glbProgress{font-size:11px;color:rgba(245,144,100,.8);font-weight:600}
 
-/* Poly hint */
-#polyHint{position:fixed;bottom:120px;left:50%;transform:translateX(-50%);z-index:18;background:rgba(40,79,117,.92);backdrop-filter:blur(12px);border-radius:var(--r-xl);padding:8px 20px;font-size:11px;font-weight:600;color:#fff;pointer-events:none;display:none;text-align:center}
-#polyHint.visible{display:block}
+#polyControls{position:fixed;bottom:110px;left:0;right:0;z-index:22;display:none;flex-direction:column;align-items:center;gap:10px;pointer-events:none}
+#polyControls.visible{display:flex}
+#polyControls>*{pointer-events:auto}
+.polyInfoPill{background:rgba(17,17,17,.88);backdrop-filter:blur(14px);border:1px solid rgba(255,59,48,.4);border-radius:var(--r-xl);padding:8px 20px;font-size:11px;font-weight:600;color:#fff}
+.polyInfoPill span{color:#FF3B30}
+.polyBtnRow{display:flex;gap:10px}
+.polyBtn{padding:10px 20px;border-radius:var(--r-md);border:none;cursor:pointer;font-family:var(--font);font-size:12px;font-weight:700}
+#pbUndo{background:rgba(255,255,255,.14);color:#fff;border:1px solid rgba(255,255,255,.25)}
+#pbClose{background:#FF3B30;color:#fff;display:none}
+#pbValidate{background:var(--green);color:#fff;display:none}
+#pbCancel{background:rgba(255,255,255,.07);color:rgba(255,255,255,.55)}
 
-/* Sheet */
-#sheet{position:fixed;bottom:0;left:0;right:0;z-index:30;background:#fff;border-radius:var(--r-lg) var(--r-lg) 0 0;box-shadow:0 -4px 40px rgba(40,79,117,.18);display:flex;flex-direction:column;transition:height .35s cubic-bezier(.32,.72,0,1)}
+#sheet{position:fixed;bottom:0;left:0;right:0;z-index:30;background:#fff;border-radius:var(--r-lg) var(--r-lg) 0 0;display:flex;flex-direction:column;transition:height .35s cubic-bezier(.32,.72,0,1)}
 #sheetHandle{width:100%;padding:12px 0 6px;cursor:grab;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 #handleBar{width:38px;height:4px;border-radius:3px;background:var(--lg)}
 #quickRow{display:flex;align-items:center;gap:6px;padding:0 12px 10px;flex-shrink:0}
-.qBtn{flex:1;display:flex;align-items:center;justify-content:center;gap:4px;padding:9px 4px;border-radius:var(--r-md);border:none;cursor:pointer;font-family:var(--font);font-size:10px;font-weight:600;transition:all .18s;white-space:nowrap;min-width:0}
-.qBtn:active{transform:scale(.96)}
+.qBtn{flex:1;display:flex;align-items:center;justify-content:center;gap:4px;padding:9px 4px;border-radius:var(--r-md);border:none;cursor:pointer;font-family:var(--font);font-size:10px;font-weight:600}
 .qBtn-primary{background:var(--secondary);color:#fff}
 .qBtn-ghost{background:var(--lg2);color:#474747}
 .qBtn-poly{background:rgba(255,59,48,.1);color:#FF3B30;border:1.5px solid rgba(255,59,48,.3)}
 .qBtn-poly-on{background:rgba(255,59,48,.22);color:#FF3B30;border:1.5px solid rgba(255,59,48,.6)}
-.qBtn-icon{font-size:12px;line-height:1}
-#sheetContent{flex:1;overflow-y:auto;padding:0 14px 28px;-webkit-overflow-scrolling:touch;scrollbar-width:thin;min-height:0}
+.qBtn-icon{font-size:12px}
+#sheetContent{flex:1;overflow-y:auto;padding:0 14px 28px;min-height:0}
 #sheet.collapsed #sheetContent{overflow:hidden;opacity:0;pointer-events:none}
-.secLabel{font-size:9px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;color:var(--grey);margin:12px 0 8px;display:flex;align-items:center;gap:7px}
-.secLabel::after{content:'';flex:1;height:1px;background:var(--lg)}
-
-/* Products */
-#productScroll{display:flex;gap:10px;overflow-x:auto;padding-bottom:6px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
-#productScroll::-webkit-scrollbar{display:none}
-.prodCard{flex-shrink:0;width:130px;border-radius:var(--r-md);border:1.5px solid var(--lg);background:var(--lg2);cursor:pointer;overflow:hidden;transition:all .2s;position:relative}
+.secLabel{font-size:9px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;color:var(--grey);margin:12px 0 8px}
+#productScroll{display:flex;gap:10px;overflow-x:auto;padding-bottom:6px}
+.prodCard{flex-shrink:0;width:130px;border-radius:var(--r-md);border:1.5px solid var(--lg);background:var(--lg2);cursor:pointer;overflow:hidden}
 .prodCard.active{border-color:var(--primary);box-shadow:0 0 0 3px rgba(245,144,100,.15)}
-.prodCard-img{width:100%;height:70px;object-fit:cover;display:block;background:#e0e0e0}
+.prodCard-img{width:100%;height:70px;object-fit:cover;background:#e0e0e0}
 .prodCard-body{padding:6px 8px 8px}
-.prodCard-name{font-size:10px;font-weight:700;color:#111;margin-bottom:2px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.prodCard-name{font-size:10px;font-weight:700;color:#111}
 .prodCard-dims{font-size:9px;color:var(--dg)}
-.prodCard-badge{position:absolute;top:5px;right:5px;background:rgba(40,79,117,.85);color:#fff;font-size:8px;font-weight:700;padding:2px 6px;border-radius:10px}
-.prodCard-glb{position:absolute;top:5px;left:5px;background:rgba(82,180,107,.9);color:#fff;font-size:7px;font-weight:700;padding:2px 5px;border-radius:6px;letter-spacing:.3px}
-
-/* Variants */
-#variantRow{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:4px}
-.varSwatch{width:38px;height:38px;border-radius:var(--r-sm);cursor:pointer;border:2.5px solid transparent;overflow:hidden;transition:all .18s;flex-shrink:0;background:#ddd}
-.varSwatch img{width:100%;height:100%;object-fit:cover;display:block}
-.varSwatch.active{border-color:var(--secondary);transform:scale(1.1)}
-.varName{font-size:8px;color:var(--dg);margin-top:2px;text-align:center;max-width:38px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
-
-/* Dims + source */
 #dimsInfo{font-size:10px;color:var(--secondary);font-weight:600;margin-bottom:8px;padding:6px 10px;background:rgba(40,79,117,.07);border-radius:var(--r-sm);border-left:3px solid var(--secondary);display:none}
-#tileSourceBadge{font-size:9px;padding:4px 10px;border-radius:var(--r-xl);margin-bottom:8px;font-weight:600;display:none}
-#tileSourceBadge.glb{background:rgba(82,180,107,.15);color:#2a8a44;border:1px solid rgba(82,180,107,.4)}
-#tileSourceBadge.tex{background:rgba(245,144,100,.15);color:#c06020;border:1px solid rgba(245,144,100,.4)}
-
-/* Joint */
 #jointRow{display:flex;align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap}
-.jointSwatch{width:26px;height:26px;border-radius:50%;cursor:pointer;border:2.5px solid transparent;flex-shrink:0;transition:all .18s}
-.jointSwatch.active{border-color:var(--secondary);transform:scale(1.12)}
-.jointLabel{font-size:10px;font-weight:600;color:var(--dg)}
-input[type=range]{-webkit-appearance:none;width:100%;height:4px;background:var(--lg);border-radius:3px;outline:none}
-input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:var(--secondary);cursor:pointer;box-shadow:0 2px 6px rgba(40,79,117,.3);border:2px solid #fff}
-.sliderHead{display:flex;justify-content:space-between;align-items:center;font-size:10px;font-weight:600;color:var(--dg);margin-bottom:4px}
-.sliderHead .val{background:var(--lg2);border-radius:var(--r-sm);padding:2px 7px;font-size:10px;font-weight:700;color:var(--secondary)}
-
-/* Poly canvas */
-#polyCanvas{position:fixed;inset:0;z-index:10;pointer-events:none;display:none}
-#polyCanvas.active{display:block;pointer-events:auto;cursor:crosshair}
-
-/* Poly controls */
-#polyControls{position:fixed;bottom:110px;left:0;right:0;z-index:22;display:none;flex-direction:column;align-items:center;gap:10px;pointer-events:none}
-#polyControls.visible{display:flex}
-#polyControls>*{pointer-events:auto}
-.polyInfoPill{background:rgba(17,17,17,.88);backdrop-filter:blur(14px);border:1px solid rgba(255,59,48,.4);border-radius:var(--r-xl);padding:8px 20px;font-size:11px;font-weight:600;color:#fff;text-align:center}
-.polyInfoPill span{color:#FF3B30}
-.polyBtnRow{display:flex;gap:10px}
-.polyBtn{padding:10px 20px;border-radius:var(--r-md);border:none;cursor:pointer;font-family:var(--font);font-size:12px;font-weight:700;transition:all .18s}
-.polyBtn:active{transform:scale(.95)}
-#pbUndo{background:rgba(255,255,255,.14);color:#fff;border:1px solid rgba(255,255,255,.25)}
-#pbClose{background:#FF3B30;color:#fff;display:none}
-#pbValidate{background:var(--green);color:#fff;display:none}
-#pbCancel{background:rgba(255,255,255,.07);color:rgba(255,255,255,.55);border:1px solid rgba(255,255,255,.15);font-size:11px}
-
-/* No XR */
-#noXrBanner{position:fixed;top:120px;left:50%;transform:translateX(-50%);z-index:25;background:rgba(221,80,80,.9);color:#fff;padding:10px 20px;border-radius:var(--r-xl);font-size:12px;font-weight:600;text-align:center;display:none;max-width:80vw}
+.jointSwatch{width:26px;height:26px;border-radius:50%;cursor:pointer;border:2.5px solid transparent}
+.jointSwatch.active{border-color:var(--secondary)}
+input[type=range]{-webkit-appearance:none;width:100%;height:4px;background:var(--lg);border-radius:3px}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:var(--secondary);cursor:pointer}
 </style>
 </head>
 <body>
 
 <canvas id="threeCanvas"></canvas>
-<canvas id="polyCanvas"></canvas>
+<canvas id="polyDrawCanvas"></canvas>
+<canvas id="interactionCanvas"></canvas>
 
-<div id="glbLoader">
-  <div class="spin"></div>
-  <p id="glbLoaderTxt">Chargement modèle 3D…</p>
-  <div id="glbProgress"></div>
-</div>
+<div id="glbLoader"><div class="spin"></div><p>Chargement modèle 3D…</p></div>
+<div id="splash"><div class="splashInner"><div id="splashIcon">🧱</div><div id="splashTitle">FloorAR</div><div id="splashSub">Délimitez votre sol · Visualisation 3D</div><button id="splashBtn">Commencer</button></div></div>
 
-<!-- Splash -->
-<div id="splash">
-  <div class="splashInner">
-    <div id="splashIcon">
-      <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
-        <rect x="4" y="20" width="28" height="10" rx="3" fill="rgba(255,255,255,.3)" stroke="rgba(255,255,255,.6)" stroke-width="1"/>
-        <rect x="4" y="20" width="13" height="10" fill="rgba(245,144,100,.7)"/>
-        <line x1="18" y1="8" x2="4" y2="20" stroke="rgba(255,255,255,.35)" stroke-width="1"/>
-        <line x1="18" y1="8" x2="32" y2="20" stroke="rgba(255,255,255,.35)" stroke-width="1"/>
-        <circle cx="18" cy="13" r="3" fill="rgba(245,144,100,.9)"/>
-      </svg>
-    </div>
-    <div id="splashTitle">FloorAR</div>
-    <div id="splashSub">Délimitez votre sol · visualisez vos carreaux en AR · textures GLB réelles</div>
-    <div id="prodCountBadge"></div>
-    <button id="splashBtn">Commencer</button>
-  </div>
-</div>
-
-<!-- Top Bar -->
-<div id="topBar">
-  <div style="display:flex;align-items:center;gap:8px">
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-      <rect x="2" y="14" width="20" height="8" rx="3" fill="rgba(255,255,255,.2)" stroke="rgba(255,255,255,.5)" stroke-width="1"/>
-      <line x1="12" y1="14" x2="12" y2="22" stroke="rgba(255,255,255,.4)" stroke-width="1"/>
-      <line x1="2" y1="18" x2="22" y2="18" stroke="rgba(255,255,255,.4)" stroke-width="1"/>
-    </svg>
-    <span id="appLogoText">FloorAR</span>
-  </div>
-  <div id="arPill" class="topPill"><div class="topPill-dot"></div><span id="arPillLabel">Live</span></div>
-</div>
-
+<div id="topBar"><span id="appLogoText">FloorAR</span><div id="arPill" class="topPill"><div class="topPill-dot"></div><span>WebXR</span></div></div>
 <div id="statusToast"><div id="statusDot"></div><span id="statusText">Initialisation…</span></div>
-<div id="polyHint">⬡ Zone carrelée · ajustez dans le panneau</div>
-<div id="noXrBanner">WebXR non supporté — mode caméra classique activé</div>
 
-<!-- Poly controls -->
-<div id="polyControls">
-  <div class="polyInfoPill" id="polyInfo">Tapez les <span>coins du sol</span> · 0 pt</div>
-  <div class="polyBtnRow">
-    <button class="polyBtn" id="pbUndo">↩ Annuler</button>
-    <button class="polyBtn" id="pbClose">⬡ Fermer</button>
-    <button class="polyBtn" id="pbValidate">✓ Valider</button>
-    <button class="polyBtn" id="pbCancel">✕</button>
-  </div>
-</div>
+<div id="polyControls"><div class="polyInfoPill" id="polyInfo">Tapez les <span>coins du sol</span> · 0 pt</div><div class="polyBtnRow"><button class="polyBtn" id="pbUndo">↩</button><button class="polyBtn" id="pbClose">⬡ Fermer</button><button class="polyBtn" id="pbValidate">✓ Valider</button><button class="polyBtn" id="pbCancel">✕</button></div></div>
 
-<!-- Bottom Sheet -->
 <div id="sheet" class="collapsed" style="height:92px">
   <div id="sheetHandle"><div id="handleBar"></div></div>
   <div id="quickRow">
-    <button class="qBtn qBtn-ghost" id="resetBtn" style="max-width:40px" title="Réinitialiser"><span class="qBtn-icon">↺</span></button>
-    <button class="qBtn qBtn-primary" id="polyBtn" style="flex:3"><span class="qBtn-icon">⬡</span> Délimiter la zone</button>
-    <button class="qBtn qBtn-ghost" id="captureBtn" style="max-width:40px" title="Capture"><span class="qBtn-icon">📷</span></button>
+    <button class="qBtn qBtn-ghost" id="resetBtn">↺</button>
+    <button class="qBtn qBtn-primary" id="polyBtn">⬡ Délimiter la zone</button>
+    <button class="qBtn qBtn-ghost" id="captureBtn">📷</button>
   </div>
   <div id="sheetContent">
-
     <div class="secLabel">Produits</div>
-    <div id="productScroll"><div style="padding:16px;color:var(--grey);font-size:11px">Chargement des produits…</div></div>
-
-    <div class="secLabel" id="varSecLabel" style="display:none">Variante / couleur</div>
-    <div id="variantRow" style="display:none"></div>
-
-    <div id="tileSourceBadge"></div>
+    <div id="productScroll"><div style="padding:16px;color:var(--grey)">Chargement…</div></div>
     <div id="dimsInfo"></div>
-
     <div class="secLabel">Joint</div>
     <div id="jointRow">
-      <span class="jointLabel">Couleur</span>
       <div class="jointSwatch active" style="background:#e8e0d8" data-j="#e8e0d8"></div>
       <div class="jointSwatch" style="background:#c8c0b8" data-j="#c8c0b8"></div>
       <div class="jointSwatch" style="background:#888" data-j="#888"></div>
       <div class="jointSwatch" style="background:#444" data-j="#444"></div>
-      <div class="jointSwatch" style="background:#222" data-j="#222"></div>
-      <span class="jointLabel" style="margin-left:4px">Larg.</span>
-      <input type="range" id="jointSize" min="1" max="14" value="3" step="1" style="flex:1;min-width:50px"/>
-      <span id="jointSizeVal" style="font-size:10px;font-weight:700;color:var(--secondary);min-width:20px">3</span>px
+      <input type="range" id="jointSize" min="1" max="10" value="3" style="flex:1"/>
+      <span id="jointSizeVal" style="font-size:10px">3</span>px
     </div>
-
     <div class="secLabel">Opacité</div>
-    <div style="margin-bottom:8px">
-      <div class="sliderHead">Opacité <span class="val" id="opacDisplay">88</span>%</div>
-      <input type="range" id="opacSlider" min="20" max="100" value="88" step="1"/>
-    </div>
-
-    <div class="secLabel">Dimensions carreau</div>
-    <div style="margin-bottom:8px">
-      <div class="sliderHead">Largeur <span class="val" id="tileWDisplay">60</span> cm</div>
-      <input type="range" id="tileWSlider" min="10" max="120" value="60" step="5"/>
-    </div>
-    <div style="margin-bottom:8px">
-      <div class="sliderHead">Hauteur <span class="val" id="tileHDisplay">60</span> cm</div>
-      <input type="range" id="tileHSlider" min="10" max="120" value="60" step="5"/>
-    </div>
-
-    <div class="secLabel">Rotation grille</div>
-    <div style="margin-bottom:16px">
-      <div class="sliderHead">Angle <span class="val" id="rotDisplay">0</span>°</div>
-      <input type="range" id="rotSlider" min="0" max="90" value="0" step="1"/>
-    </div>
-
+    <input type="range" id="opacitySlider" min="30" max="100" value="88" step="1"/>
+    <div class="secLabel">Dimensions carreau (cm)</div>
+    <input type="range" id="tileWSlider" min="10" max="120" value="60" step="5"/>
+    <input type="range" id="tileHSlider" min="10" max="120" value="60" step="5" style="margin-top:8px"/>
   </div>
 </div>
+
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/environments/RoomEnvironment.js"></script>
-
 <script>
 'use strict';
-/* ═══════════════════════════════════════
-   STATE
-═══════════════════════════════════════ */
+
+/* ==================== ÉTAT ==================== */
 const S = {
-  xrSession:null, xrMode:false, xrRefSpace:null,
-  hitTestSrc:null, hitReady:false,
-  hitMatrix:null, reticleVisible:false,
-  fallback:false,
-  products:[], selProduct:null, selVariant:null,
-  tileCM:{w:60,h:60}, tileRot:0,
-  polyMode:false, polyPts:[], polyClosed:false, polyValidated:false,
-  opacity:0.88, jointColor:'#e8e0d8', jointSize:3,
-  floorMesh:null,
-  texImg:null,
-  glbTexCanvas:null,
-  useGlbTex:false,
-  glbLoading:false,
+  xrSession: null, xrMode: false, hitMatrix: null, reticlePos: null,
+  products: [], selectedProduct: null,
+  tileCM: { w: 60, h: 60 },
+  polyMode: false, polyPoints: [], polyClosed: false, polyValidated: false,
+  opacity: 0.88, jointColor: '#e8e0d8', jointSize: 3,
+  floorMesh: null, textureCache: null, textureUrl: '',
+  glbLoading: false, glbTextureCanvas: null, useGlbTex: false
 };
-const CLOSE_SNAP = 32;
 
-/* ═══════════════════════════════════════
-   URL PRODUCTS
-═══════════════════════════════════════ */
-function parseProductsFromURL() {
-  try {
-    const raw = new URLSearchParams(window.location.search).get('products');
-    if (!raw) return null;
-    const prods = JSON.parse(decodeURIComponent(raw));
-    return Array.isArray(prods) && prods.length ? prods : null;
-  } catch(e){ return null; }
-}
+let scene, camera, renderer, gltfLoader, xrReticle;
+const CLOSE_SNAP = 35;
 
-(function showSplashBadge(){
-  const prods = parseProductsFromURL();
-  if (!prods) return;
-  const badge = document.getElementById('prodCountBadge');
-  badge.textContent = prods.length + ' produit'+(prods.length>1?'s':'')+' chargé'+(prods.length>1?'s':'');
-  badge.style.display = 'block';
-})();
-
-/* ═══════════════════════════════════════
-   THREE.JS INIT
-═══════════════════════════════════════ */
-let scene, camera, renderer, gltfLoader, xrReticleMesh;
-
+/* ==================== THREE.JS ==================== */
 function initThree() {
-  const cv = document.getElementById('threeCanvas');
   scene = new THREE.Scene();
-  camera = new THREE.PerspectiveCamera(70, innerWidth/innerHeight, 0.01, 100);
-
-  renderer = new THREE.WebGLRenderer({
-    canvas:cv, alpha:true, antialias:true, logarithmicDepthBuffer:true
-  });
+  scene.background = new THREE.Color(0x111122);
+  
+  camera = new THREE.PerspectiveCamera(70, innerWidth / innerHeight, 0.01, 100);
+  camera.position.set(0, 1.5, 2);
+  
+  renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('threeCanvas'), alpha: false, antialias: true });
   renderer.setSize(innerWidth, innerHeight);
-  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
-  renderer.outputEncoding = THREE.sRGBEncoding;
-  renderer.physicallyCorrectLights = true;
+  renderer.setPixelRatio(window.devicePixelRatio);
   renderer.shadowMap.enabled = true;
-  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.xr.enabled = true;
-
-  // PBR environment (PlaceAR quality)
-  const pmrem = new THREE.PMREMGenerator(renderer);
-  pmrem.compileEquirectangularShader();
-  scene.environment = pmrem.fromScene(new THREE.RoomEnvironment()).texture;
-  pmrem.dispose();
-
-  // Lights
-  scene.add(new THREE.AmbientLight(0xffffff, 1.2));
-  const sun = new THREE.DirectionalLight(0xffffff, 1.4);
-  sun.position.set(3,8,5); sun.castShadow=true; scene.add(sun);
-  const fill = new THREE.DirectionalLight(0xffffff, 0.4);
-  fill.position.set(-4,2,-4); scene.add(fill);
-
-  // XR reticle
-  const rg = new THREE.RingGeometry(0.09,0.12,32).rotateX(-Math.PI/2);
-  const rm = new THREE.MeshBasicMaterial({color:0x52B46B, side:THREE.DoubleSide});
-  xrReticleMesh = new THREE.Mesh(rg, rm);
-  xrReticleMesh.visible = false;
-  xrReticleMesh.matrixAutoUpdate = false;
-  scene.add(xrReticleMesh);
-
+  
+  // Éclairage
+  scene.add(new THREE.AmbientLight(0xffffff, 0.7));
+  const sun = new THREE.DirectionalLight(0xffffff, 1.2);
+  sun.position.set(2, 5, 3);
+  sun.castShadow = true;
+  sun.receiveShadow = true;
+  scene.add(sun);
+  scene.add(new THREE.PointLight(0xffffff, 0.4));
+  
+  // Reticule AR
+  const ringGeo = new THREE.RingGeometry(0.08, 0.12, 24).rotateX(-Math.PI / 2);
+  xrReticle = new THREE.Mesh(ringGeo, new THREE.MeshStandardMaterial({ color: 0x52B46B, emissive: 0x226622, side: THREE.DoubleSide }));
+  xrReticle.visible = false;
+  scene.add(xrReticle);
+  
   gltfLoader = new THREE.GLTFLoader();
-
+  
   window.addEventListener('resize', () => {
-    camera.aspect = innerWidth/innerHeight;
+    camera.aspect = innerWidth / innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(innerWidth, innerHeight);
-    resizePolyCanvas();
     if (S.polyValidated) rebuildFloor();
   });
 }
 
-/* ═══════════════════════════════════════
-   WEBXR
-═══════════════════════════════════════ */
-async function checkXR() {
-  if (!navigator.xr) return false;
-  try { return await navigator.xr.isSessionSupported('immersive-ar'); }
-  catch { return false; }
-}
-
+/* ==================== WEBXR ==================== */
 async function startXR() {
   try {
+    if (!navigator.xr) throw new Error('WebXR non supporté');
+    const supported = await navigator.xr.isSessionSupported('immersive-ar');
+    if (!supported) throw new Error('AR non supporté');
+    
     const session = await navigator.xr.requestSession('immersive-ar', {
-      requiredFeatures:['hit-test'],
-      optionalFeatures:['dom-overlay','plane-detection'],
-      domOverlay:{root:document.body},
+      requiredFeatures: ['hit-test']
     });
-    S.xrSession=session; S.xrMode=true;
-    renderer.xr.setReferenceSpaceType('local');
+    
+    S.xrSession = session;
+    S.xrMode = true;
     await renderer.xr.setSession(session);
+    
     S.xrRefSpace = await session.requestReferenceSpace('local');
-    const vs = await session.requestReferenceSpace('viewer');
-    S.hitTestSrc = await session.requestHitTestSource({space:vs, entityTypes:['plane','point']});
-    S.hitReady = true;
-    session.addEventListener('end', ()=>{
-      S.xrMode=false; S.xrSession=null; S.hitReady=false; S.hitTestSrc=null;
-      xrReticleMesh.visible=false;
+    const viewerSpace = await session.requestReferenceSpace('viewer');
+    S.hitTestSource = await session.requestHitTestSource({ space: viewerSpace, entityTypes: ['plane', 'point'] });
+    
+    session.addEventListener('end', () => {
+      S.xrMode = false;
+      S.hitTestSource = null;
+      xrReticle.visible = false;
       document.getElementById('arPill').classList.remove('active');
-      document.getElementById('arPillLabel').textContent='Live';
-      setStatus('Session AR terminée');
+      setStatus('AR terminé', 'ok');
     });
-    renderer.setAnimationLoop(xrLoop);
+    
+    renderer.setAnimationLoop(arLoop);
     document.getElementById('arPill').classList.add('active');
-    document.getElementById('arPillLabel').textContent='AR Actif';
-    setStatus('Pointez le sol · Délimitez la zone','scanning');
-    setSheetH(SHEET_PEEK);
-    postToFlutter({type:'ready'});
-  } catch(err) {
-    console.error('WebXR:', err);
-    const b=document.getElementById('noXrBanner');
-    b.style.display='block'; setTimeout(()=>b.style.display='none',4000);
-    setStatus('WebXR non dispo · mode caméra','error');
-    await startFallback();
+    setStatus('Pointez le sol puis délimitez la zone', 'scanning');
+    
+  } catch (err) {
+    console.error(err);
+    setStatus('WebXR non disponible - Mode démo', 'error');
+    S.xrMode = false;
+    renderer.setAnimationLoop(() => renderer.render(scene, camera));
   }
 }
 
-function xrLoop(timestamp, frame) {
-  if (!frame){renderer.render(scene,camera);return;}
-  if (S.hitReady && S.hitTestSrc) {
-    const results = frame.getHitTestResults(S.hitTestSrc);
-    if (results.length) {
-      const pose = results[0].getPose(S.xrRefSpace);
+function arLoop(time, frame) {
+  if (!frame) { renderer.render(scene, camera); return; }
+  
+  if (S.hitTestSource) {
+    const hits = frame.getHitTestResults(S.hitTestSource);
+    if (hits.length) {
+      const pose = hits[0].getPose(S.xrRefSpace);
       if (pose) {
-        xrReticleMesh.visible=true;
-        xrReticleMesh.matrix.fromArray(pose.transform.matrix);
-        S.hitMatrix=pose.transform.matrix; S.reticleVisible=true;
+        xrReticle.visible = true;
+        xrReticle.matrix.fromArray(pose.transform.matrix);
+        S.hitMatrix = pose.transform.matrix;
+        const pos = new THREE.Vector3();
+        xrReticle.matrixWorld.decompose(pos, new THREE.Quaternion(), new THREE.Vector3());
+        S.reticlePos = pos;
       }
-    } else { xrReticleMesh.visible=false; S.reticleVisible=false; }
+    } else {
+      xrReticle.visible = false;
+    }
   }
   renderer.render(scene, camera);
 }
 
-/* ═══════════════════════════════════════
-   FALLBACK
-═══════════════════════════════════════ */
-async function startFallback() {
-  S.fallback=true;
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia({
-      video:{facingMode:'environment',width:{ideal:1280},height:{ideal:720}},audio:false,
-    });
-    const vid=document.createElement('video');
-    vid.srcObject=stream; vid.autoplay=true; vid.playsInline=true; vid.muted=true;
-    await vid.play();
-    scene.background = new THREE.VideoTexture(vid);
-  } catch(e){setStatus('Caméra refusée','error');}
-  camera.position.set(0,1.6,0.1); camera.lookAt(0,0,-1.5);
-  renderer.setAnimationLoop(()=>renderer.render(scene,camera));
-  S.reticleVisible=true;
-  setStatus('Mode caméra · Délimitez la zone','ok');
-  setSheetH(SHEET_PEEK);
+/* ==================== POLY CANVAS ==================== */
+const polyCanvas = document.getElementById('polyDrawCanvas');
+const interactionCanvas = document.getElementById('interactionCanvas');
+let polyCtx;
+
+function initPolyCanvas() {
+  const w = innerWidth, h = innerHeight;
+  polyCanvas.width = w; polyCanvas.height = h;
+  interactionCanvas.width = w; interactionCanvas.height = h;
+  polyCtx = polyCanvas.getContext('2d');
 }
 
-/* ═══════════════════════════════════════
-   FLUTTER BRIDGE
-═══════════════════════════════════════ */
-window.receiveFromFlutter = function(jsonStr) {
-  try{const d=JSON.parse(jsonStr);if(d.type==='products')ingestProducts(d.products);}
-  catch(e){console.error('receiveFromFlutter',e);}
-};
-function postToFlutter(obj) {
-  const s=JSON.stringify(obj);
-  try{
-    if(typeof FlutterBridge!=='undefined'){FlutterBridge.postMessage(s);return;}
-    if(window.webkit?.messageHandlers?.FlutterBridge){window.webkit.messageHandlers.FlutterBridge.postMessage(s);}
-  }catch(e){console.log('[bridge]',obj);}
+function ptDist(a, b) { return Math.hypot(a.x - b.x, a.y - b.y); }
+
+function redrawPoly(curX, curY) {
+  polyCtx.clearRect(0, 0, polyCanvas.width, polyCanvas.height);
+  const pts = S.polyPoints;
+  if (!pts.length) return;
+  
+  const nearFirst = pts.length >= 3 && curX !== undefined && ptDist({ x: curX, y: curY }, pts[0]) < CLOSE_SNAP;
+  
+  if (S.polyClosed || pts.length >= 3) {
+    polyCtx.beginPath();
+    polyCtx.moveTo(pts[0].x, pts[0].y);
+    for (let i = 1; i < pts.length; i++) polyCtx.lineTo(pts[i].x, pts[i].y);
+    polyCtx.closePath();
+    polyCtx.fillStyle = 'rgba(245,144,100,0.15)';
+    polyCtx.fill();
+  }
+  
+  polyCtx.beginPath();
+  polyCtx.moveTo(pts[0].x, pts[0].y);
+  for (let i = 1; i < pts.length; i++) polyCtx.lineTo(pts[i].x, pts[i].y);
+  if (!S.polyClosed && curX !== undefined) polyCtx.lineTo(curX, curY);
+  polyCtx.strokeStyle = '#FF3B30';
+  polyCtx.lineWidth = 2.5;
+  polyCtx.stroke();
+  
+  pts.forEach((pt, i) => {
+    polyCtx.beginPath();
+    polyCtx.arc(pt.x, pt.y, i === 0 ? 9 : 6, 0, Math.PI * 2);
+    polyCtx.fillStyle = i === 0 ? '#FF3B30' : '#fff';
+    polyCtx.fill();
+    polyCtx.fillStyle = '#000';
+    polyCtx.font = 'bold 10px Montserrat';
+    polyCtx.textAlign = 'center';
+    polyCtx.fillText(i + 1, pt.x, pt.y - 18);
+  });
+  
+  if (!S.polyClosed && pts.length >= 3 && nearFirst) {
+    polyCtx.fillStyle = '#FF3B30';
+    polyCtx.font = 'bold 10px Montserrat';
+    polyCtx.fillText('⬡ Fermer', pts[0].x + 15, pts[0].y - 25);
+  }
+  
+  updatePolyUI();
 }
 
-/* ═══════════════════════════════════════
-   PRODUCTS
-═══════════════════════════════════════ */
-function normCm(v){
-  if(!v||isNaN(v)) return 60;
-  const n=parseFloat(v);
-  if(n>500) return n/10;
-  if(n<5)   return n*100;
-  return n;
+function updatePolyUI() {
+  const n = S.polyPoints.length;
+  document.getElementById('polyInfo').innerHTML = `Tapez les <span>coins</span> · ${n} pt${n > 1 ? 's' : ''}`;
+  document.getElementById('pbClose').style.display = n >= 3 && !S.polyClosed ? 'block' : 'none';
+  document.getElementById('pbValidate').style.display = S.polyClosed ? 'block' : 'none';
 }
 
-function ingestProducts(prods) {
-  S.products=prods;
-  buildProductScroll();
-  if(prods.length) selectProduct(prods[0]);
-  setStatus(prods.length+' produit(s) chargé(s)','ok');
+function enterPolyMode() {
+  S.polyMode = true;
+  S.polyPoints = [];
+  S.polyClosed = false;
+  document.getElementById('polyControls').classList.add('visible');
+  document.getElementById('polyBtn').className = 'qBtn qBtn-poly-on';
+  document.getElementById('polyBtn').innerHTML = '<span class="qBtn-icon">⬡</span> En cours…';
+  setStatus('Tapez chaque coin du sol', 'poly');
+  redrawPoly();
+  setSheetHeight(SHEET_PEEK);
 }
 
-function hasAnyGLB(p) {
-  if((p.model3D||p.modelUrl||'').toLowerCase().endsWith('.glb')) return true;
-  if(p.variants) return p.variants.some(v=>(v.model3D||v.modelUrl||'').toLowerCase().endsWith('.glb'));
-  return false;
+function closePoly() {
+  if (S.polyPoints.length < 3) return;
+  S.polyClosed = true;
+  redrawPoly();
+  setStatus('Polygone fermé · Validez', 'poly');
 }
 
-function buildProductScroll() {
-  const el=document.getElementById('productScroll');
-  el.innerHTML='';
-  if(!S.products.length){
-    el.innerHTML='<div style="padding:16px;color:var(--grey);font-size:11px">Aucun produit disponible</div>';
+function validatePoly() {
+  if (S.polyPoints.length < 3) return;
+  S.polyClosed = true;
+  S.polyValidated = true;
+  S.polyMode = false;
+  document.getElementById('polyControls').classList.remove('visible');
+  document.getElementById('polyBtn').className = 'qBtn qBtn-poly';
+  document.getElementById('polyBtn').innerHTML = '<span class="qBtn-icon">⬡</span> Délimiter la zone';
+  rebuildFloor();
+  setStatus('Zone validée ✓', 'ok');
+  setSheetHeight(SHEET_MID);
+}
+
+function cancelPoly() {
+  S.polyMode = false;
+  S.polyPoints = [];
+  S.polyClosed = false;
+  document.getElementById('polyControls').classList.remove('visible');
+  document.getElementById('polyBtn').className = 'qBtn qBtn-poly';
+  document.getElementById('polyBtn').innerHTML = '<span class="qBtn-icon">⬡</span> Délimiter la zone';
+  polyCtx.clearRect(0, 0, polyCanvas.width, polyCanvas.height);
+  setStatus('Annulé', 'ok');
+}
+
+// Événements polygone
+interactionCanvas.addEventListener('click', (e) => {
+  if (!S.polyMode || S.polyClosed) return;
+  const y = e.clientY;
+  const sheetRect = document.getElementById('sheet').getBoundingClientRect();
+  if (y > sheetRect.top) return;
+  
+  const pts = S.polyPoints;
+  if (pts.length >= 3 && ptDist({ x: e.clientX, y: e.clientY }, pts[0]) < CLOSE_SNAP) {
+    closePoly();
     return;
   }
-  S.products.forEach(p=>{
-    const card=document.createElement('div');
-    card.className='prodCard'; card.dataset.id=p.id;
-    const imgSrc=p.image||p.imageUrl||'';
-    const dim=p.dimensions?normCm(p.dimensions.width).toFixed(0)+'×'+normCm(p.dimensions.height).toFixed(0)+' cm':'';
-    const hasGLB=hasAnyGLB(p);
-    card.innerHTML=
-      '<img class="prodCard-img" src="'+imgSrc+'" onerror="this.style.background=\'#ccc\'">'+
-      (hasGLB?'<div class="prodCard-glb">3D</div>':'')+
-      '<div class="prodCard-body">'+
-        '<div class="prodCard-name">'+(p.name||'Produit')+'</div>'+
-        '<div class="prodCard-dims">'+dim+'</div>'+
-      '</div>'+
-      '<div class="prodCard-badge">'+(p.category||'')+'</div>';
-    card.addEventListener('click',()=>selectProduct(p));
-    el.appendChild(card);
-  });
-}
-
-function selectProduct(p) {
-  S.selProduct=p;
-  document.querySelectorAll('.prodCard').forEach(c=>c.classList.toggle('active',c.dataset.id===p.id));
-  if(p.dimensions){
-    S.tileCM={w:normCm(p.dimensions.width),h:normCm(p.dimensions.height)};
-    syncTileSliders();
-    showDims('API: '+S.tileCM.w.toFixed(1)+'×'+S.tileCM.h.toFixed(1)+' cm');
-  }
-  buildVariants(p);
-  if(p.variants?.length) selectVariant(p.variants[0]);
-  else { S.texImg=null; S.glbTexCanvas=null; S.useGlbTex=false; rebuildFloor(); }
-  setStatus(p.name,'ok');
-}
-
-function syncTileSliders(){
-  document.getElementById('tileWSlider').value=Math.round(S.tileCM.w);
-  document.getElementById('tileWDisplay').textContent=Math.round(S.tileCM.w);
-  document.getElementById('tileHSlider').value=Math.round(S.tileCM.h);
-  document.getElementById('tileHDisplay').textContent=Math.round(S.tileCM.h);
-}
-
-function buildVariants(p){
-  const row=document.getElementById('variantRow');
-  const lbl=document.getElementById('varSecLabel');
-  row.innerHTML='';
-  if(!p.variants?.length){row.style.display='none';lbl.style.display='none';return;}
-  row.style.display='flex';lbl.style.display='flex';
-  p.variants.forEach(v=>{
-    const wrap=document.createElement('div');
-    wrap.style.cssText='display:flex;flex-direction:column;align-items:center;gap:2px';
-    const sw=document.createElement('div');
-    sw.className='varSwatch';sw.dataset.id=v.id;
-    const texSrc=v.texture||v.imageUrl||'';
-    sw.innerHTML='<img src="'+texSrc+'" onerror="this.style.display=\'none\'">';
-    const nm=document.createElement('div');
-    nm.className='varName';nm.textContent=v.colorName||'';
-    sw.addEventListener('click',()=>selectVariant(v));
-    wrap.appendChild(sw);wrap.appendChild(nm);row.appendChild(wrap);
-  });
-}
-
-function selectVariant(v){
-  S.selVariant=v;
-  document.querySelectorAll('.varSwatch').forEach(s=>s.classList.toggle('active',s.dataset.id===v.id));
-  const modelUrl=v.model3D||v.modelUrl||'';
-  const texUrl=v.texture||v.imageUrl||'';
-  if(modelUrl.toLowerCase().endsWith('.glb')){
-    loadGLBForTile(modelUrl, texUrl);
-  } else if(texUrl){
-    S.useGlbTex=false;
-    setTileSourceBadge('tex','🖼 Texture image');
-    loadTexImg(texUrl);
-  } else {
-    S.texImg=null; S.glbTexCanvas=null; S.useGlbTex=false;
-    document.getElementById('tileSourceBadge').style.display='none';
-    rebuildFloor();
-  }
-}
-
-/* ═══════════════════════════════════════
-   GLB LOADING PIPELINE (PlaceAR quality)
-   Loads via GLTFLoader → extracts bbox dims
-   → extracts baked diffuse texture → renders
-   onto tile canvas for floor tiling
-═══════════════════════════════════════ */
-async function loadGLBForTile(url, texUrl) {
-  if(S.glbLoading) return;
-  S.glbLoading=true;
-  showGlbLoader('Analyse du modèle 3D…');
-  setStatus('Chargement GLB…','loading');
-  setTileSourceBadge('glb','🧊 Texture GLB 3D');
-
-  try {
-    // Full GLTFLoader load (same as PlaceAR)
-    const gltf = await new Promise((resolve, reject) => {
-      gltfLoader.load(
-        url,
-        resolve,
-        (progress) => {
-          if(progress.total > 0){
-            const pct = Math.round(progress.loaded / progress.total * 100);
-            document.getElementById('glbProgress').textContent = pct + '%';
-            document.getElementById('glbLoaderTxt').textContent = 'Chargement GLB ' + pct + '%…';
-          }
-        },
-        reject
-      );
-    });
-
-    const model = gltf.scene;
-    // Normalize transform before measuring
-    model.position.set(0,0,0);
-    model.rotation.set(0,0,0);
-    model.scale.set(1,1,1);
-    model.updateMatrixWorld(true);
-
-    // Apply same material fixes as PlaceAR
-    model.traverse(c => {
-      if(!c.isMesh) return;
-      const mats = Array.isArray(c.material) ? c.material : [c.material];
-      mats.forEach(mat => {
-        ['map','normalMap','roughnessMap','metalnessMap','emissiveMap','aoMap'].forEach(k => {
-          if(mat[k]) mat[k].encoding = THREE.sRGBEncoding;
-        });
-        mat.needsUpdate = true;
-      });
-    });
-
-    // BBox → tile dimensions
-    const bb = new THREE.Box3().setFromObject(model);
-    const size = bb.getSize(new THREE.Vector3());
-    const sorted = [size.x, size.y, size.z].sort((a,b)=>b-a);
-    const wCm = sorted[0]*100, hCm = sorted[1]*100;
-    if(wCm>=1 && wCm<=1000 && hCm>=1 && hCm<=1000){
-      S.tileCM = {w:wCm, h:hCm};
-      syncTileSliders();
-      showDims('GLB: '+wCm.toFixed(1)+'×'+hCm.toFixed(1)+' cm');
-      setStatus('GLB chargé · '+wCm.toFixed(0)+'×'+hCm.toFixed(0)+' cm','ok');
-    } else {
-      setStatus('GLB analysé · dims produit','ok');
-    }
-
-    // Extract baked diffuse texture from first mesh
-    const tileCanvas = extractGLBTextureToCanvas(model);
-    if(tileCanvas){
-      S.glbTexCanvas = tileCanvas;
-      S.useGlbTex = true;
-      S.texImg = null;
-    } else {
-      // Fallback to URL texture
-      S.useGlbTex = false;
-      if(texUrl){
-        setTileSourceBadge('tex','🖼 Texture image (fallback)');
-        await loadTexImgAsync(texUrl);
-      } else {
-        S.texImg = null; S.glbTexCanvas = null;
-      }
-    }
-
-  } catch(err) {
-    console.warn('GLB load failed:', err);
-    setStatus('GLB inaccessible · texture URL','ok');
-    S.useGlbTex = false;
-
-    // Try raw buffer for dims only
-    try {
-      const buf = await fetch(url, {mode:'cors'}).then(r=>r.arrayBuffer());
-      const dims = extractGLBBBoxFromBuffer(buf);
-      if(dims && dims.sizeX>0){
-        const arr = [dims.sizeX,dims.sizeY,dims.sizeZ].sort((a,b)=>b-a);
-        const wCm=arr[0]*100, hCm=arr[1]*100;
-        if(wCm>=1 && wCm<=1000){
-          S.tileCM={w:wCm,h:hCm};
-          syncTileSliders();
-          showDims('GLB (buffer): '+wCm.toFixed(1)+'×'+hCm.toFixed(1)+' cm');
-        }
-      }
-    } catch(e2){}
-
-    if(texUrl){
-      setTileSourceBadge('tex','🖼 Texture image');
-      await loadTexImgAsync(texUrl);
-    } else {
-      S.texImg=null; S.glbTexCanvas=null;
-    }
-  }
-
-  S.glbLoading = false;
-  hideGlbLoader();
-  rebuildFloor();
-}
-
-/**
- * Extracts the primary diffuse texture from a loaded THREE.js GLTF model
- * and draws it onto a canvas at tile resolution.
- * Returns null if no texture found or CORS prevents access.
- */
-function extractGLBTextureToCanvas(model) {
-  const PX_PER_CM = 4;
-  const W = Math.max(8, Math.round(S.tileCM.w * PX_PER_CM));
-  const H = Math.max(8, Math.round(S.tileCM.h * PX_PER_CM));
-
-  let foundImage = null;
-  model.traverse(c => {
-    if(foundImage || !c.isMesh) return;
-    const mats = Array.isArray(c.material) ? c.material : [c.material];
-    for(const mat of mats){
-      if(mat.map && mat.map.image){
-        foundImage = mat.map.image;
-        break;
-      }
-    }
-  });
-
-  if(!foundImage) return null;
-
-  const cv = document.createElement('canvas');
-  cv.width = W; cv.height = H;
-  const ctx = cv.getContext('2d');
-  try {
-    ctx.drawImage(foundImage, 0, 0, W, H);
-    // test pixel read to detect CORS tainting
-    ctx.getImageData(0, 0, 1, 1);
-  } catch(e) {
-    console.warn('GLB texture CORS tainted – falling back to URL texture');
-    return null;
-  }
-  return cv;
-}
-
-/** Raw ArrayBuffer GLB bbox extraction (for dims when GLTFLoader fails) */
-function extractGLBBBoxFromBuffer(buffer) {
-  try {
-    const view=new DataView(buffer);
-    if(view.getUint32(0,true)!==0x46546C67) return null;
-    const jsonLen=view.getUint32(12,true);
-    const jsonBytes=new Uint8Array(buffer,20,jsonLen);
-    const gltf=JSON.parse(new TextDecoder().decode(jsonBytes));
-    if(!gltf.accessors) return null;
-    const binOff=20+jsonLen;
-    const binAligned=binOff+((4-(binOff%4))%4);
-    const binStart=binAligned+8;
-    const binArr=buffer.byteLength>binStart?new Uint8Array(buffer,binStart):new Uint8Array(0);
-    let minX=Infinity,minY=Infinity,minZ=Infinity,maxX=-Infinity,maxY=-Infinity,maxZ=-Infinity,found=false;
-    const posIds=new Set();
-    (gltf.meshes||[]).forEach(m=>(m.primitives||[]).forEach(p=>{
-      if(p.attributes?.POSITION!==undefined) posIds.add(p.attributes.POSITION);
-    }));
-    posIds.forEach(ai=>{
-      const acc=gltf.accessors[ai];if(!acc||acc.type!=='VEC3') return;
-      if(acc.min&&acc.max&&acc.min.length===3){
-        minX=Math.min(minX,acc.min[0]);minY=Math.min(minY,acc.min[1]);minZ=Math.min(minZ,acc.min[2]);
-        maxX=Math.max(maxX,acc.max[0]);maxY=Math.max(maxY,acc.max[1]);maxZ=Math.max(maxZ,acc.max[2]);
-        found=true;return;
-      }
-      if(acc.bufferView===undefined||!gltf.bufferViews) return;
-      const bv=gltf.bufferViews[acc.bufferView];if(!bv) return;
-      const byteOff=(bv.byteOffset||0)+(acc.byteOffset||0),stride=bv.byteStride||12;
-      for(let i=0;i<acc.count;i++){
-        const off=byteOff+i*stride;if(off+12>binArr.byteLength) break;
-        const dv=new DataView(binArr.buffer,binArr.byteOffset+off,12);
-        const x=dv.getFloat32(0,true),y=dv.getFloat32(4,true),z=dv.getFloat32(8,true);
-        minX=Math.min(minX,x);minY=Math.min(minY,y);minZ=Math.min(minZ,z);
-        maxX=Math.max(maxX,x);maxY=Math.max(maxY,y);maxZ=Math.max(maxZ,z);found=true;
-      }
-    });
-    return found?{sizeX:maxX-minX,sizeY:maxY-minY,sizeZ:maxZ-minZ}:null;
-  }catch(e){return null;}
-}
-
-/* ═══════════════════════════════════════
-   TEXTURE IMAGE
-═══════════════════════════════════════ */
-function loadTexImg(url) {
-  loadTexImgAsync(url).then(()=>rebuildFloor());
-}
-function loadTexImgAsync(url){
-  return new Promise(res=>{
-    const img=new Image();img.crossOrigin='anonymous';
-    img.onload=()=>{S.texImg=img;res();};
-    img.onerror=()=>{S.texImg=null;res();};
-    img.src=url;
-  });
-}
-
-/* ═══════════════════════════════════════
-   UI HELPERS
-═══════════════════════════════════════ */
-function setStatus(m,cls=''){
-  document.getElementById('statusText').textContent=m;
-  document.getElementById('statusToast').className=cls;
-}
-function showDims(t){
-  const e=document.getElementById('dimsInfo');
-  e.style.display='block';e.textContent='Dimensions réelles : '+t;
-}
-function setTileSourceBadge(type,label){
-  const b=document.getElementById('tileSourceBadge');
-  b.style.display='inline-block';b.className=type;b.textContent=label;
-}
-function showGlbLoader(t){
-  document.getElementById('glbLoaderTxt').textContent=t;
-  document.getElementById('glbProgress').textContent='';
-  document.getElementById('glbLoader').classList.add('visible');
-}
-function hideGlbLoader(){document.getElementById('glbLoader').classList.remove('visible');}
-function ptDist(a,b){return Math.hypot(a.x-b.x,a.y-b.y);}
-
-/* ═══════════════════════════════════════
-   POLY CANVAS 2D
-═══════════════════════════════════════ */
-const polyCanvasEl=document.getElementById('polyCanvas');
-let polyCtx;
-function resizePolyCanvas(){polyCanvasEl.width=innerWidth;polyCanvasEl.height=innerHeight;}
-function initPolyCanvas(){resizePolyCanvas();polyCtx=polyCanvasEl.getContext('2d');}
-
-function redrawPoly(cx,cy){
-  polyCtx.clearRect(0,0,polyCanvasEl.width,polyCanvasEl.height);
-  const pts=S.polyPts;if(!pts.length) return;
-  const nearFirst=pts.length>=3&&cx!==undefined&&ptDist({x:cx,y:cy},pts[0])<CLOSE_SNAP;
-  if(S.polyClosed||pts.length>=3){
-    polyCtx.beginPath();polyCtx.moveTo(pts[0].x,pts[0].y);
-    for(let i=1;i<pts.length;i++) polyCtx.lineTo(pts[i].x,pts[i].y);
-    polyCtx.closePath();polyCtx.fillStyle='rgba(245,144,100,0.14)';polyCtx.fill();
-  }
-  polyCtx.beginPath();polyCtx.moveTo(pts[0].x,pts[0].y);
-  for(let i=1;i<pts.length;i++) polyCtx.lineTo(pts[i].x,pts[i].y);
-  if(S.polyClosed) polyCtx.closePath();
-  else if(cx!==undefined) polyCtx.lineTo(cx,cy);
-  polyCtx.strokeStyle='#FF3B30';polyCtx.lineWidth=2.5;polyCtx.setLineDash([]);polyCtx.stroke();
-  if(!S.polyClosed&&pts.length>=3&&cx!==undefined){
-    polyCtx.beginPath();polyCtx.moveTo(cx,cy);polyCtx.lineTo(pts[0].x,pts[0].y);
-    polyCtx.strokeStyle=nearFirst?'#FF3B30':'rgba(255,255,255,.2)';
-    polyCtx.lineWidth=nearFirst?2.5:1;polyCtx.setLineDash(nearFirst?[]:[6,4]);polyCtx.stroke();polyCtx.setLineDash([]);
-  }
-  pts.forEach((pt,i)=>{
-    const isF=i===0,r=isF?9:6;
-    polyCtx.beginPath();polyCtx.arc(pt.x,pt.y,r+8,0,Math.PI*2);
-    polyCtx.fillStyle=isF?'rgba(255,59,48,.14)':'rgba(255,255,255,.07)';polyCtx.fill();
-    polyCtx.beginPath();polyCtx.arc(pt.x,pt.y,r,0,Math.PI*2);
-    polyCtx.fillStyle=isF?'#FF3B30':'#fff';polyCtx.fill();
-    polyCtx.strokeStyle=isF?'#fff':'rgba(255,59,48,.85)';polyCtx.lineWidth=2;polyCtx.stroke();
-    polyCtx.font='bold 10px Montserrat,sans-serif';
-    polyCtx.fillStyle='rgba(255,255,255,.75)';
-    polyCtx.textAlign='center';polyCtx.textBaseline='middle';
-    polyCtx.fillText(i+1,pt.x,pt.y-22);
-    if(isF&&nearFirst){
-      polyCtx.fillStyle='#FF3B30';
-      const bx=pt.x+12,by=pt.y-30;
-      polyCtx.beginPath();
-      if(polyCtx.roundRect)polyCtx.roundRect(bx,by,64,20,6);else polyCtx.rect(bx,by,64,20);
-      polyCtx.fill();
-      polyCtx.font='bold 10px Montserrat,sans-serif';polyCtx.fillStyle='#fff';
-      polyCtx.textAlign='left';polyCtx.fillText('⬡ Fermer',bx+7,by+13);
-    }
-  });
-}
-
-function redrawValidated(){
-  polyCtx.clearRect(0,0,polyCanvasEl.width,polyCanvasEl.height);
-  const pts=S.polyPts;if(!S.polyValidated||pts.length<3) return;
-  polyCtx.beginPath();polyCtx.moveTo(pts[0].x,pts[0].y);
-  for(let i=1;i<pts.length;i++) polyCtx.lineTo(pts[i].x,pts[i].y);
-  polyCtx.closePath();
-  polyCtx.strokeStyle='rgba(255,59,48,.5)';polyCtx.lineWidth=1.5;
-  polyCtx.setLineDash([8,5]);polyCtx.stroke();polyCtx.setLineDash([]);
-}
-
-function updatePolyUI(){
-  const n=S.polyPts.length;
-  document.getElementById('polyInfo').innerHTML='Tapez les <span>coins</span> · '+n+' pt'+(n>1?'s':'');
-  document.getElementById('pbClose').style.display=n>=3&&!S.polyClosed?'block':'none';
-  document.getElementById('pbValidate').style.display=S.polyClosed?'block':'none';
-}
-
-function enterPolyMode(){
-  S.polyMode=true;S.polyPts=[];S.polyClosed=false;
-  polyCanvasEl.classList.add('active');
-  document.getElementById('polyControls').classList.add('visible');
-  document.getElementById('polyBtn').className='qBtn qBtn-poly-on';
-  document.getElementById('polyBtn').innerHTML='<span class="qBtn-icon">⬡</span> En cours…';
-  setStatus('Tapez chaque coin du sol','poly');
-  polyCtx.clearRect(0,0,polyCanvasEl.width,polyCanvasEl.height);
-  updatePolyUI();setSheetH(SHEET_PEEK);
-}
-
-function closePoly(){
-  if(S.polyPts.length<3) return;
-  S.polyClosed=true;redrawPoly();updatePolyUI();
-  setStatus('Polygone fermé · Validez','poly');
-}
-
-function validatePoly(){
-  if(S.polyPts.length<3) return;
-  S.polyClosed=true;S.polyValidated=true;S.polyMode=false;
-  polyCanvasEl.classList.remove('active');
-  document.getElementById('polyControls').classList.remove('visible');
-  document.getElementById('polyBtn').className='qBtn qBtn-poly';
-  document.getElementById('polyBtn').innerHTML='<span class="qBtn-icon">⬡</span> Délimiter la zone';
-  rebuildFloor();
-  redrawValidated();
-  const hint=document.getElementById('polyHint');
-  hint.classList.add('visible');setTimeout(()=>hint.classList.remove('visible'),3000);
-  setStatus('Zone validée ✓ · Choisissez un produit','ok');
-  setSheetH(SHEET_MID);
-}
-
-function cancelPoly(){
-  S.polyMode=false;S.polyPts=[];S.polyClosed=false;
-  polyCanvasEl.classList.remove('active');
-  document.getElementById('polyControls').classList.remove('visible');
-  document.getElementById('polyBtn').className='qBtn qBtn-poly';
-  document.getElementById('polyBtn').innerHTML='<span class="qBtn-icon">⬡</span> Délimiter la zone';
-  polyCtx.clearRect(0,0,polyCanvasEl.width,polyCanvasEl.height);
-  if(S.polyValidated) redrawValidated();
-  setStatus('Annulé');
-}
-
-polyCanvasEl.addEventListener('click',e=>{
-  if(!S.polyMode||S.polyClosed) return;
-  const pts=S.polyPts;
-  if(pts.length>=3&&ptDist({x:e.clientX,y:e.clientY},pts[0])<CLOSE_SNAP){closePoly();return;}
-  pts.push({x:e.clientX,y:e.clientY});redrawPoly(e.clientX,e.clientY);updatePolyUI();
+  pts.push({ x: e.clientX, y: e.clientY });
+  redrawPoly(e.clientX, e.clientY);
 });
-polyCanvasEl.addEventListener('touchend',e=>{
-  if(!S.polyMode||S.polyClosed) return;
-  const t=e.changedTouches[0];
-  const pts=S.polyPts;
-  if(pts.length>=3&&ptDist({x:t.clientX,y:t.clientY},pts[0])<CLOSE_SNAP){closePoly();return;}
-  pts.push({x:t.clientX,y:t.clientY});redrawPoly(t.clientX,t.clientY);updatePolyUI();
-},{passive:true});
-polyCanvasEl.addEventListener('mousemove',e=>{if(S.polyMode&&!S.polyClosed)redrawPoly(e.clientX,e.clientY);});
-polyCanvasEl.addEventListener('touchmove',e=>{if(S.polyMode&&!S.polyClosed){const t=e.touches[0];redrawPoly(t.clientX,t.clientY);}},{passive:true});
 
-document.getElementById('pbUndo').addEventListener('click',()=>{
-  if(S.polyClosed){S.polyClosed=false;}else if(S.polyPts.length) S.polyPts.pop();
-  redrawPoly();updatePolyUI();
+interactionCanvas.addEventListener('mousemove', (e) => {
+  if (S.polyMode && !S.polyClosed) redrawPoly(e.clientX, e.clientY);
 });
-document.getElementById('pbClose').addEventListener('click',closePoly);
-document.getElementById('pbValidate').addEventListener('click',validatePoly);
-document.getElementById('pbCancel').addEventListener('click',cancelPoly);
-document.getElementById('polyBtn').addEventListener('click',()=>{if(S.polyMode)validatePoly();else enterPolyMode();});
 
-/* ═══════════════════════════════════════
-   SCREEN → FLOOR PLANE PROJECTION
-═══════════════════════════════════════ */
-function screenToFloorPlane(sx, sy, yFloor) {
-  const ndcX=(sx/innerWidth)*2-1;
-  const ndcY=-(sy/innerHeight)*2+1;
-  const ray=new THREE.Vector3(ndcX,ndcY,0.5).unproject(camera);
+// Boutons poly
+document.getElementById('pbUndo').addEventListener('click', () => {
+  if (S.polyClosed) S.polyClosed = false;
+  else if (S.polyPoints.length) S.polyPoints.pop();
+  redrawPoly();
+});
+document.getElementById('pbClose').addEventListener('click', closePoly);
+document.getElementById('pbValidate').addEventListener('click', validatePoly);
+document.getElementById('pbCancel').addEventListener('click', cancelPoly);
+
+/* ==================== RENDU 3D DU SOL ==================== */
+function screenToWorldPlane(sx, sy, yLevel) {
+  const ndcX = (sx / innerWidth) * 2 - 1;
+  const ndcY = -(sy / innerHeight) * 2 + 1;
+  const ray = new THREE.Vector3(ndcX, ndcY, 0.5).unproject(camera);
   ray.sub(camera.position).normalize();
-  const dY=ray.y;
-  if(Math.abs(dY)<0.0001) return null;
-  const t=(yFloor-camera.position.y)/dY;
-  if(t<0) return null;
-  return new THREE.Vector3(camera.position.x+ray.x*t, yFloor, camera.position.z+ray.z*t);
+  const t = (yLevel - camera.position.y) / ray.y;
+  if (t < 0) return null;
+  return new THREE.Vector3(camera.position.x + ray.x * t, yLevel, camera.position.z + ray.z * t);
 }
 
-/* ═══════════════════════════════════════
-   BUILD TILE CANVAS
-   Priority: GLB baked texture > URL image > procedural
-═══════════════════════════════════════ */
-function buildTileCanvas() {
-  const PX_PER_CM = 4;
-  const W = Math.max(8, Math.round(S.tileCM.w * PX_PER_CM));
-  const H = Math.max(8, Math.round(S.tileCM.h * PX_PER_CM));
-  const cv = document.createElement('canvas');
-  cv.width=W; cv.height=H;
-  const ctx = cv.getContext('2d');
-
-  if(S.useGlbTex && S.glbTexCanvas){
-    // Baked GLB texture
-    ctx.drawImage(S.glbTexCanvas, 0, 0, W, H);
-  } else if(S.texImg){
-    // URL image texture
-    ctx.drawImage(S.texImg, 0, 0, W, H);
-  } else {
-    // Procedural fallback
-    const grd=ctx.createLinearGradient(0,0,W,H);
-    grd.addColorStop(0,'#dedad4');
-    grd.addColorStop(0.5,'#d2cec8');
-    grd.addColorStop(1,'#cac6be');
-    ctx.fillStyle=grd;ctx.fillRect(0,0,W,H);
-    // subtle noise
-    for(let i=0;i<150;i++){
-      ctx.fillStyle='rgba(0,0,0,'+(Math.random()*0.04)+')';
-      ctx.fillRect(Math.random()*W,Math.random()*H,2,2);
-    }
-  }
-
-  // Rotation
-  if(S.tileRot!==0){
-    const tmp=document.createElement('canvas');tmp.width=W;tmp.height=H;
-    const tc=tmp.getContext('2d');
-    tc.save();tc.translate(W/2,H/2);tc.rotate(S.tileRot*Math.PI/180);
-    tc.drawImage(cv,-W/2,-H/2,W,H);tc.restore();
-    ctx.clearRect(0,0,W,H);ctx.drawImage(tmp,0,0);
-  }
-
-  // Grout joint
-  if(S.jointColor && S.jointSize>0){
-    const jPx=Math.max(1,Math.round(S.jointSize*PX_PER_CM/10));
-    ctx.strokeStyle=S.jointColor;ctx.lineWidth=jPx;
-    ctx.strokeRect(jPx/2,jPx/2,W-jPx,H-jPx);
-  }
-
-  return cv;
-}
-
-/* ═══════════════════════════════════════
-   REBUILD FLOOR MESH
-   Polygon zone → ShapeGeometry → tiled PBR material
-═══════════════════════════════════════ */
 function rebuildFloor() {
-  if(!S.polyValidated || S.polyPts.length<3) return;
-  if(S.glbLoading) return;
-
-  // Dispose previous
-  if(S.floorMesh){
+  if (!S.polyValidated || S.polyPoints.length < 3) return;
+  if (S.glbLoading) return;
+  
+  if (S.floorMesh) {
     scene.remove(S.floorMesh);
-    S.floorMesh.geometry.dispose();
-    if(S.floorMesh.material.map) S.floorMesh.material.map.dispose();
-    S.floorMesh.material.dispose();
-    S.floorMesh=null;
+    if (S.floorMesh.geometry) S.floorMesh.geometry.dispose();
+    if (S.floorMesh.material) S.floorMesh.material.dispose();
+    S.floorMesh = null;
   }
-
-  // Y floor level
-  let yFloor=0;
-  if(S.xrMode && S.hitMatrix){
-    const pos=new THREE.Vector3();
-    new THREE.Matrix4().fromArray(S.hitMatrix).decompose(pos,new THREE.Quaternion(),new THREE.Vector3());
-    yFloor=pos.y;
+  
+  // Hauteur du sol
+  let yFloor = 0;
+  if (S.xrMode && S.reticlePos) {
+    yFloor = S.reticlePos.y;
+  } else {
+    yFloor = 0;
+    camera.position.set(0, 1.5, 2);
   }
-
-  // Project 2D screen points → 3D floor plane
-  const pts3=[];
-  for(const p of S.polyPts){
-    let w3=screenToFloorPlane(p.x,p.y,yFloor);
-    if(!w3){
-      const ndcX=(p.x/innerWidth)*2-1;
-      const ndcY=-(p.y/innerHeight)*2+1;
-      w3=new THREE.Vector3(ndcX*3,yFloor,-ndcY*3+camera.position.z-1);
-    }
-    pts3.push(w3);
+  
+  // Projeter les points écran → 3D
+  const pts3D = [];
+  for (const p of S.polyPoints) {
+    let w3 = screenToWorldPlane(p.x, p.y, yFloor);
+    if (!w3) w3 = new THREE.Vector3((p.x / innerWidth - 0.5) * 4, yFloor, (0.5 - p.y / innerHeight) * 3);
+    pts3D.push(w3);
   }
-
-  // Anchor to XR surface centroid
-  if(S.xrMode && S.hitMatrix){
-    const ref=new THREE.Vector3();
-    new THREE.Matrix4().fromArray(S.hitMatrix).decompose(ref,new THREE.Quaternion(),new THREE.Vector3());
-    const cx3=pts3.reduce((s,p)=>s+p.x,0)/pts3.length;
-    const cz3=pts3.reduce((s,p)=>s+p.z,0)/pts3.length;
-    pts3.forEach(p=>{p.x+=ref.x-cx3;p.z+=ref.z-cz3;p.y=ref.y;});
+  
+  // Centrer sur le point de hit AR si disponible
+  if (S.xrMode && S.reticlePos) {
+    const center = pts3D.reduce((s, p) => ({ x: s.x + p.x, z: s.z + p.z }), { x: 0, z: 0 });
+    center.x /= pts3D.length;
+    center.z /= pts3D.length;
+    const offset = { x: S.reticlePos.x - center.x, z: S.reticlePos.z - center.z };
+    pts3D.forEach(p => { p.x += offset.x; p.z += offset.z; p.y = S.reticlePos.y; });
   }
-
-  // THREE.Shape in XZ plane
-  const shape=new THREE.Shape();
-  shape.moveTo(pts3[0].x,pts3[0].z);
-  for(let i=1;i<pts3.length;i++) shape.lineTo(pts3[i].x,pts3[i].z);
+  
+  // Créer le shape
+  const shape = new THREE.Shape();
+  shape.moveTo(pts3D[0].x, pts3D[0].z);
+  for (let i = 1; i < pts3D.length; i++) shape.lineTo(pts3D[i].x, pts3D[i].z);
   shape.closePath();
-
-  const geo=new THREE.ShapeGeometry(shape);
-
-  // Tile-sized UV mapping (repeat texture per tile)
-  const tW=S.tileCM.w/100;
-  const tH=S.tileCM.h/100;
-  const posArr=geo.attributes.position.array;
-  const uvArr=new Float32Array(posArr.length/3*2);
-  for(let i=0;i<posArr.length/3;i++){
-    uvArr[i*2]  =posArr[i*3]  /tW;
-    uvArr[i*2+1]=posArr[i*3+1]/tH;
+  
+  const geometry = new THREE.ShapeGeometry(shape);
+  
+  // UV mapping pour le tile répété
+  const tW = S.tileCM.w / 100;
+  const tH = S.tileCM.h / 100;
+  const positions = geometry.attributes.position.array;
+  const uvs = new Float32Array(positions.length / 3 * 2);
+  for (let i = 0; i < positions.length / 3; i++) {
+    uvs[i * 2] = positions[i * 3] / tW;
+    uvs[i * 2 + 1] = positions[i * 3 + 2] / tH;
   }
-  geo.setAttribute('uv',new THREE.BufferAttribute(uvArr,2));
-
-  // Flip XY → XZ (ShapeGeometry is in XY; floor is in XZ)
-  for(let i=0;i<posArr.length/3;i++){
-    posArr[i*3+2]=posArr[i*3+1];
-    posArr[i*3+1]=yFloor+0.003;
+  geometry.setAttribute('uv', new THREE.BufferAttribute(uvs, 2));
+  
+  // Ajuster les Y
+  for (let i = 0; i < positions.length / 3; i++) {
+    positions[i * 3 + 1] = yFloor + 0.005;
   }
-  geo.attributes.position.needsUpdate=true;
-  geo.computeVertexNormals();
-
-  // Build tile canvas & texture
-  const tileCanvas=buildTileCanvas();
-  const tex=new THREE.CanvasTexture(tileCanvas);
-  tex.wrapS=tex.wrapT=THREE.RepeatWrapping;
-  tex.encoding=THREE.sRGBEncoding;
-  tex.anisotropy=renderer.capabilities.getMaxAnisotropy();
-
-  // PBR material (PlaceAR quality)
-  const mat=new THREE.MeshStandardMaterial({
-    map:tex,
-    transparent:true,
-    opacity:S.opacity,
-    roughness:0.42,
-    metalness:0.04,
-    envMapIntensity:0.55,
-    side:THREE.DoubleSide,
+  geometry.attributes.position.needsUpdate = true;
+  geometry.computeVertexNormals();
+  
+  // Texture
+  const texture = buildTileTexture();
+  texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+  
+  const material = new THREE.MeshStandardMaterial({
+    map: texture,
+    transparent: true,
+    opacity: S.opacity,
+    roughness: 0.5,
+    metalness: 0.05,
+    side: THREE.DoubleSide
   });
-
-  S.floorMesh=new THREE.Mesh(geo,mat);
-  S.floorMesh.receiveShadow=true;
+  
+  S.floorMesh = new THREE.Mesh(geometry, material);
+  S.floorMesh.receiveShadow = true;
   scene.add(S.floorMesh);
 }
 
-function refreshTexture(){
-  if(!S.floorMesh){rebuildFloor();return;}
-  const old=S.floorMesh.material.map;
-  const tc=buildTileCanvas();
-  const tex=new THREE.CanvasTexture(tc);
-  tex.wrapS=tex.wrapT=THREE.RepeatWrapping;
-  tex.encoding=THREE.sRGBEncoding;
-  tex.anisotropy=renderer.capabilities.getMaxAnisotropy();
-  if(old) old.dispose();
-  S.floorMesh.material.map=tex;
-  S.floorMesh.material.needsUpdate=true;
+function buildTileTexture() {
+  const PX_PER_CM = 5;
+  const W = Math.max(32, Math.round(S.tileCM.w * PX_PER_CM));
+  const H = Math.max(32, Math.round(S.tileCM.h * PX_PER_CM));
+  const canvas = document.createElement('canvas');
+  canvas.width = W;
+  canvas.height = H;
+  const ctx = canvas.getContext('2d');
+  
+  if (S.useGlbTex && S.glbTextureCanvas) {
+    ctx.drawImage(S.glbTextureCanvas, 0, 0, W, H);
+  } else if (S.textureCache) {
+    ctx.drawImage(S.textureCache, 0, 0, W, H);
+  } else {
+    // Texture procédurale par défaut
+    const grad = ctx.createLinearGradient(0, 0, W, H);
+    grad.addColorStop(0, '#d4cfc9');
+    grad.addColorStop(1, '#c2bdb7');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = '#b0aba5';
+    for (let i = 0; i < 200; i++) {
+      ctx.fillRect(Math.random() * W, Math.random() * H, 2, 2);
+    }
+  }
+  
+  // Joint
+  if (S.jointSize > 0) {
+    ctx.strokeStyle = S.jointColor;
+    ctx.lineWidth = Math.max(1, Math.round(S.jointSize * PX_PER_CM / 8));
+    ctx.strokeRect(ctx.lineWidth / 2, ctx.lineWidth / 2, W - ctx.lineWidth, H - ctx.lineWidth);
+  }
+  
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.needsUpdate = true;
+  return tex;
 }
 
-function refreshOpacity(){
-  if(!S.floorMesh) return;
-  S.floorMesh.material.opacity=S.opacity;
-  S.floorMesh.material.needsUpdate=true;
+function refreshFloorTexture() {
+  if (!S.floorMesh) return;
+  const oldTex = S.floorMesh.material.map;
+  const newTex = buildTileTexture();
+  newTex.wrapS = newTex.wrapT = THREE.RepeatWrapping;
+  S.floorMesh.material.map = newTex;
+  S.floorMesh.material.needsUpdate = true;
+  if (oldTex) oldTex.dispose();
 }
 
-/* ═══════════════════════════════════════
-   CONTROLS
-═══════════════════════════════════════ */
-document.querySelectorAll('.jointSwatch').forEach(sw=>{
-  sw.addEventListener('click',()=>{
-    document.querySelectorAll('.jointSwatch').forEach(s=>s.classList.remove('active'));
-    sw.classList.add('active');S.jointColor=sw.dataset.j;refreshTexture();
+/* ==================== PRODUITS ==================== */
+function ingestProducts(products) {
+  S.products = products;
+  const scroll = document.getElementById('productScroll');
+  scroll.innerHTML = '';
+  products.forEach(p => {
+    const card = document.createElement('div');
+    card.className = 'prodCard';
+    card.innerHTML = `<img class="prodCard-img" src="${p.image || ''}" onerror="this.style.background='#ccc'"><div class="prodCard-body"><div class="prodCard-name">${p.name}</div><div class="prodCard-dims">${p.dimensions ? p.dimensions.width + '×' + p.dimensions.height + ' cm' : ''}</div></div>`;
+    card.addEventListener('click', () => selectProduct(p));
+    scroll.appendChild(card);
+  });
+  if (products.length) selectProduct(products[0]);
+}
+
+function selectProduct(p) {
+  S.selectedProduct = p;
+  document.querySelectorAll('.prodCard').forEach(c => c.classList.remove('active'));
+  document.querySelector(`.prodCard:has([src="${p.image}"])`)?.classList.add('active');
+  
+  if (p.dimensions) {
+    S.tileCM = { w: p.dimensions.width, h: p.dimensions.height };
+    document.getElementById('tileWSlider').value = S.tileCM.w;
+    document.getElementById('tileHSlider').value = S.tileCM.h;
+    const dimsDiv = document.getElementById('dimsInfo');
+    dimsDiv.style.display = 'block';
+    dimsDiv.textContent = `Dimensions: ${S.tileCM.w}×${S.tileCM.h} cm`;
+  }
+  
+  // Charger texture ou GLB
+  const textureUrl = p.texture || p.image;
+  if (textureUrl) {
+    S.useGlbTex = false;
+    const img = new Image();
+    img.crossOrigin = 'Anonymous';
+    img.onload = () => {
+      S.textureCache = img;
+      if (S.polyValidated) refreshFloorTexture();
+    };
+    img.src = textureUrl;
+  }
+  
+  if (p.model3D && p.model3D.endsWith('.glb')) {
+    loadGLBTexture(p.model3D);
+  }
+}
+
+async function loadGLBTexture(url) {
+  S.glbLoading = true;
+  document.getElementById('glbLoader').classList.add('visible');
+  
+  try {
+    const gltf = await new Promise((res, rej) => gltfLoader.load(url, res, null, rej));
+    const model = gltf.scene;
+    model.traverse(c => {
+      if (c.isMesh && c.material) {
+        const mats = Array.isArray(c.material) ? c.material : [c.material];
+        for (const mat of mats) {
+          if (mat.map && mat.map.image) {
+            S.glbTextureCanvas = mat.map.image;
+            S.useGlbTex = true;
+            S.textureCache = null;
+            if (S.polyValidated) refreshFloorTexture();
+            return;
+          }
+        }
+      }
+    });
+  } catch (e) { console.warn('GLB load error:', e); }
+  
+  S.glbLoading = false;
+  document.getElementById('glbLoader').classList.remove('visible');
+}
+
+/* ==================== UI ==================== */
+function setStatus(msg, type = '') {
+  document.getElementById('statusText').textContent = msg;
+  document.getElementById('statusToast').className = type;
+}
+
+// Sheet drag
+const SHEET_PEEK = 92, SHEET_MID = 400, SHEET_FULL = Math.min(600, innerHeight * 0.85);
+let dragStart = null, dragStartH = 0;
+
+function setSheetHeight(h, animate = true) {
+  const sheet = document.getElementById('sheet');
+  sheet.style.transition = animate ? 'height 0.35s cubic-bezier(0.32, 0.72, 0, 1)' : 'none';
+  sheet.style.height = h + 'px';
+  sheet.classList.toggle('collapsed', h <= SHEET_PEEK + 10);
+}
+
+const sheetHandle = document.getElementById('sheetHandle');
+sheetHandle.addEventListener('mousedown', e => { dragStart = e.clientY; dragStartH = document.getElementById('sheet').clientHeight; });
+sheetHandle.addEventListener('touchstart', e => { dragStart = e.touches[0].clientY; dragStartH = document.getElementById('sheet').clientHeight; });
+window.addEventListener('mousemove', e => { if (dragStart !== null) { let h = Math.max(SHEET_PEEK, Math.min(SHEET_FULL, dragStartH + (dragStart - e.clientY))); document.getElementById('sheet').style.height = h + 'px'; } });
+window.addEventListener('touchmove', e => { if (dragStart !== null) { let h = Math.max(SHEET_PEEK, Math.min(SHEET_FULL, dragStartH + (dragStart - e.touches[0].clientY))); document.getElementById('sheet').style.height = h + 'px'; } });
+window.addEventListener('mouseup', () => { if (dragStart !== null) { dragStart = null; const h = document.getElementById('sheet').clientHeight; setSheetHeight(h < (SHEET_PEEK + SHEET_MID) / 2 ? SHEET_PEEK : h < (SHEET_MID + SHEET_FULL) / 2 ? SHEET_MID : SHEET_FULL); } });
+window.addEventListener('touchend', () => { if (dragStart !== null) { dragStart = null; const h = document.getElementById('sheet').clientHeight; setSheetHeight(h < (SHEET_PEEK + SHEET_MID) / 2 ? SHEET_PEEK : h < (SHEET_MID + SHEET_FULL) / 2 ? SHEET_MID : SHEET_FULL); } });
+
+// Contrôles
+document.getElementById('polyBtn').addEventListener('click', () => { if (S.polyMode) validatePoly(); else enterPolyMode(); });
+document.getElementById('resetBtn').addEventListener('click', () => {
+  if (S.polyMode) cancelPoly();
+  S.polyValidated = false;
+  S.polyPoints = [];
+  S.polyClosed = false;
+  if (S.floorMesh) { scene.remove(S.floorMesh); S.floorMesh = null; }
+  polyCtx?.clearRect(0, 0, polyCanvas.width, polyCanvas.height);
+  setStatus('Prêt · Délimitez une zone', 'ok');
+  setSheetHeight(SHEET_PEEK);
+});
+document.getElementById('captureBtn').addEventListener('click', () => {
+  renderer.render(scene, camera);
+  setTimeout(() => {
+    const canvas = document.createElement('canvas');
+    canvas.width = innerWidth;
+    canvas.height = innerHeight;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(renderer.domElement, 0, 0);
+    ctx.drawImage(polyCanvas, 0, 0);
+    const a = document.createElement('a');
+    a.download = 'floorAR.png';
+    a.href = canvas.toDataURL();
+    a.click();
+    setStatus('Capture ✓', 'ok');
+  }, 50);
+});
+
+document.querySelectorAll('.jointSwatch').forEach(sw => {
+  sw.addEventListener('click', () => {
+    document.querySelectorAll('.jointSwatch').forEach(s => s.classList.remove('active'));
+    sw.classList.add('active');
+    S.jointColor = sw.dataset.j;
+    refreshFloorTexture();
   });
 });
-document.getElementById('jointSize').addEventListener('input',e=>{
-  S.jointSize=parseInt(e.target.value);
-  document.getElementById('jointSizeVal').textContent=e.target.value;
-  refreshTexture();
+document.getElementById('jointSize').addEventListener('input', e => {
+  S.jointSize = parseInt(e.value);
+  document.getElementById('jointSizeVal').textContent = e.value;
+  refreshFloorTexture();
 });
-document.getElementById('opacSlider').addEventListener('input',e=>{
-  S.opacity=parseInt(e.target.value)/100;
-  document.getElementById('opacDisplay').textContent=e.target.value;
-  refreshOpacity();
+document.getElementById('opacitySlider').addEventListener('input', e => {
+  S.opacity = parseInt(e.value) / 100;
+  if (S.floorMesh) S.floorMesh.material.opacity = S.opacity;
 });
-document.getElementById('tileWSlider').addEventListener('input',e=>{
-  S.tileCM.w=parseInt(e.target.value);
-  document.getElementById('tileWDisplay').textContent=e.target.value;
-  rebuildFloor();
+document.getElementById('tileWSlider').addEventListener('input', e => {
+  S.tileCM.w = parseInt(e.value);
+  if (S.polyValidated) rebuildFloor();
 });
-document.getElementById('tileHSlider').addEventListener('input',e=>{
-  S.tileCM.h=parseInt(e.target.value);
-  document.getElementById('tileHDisplay').textContent=e.target.value;
-  rebuildFloor();
-});
-document.getElementById('rotSlider').addEventListener('input',e=>{
-  S.tileRot=parseInt(e.target.value);
-  document.getElementById('rotDisplay').textContent=e.target.value;
-  refreshTexture();
+document.getElementById('tileHSlider').addEventListener('input', e => {
+  S.tileCM.h = parseInt(e.value);
+  if (S.polyValidated) rebuildFloor();
 });
 
-/* ═══════════════════════════════════════
-   RESET & CAPTURE
-═══════════════════════════════════════ */
-document.getElementById('resetBtn').addEventListener('click',()=>{
-  if(S.polyMode) cancelPoly();
-  S.polyValidated=false;S.polyPts=[];S.polyClosed=false;
-  if(S.floorMesh){
-    scene.remove(S.floorMesh);
-    S.floorMesh.geometry.dispose();
-    if(S.floorMesh.material.map) S.floorMesh.material.map.dispose();
-    S.floorMesh.material.dispose();
-    S.floorMesh=null;
-  }
-  polyCtx&&polyCtx.clearRect(0,0,polyCanvasEl.width,polyCanvasEl.height);
-  document.getElementById('polyHint').classList.remove('visible');
-  setStatus('Réinitialisé · Délimitez une zone','ok');
-  setSheetH(SHEET_PEEK);
-});
-
-document.getElementById('captureBtn').addEventListener('click',()=>{
-  renderer.render(scene,camera);
-  const cap=document.createElement('canvas');
-  cap.width=innerWidth;cap.height=innerHeight;
-  const cc=cap.getContext('2d');
-  cc.drawImage(renderer.domElement,0,0);
-  cc.drawImage(polyCanvasEl,0,0);
-  const a=document.createElement('a');
-  a.download='floorAR.png';a.href=cap.toDataURL('image/png');
-  document.body.appendChild(a);a.click();document.body.removeChild(a);
-  setStatus('Capture sauvegardée ✓','ok');
-  postToFlutter({type:'capture'});
-});
-
-/* ═══════════════════════════════════════
-   SHEET DRAG
-═══════════════════════════════════════ */
-const SHEET_PEEK=92,SHEET_MID=440,SHEET_FULL=Math.round(innerHeight*.92);
-let dragY=null,dragH=0;
-function setSheetH(h,anim=true){
-  const s=document.getElementById('sheet');
-  s.style.transition=anim?'height .35s cubic-bezier(.32,.72,0,1)':'none';
-  s.style.height=h+'px';s.classList.toggle('collapsed',h<=SHEET_PEEK+10);
-}
-const handle=document.getElementById('sheetHandle');
-handle.addEventListener('mousedown',e=>{dragY=e.clientY;dragH=document.getElementById('sheet').getBoundingClientRect().height;document.getElementById('sheet').style.transition='none';});
-handle.addEventListener('touchstart',e=>{dragY=e.touches[0].clientY;dragH=document.getElementById('sheet').getBoundingClientRect().height;document.getElementById('sheet').style.transition='none';},{passive:true});
-window.addEventListener('mousemove',e=>{if(dragY===null)return;const h=Math.max(SHEET_PEEK,Math.min(SHEET_FULL,dragH+(dragY-e.clientY)));document.getElementById('sheet').style.height=h+'px';document.getElementById('sheet').classList.toggle('collapsed',h<=SHEET_PEEK+10);});
-window.addEventListener('touchmove',e=>{if(dragY===null)return;const h=Math.max(SHEET_PEEK,Math.min(SHEET_FULL,dragH+(dragY-e.touches[0].clientY)));document.getElementById('sheet').style.height=h+'px';document.getElementById('sheet').classList.toggle('collapsed',h<=SHEET_PEEK+10);},{passive:true});
-function endDrag(){if(dragY===null)return;const h=document.getElementById('sheet').getBoundingClientRect().height;dragY=null;const m1=(SHEET_PEEK+SHEET_MID)/2,m2=(SHEET_MID+SHEET_FULL)/2;setSheetH(h<m1?SHEET_PEEK:h<m2?SHEET_MID:SHEET_FULL);}
-window.addEventListener('mouseup',endDrag);window.addEventListener('touchend',endDrag);
-handle.addEventListener('click',()=>{const h=document.getElementById('sheet').getBoundingClientRect().height;setSheetH(h<=SHEET_PEEK+10?SHEET_MID:h>=SHEET_FULL-20?SHEET_PEEK:SHEET_FULL);});
-
-/* ═══════════════════════════════════════
-   DEMO PRODUCTS
-═══════════════════════════════════════ */
-function ingestDemo(){
+// Demo products
+function loadDemoProducts() {
   ingestProducts([
-    {id:'d1',name:'Carreau 60×60 Blanc',image:'',category:'Carrelage',
-     dimensions:{width:60,height:60},
-     variants:[
-       {id:'v1',colorName:'Blanc mat',texture:'',model3D:''},
-       {id:'v2',colorName:'Gris perle',texture:'',model3D:''},
-     ]},
-    {id:'d2',name:'Carreau 30×60 Gris',image:'',category:'Carrelage',
-     dimensions:{width:30,height:60},variants:[]},
-    {id:'d3',name:'Mosaïque 20×20',image:'',category:'Carrelage',
-     dimensions:{width:20,height:20},variants:[]},
-    {id:'d4',name:'Parquet 12×120',image:'',category:'Parquet',
-     dimensions:{width:12,height:120},variants:[]},
+    { id: 1, name: 'Carreau Béton 60×60', image: '', dimensions: { width: 60, height: 60 }, category: 'Moderne' },
+    { id: 2, name: 'Parquet Chêne 15×90', image: '', dimensions: { width: 15, height: 90 }, category: 'Parquet' },
+    { id: 3, name: 'Mosaïque 30×30', image: '', dimensions: { width: 30, height: 30 }, category: 'Déco' },
+    { id: 4, name: 'Ardoise 40×40', image: '', dimensions: { width: 40, height: 40 }, category: 'Pierre' }
   ]);
 }
 
-/* ═══════════════════════════════════════
-   BOOT
-═══════════════════════════════════════ */
-document.getElementById('splashBtn').addEventListener('click', async()=>{
+/* ==================== BOOT ==================== */
+document.getElementById('splashBtn').addEventListener('click', async () => {
   document.getElementById('splash').classList.add('hidden');
   initThree();
   initPolyCanvas();
-
-  const xrOk=await checkXR();
-  if(xrOk) await startXR();
-  else await startFallback();
-
-  postToFlutter({type:'ready'});
-
-  // Priority 1: URL params
-  const urlProds=parseProductsFromURL();
-  if(urlProds && urlProds.length){
-    ingestProducts(urlProds);
-    return;
+  await startXR();
+  loadDemoProducts();
+  setStatus('Prêt · Délimitez une zone', 'ok');
+  setSheetHeight(SHEET_PEEK);
+  
+  // Animation loop simple pour le mode non-AR
+  if (!S.xrMode) {
+    function animate() {
+      if (!S.xrMode) renderer.render(scene, camera);
+      requestAnimationFrame(animate);
+    }
+    animate();
   }
-
-  // Priority 2: Flutter bridge → Priority 3: demo
-  setTimeout(()=>{
-    if(!S.products.length) ingestDemo();
-  }, 2500);
 });
 </script>
 </body>
