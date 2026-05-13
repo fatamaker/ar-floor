@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no"/>
-<title>FloorAR v3 · WebXR</title>
+<title>FloorAR v4 · WebXR</title>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -53,6 +53,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#0a0a0f;font-family:
 #glbLoader.visible{display:flex}
 .spin{width:34px;height:34px;border:3px solid rgba(245,144,100,.25);border-top-color:var(--primary);border-radius:50%;animation:spin .75s linear infinite}
 #glbLoader p{color:rgba(255,255,255,.7);font-size:12px;font-weight:500}
+#glbProgress{font-size:11px;color:rgba(245,144,100,.8);font-weight:600}
 
 /* Poly hint */
 #polyHint{position:fixed;bottom:120px;left:50%;transform:translateX(-50%);z-index:18;background:rgba(40,79,117,.92);backdrop-filter:blur(12px);border-radius:var(--r-xl);padding:8px 20px;font-size:11px;font-weight:600;color:#fff;pointer-events:none;display:none;text-align:center}
@@ -75,7 +76,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#0a0a0f;font-family:
 .secLabel{font-size:9px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;color:var(--grey);margin:12px 0 8px;display:flex;align-items:center;gap:7px}
 .secLabel::after{content:'';flex:1;height:1px;background:var(--lg)}
 
-/* Produits */
+/* Products */
 #productScroll{display:flex;gap:10px;overflow-x:auto;padding-bottom:6px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
 #productScroll::-webkit-scrollbar{display:none}
 .prodCard{flex-shrink:0;width:130px;border-radius:var(--r-md);border:1.5px solid var(--lg);background:var(--lg2);cursor:pointer;overflow:hidden;transition:all .2s;position:relative}
@@ -85,16 +86,20 @@ html,body{width:100%;height:100%;overflow:hidden;background:#0a0a0f;font-family:
 .prodCard-name{font-size:10px;font-weight:700;color:#111;margin-bottom:2px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
 .prodCard-dims{font-size:9px;color:var(--dg)}
 .prodCard-badge{position:absolute;top:5px;right:5px;background:rgba(40,79,117,.85);color:#fff;font-size:8px;font-weight:700;padding:2px 6px;border-radius:10px}
+.prodCard-glb{position:absolute;top:5px;left:5px;background:rgba(82,180,107,.9);color:#fff;font-size:7px;font-weight:700;padding:2px 5px;border-radius:6px;letter-spacing:.3px}
 
-/* Variantes */
+/* Variants */
 #variantRow{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:4px}
 .varSwatch{width:38px;height:38px;border-radius:var(--r-sm);cursor:pointer;border:2.5px solid transparent;overflow:hidden;transition:all .18s;flex-shrink:0;background:#ddd}
 .varSwatch img{width:100%;height:100%;object-fit:cover;display:block}
 .varSwatch.active{border-color:var(--secondary);transform:scale(1.1)}
 .varName{font-size:8px;color:var(--dg);margin-top:2px;text-align:center;max-width:38px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
 
-/* Dimensions info */
+/* Dims + source */
 #dimsInfo{font-size:10px;color:var(--secondary);font-weight:600;margin-bottom:8px;padding:6px 10px;background:rgba(40,79,117,.07);border-radius:var(--r-sm);border-left:3px solid var(--secondary);display:none}
+#tileSourceBadge{font-size:9px;padding:4px 10px;border-radius:var(--r-xl);margin-bottom:8px;font-weight:600;display:none}
+#tileSourceBadge.glb{background:rgba(82,180,107,.15);color:#2a8a44;border:1px solid rgba(82,180,107,.4)}
+#tileSourceBadge.tex{background:rgba(245,144,100,.15);color:#c06020;border:1px solid rgba(245,144,100,.4)}
 
 /* Joint */
 #jointRow{display:flex;align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap}
@@ -106,7 +111,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
 .sliderHead{display:flex;justify-content:space-between;align-items:center;font-size:10px;font-weight:600;color:var(--dg);margin-bottom:4px}
 .sliderHead .val{background:var(--lg2);border-radius:var(--r-sm);padding:2px 7px;font-size:10px;font-weight:700;color:var(--secondary)}
 
-/* Poly canvas overlay */
+/* Poly canvas */
 #polyCanvas{position:fixed;inset:0;z-index:10;pointer-events:none;display:none}
 #polyCanvas.active{display:block;pointer-events:auto;cursor:crosshair}
 
@@ -124,7 +129,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
 #pbValidate{background:var(--green);color:#fff;display:none}
 #pbCancel{background:rgba(255,255,255,.07);color:rgba(255,255,255,.55);border:1px solid rgba(255,255,255,.15);font-size:11px}
 
-/* No XR banner */
+/* No XR */
 #noXrBanner{position:fixed;top:120px;left:50%;transform:translateX(-50%);z-index:25;background:rgba(221,80,80,.9);color:#fff;padding:10px 20px;border-radius:var(--r-xl);font-size:12px;font-weight:600;text-align:center;display:none;max-width:80vw}
 </style>
 </head>
@@ -133,7 +138,11 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
 <canvas id="threeCanvas"></canvas>
 <canvas id="polyCanvas"></canvas>
 
-<div id="glbLoader"><div class="spin"></div><p id="glbLoaderTxt">Chargement modèle 3D…</p></div>
+<div id="glbLoader">
+  <div class="spin"></div>
+  <p id="glbLoaderTxt">Chargement modèle 3D…</p>
+  <div id="glbProgress"></div>
+</div>
 
 <!-- Splash -->
 <div id="splash">
@@ -148,7 +157,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
       </svg>
     </div>
     <div id="splashTitle">FloorAR</div>
-    <div id="splashSub">Visualisez vos carreaux en réalité augmentée · WebXR natif · modèles 3D réels</div>
+    <div id="splashSub">Délimitez votre sol · visualisez vos carreaux en AR · textures GLB réelles</div>
     <div id="prodCountBadge"></div>
     <button id="splashBtn">Commencer</button>
   </div>
@@ -168,7 +177,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
 </div>
 
 <div id="statusToast"><div id="statusDot"></div><span id="statusText">Initialisation…</span></div>
-<div id="polyHint">⬡ Carreaux posés · modifiez dans le panneau</div>
+<div id="polyHint">⬡ Zone carrelée · ajustez dans le panneau</div>
 <div id="noXrBanner">WebXR non supporté — mode caméra classique activé</div>
 
 <!-- Poly controls -->
@@ -198,6 +207,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
     <div class="secLabel" id="varSecLabel" style="display:none">Variante / couleur</div>
     <div id="variantRow" style="display:none"></div>
 
+    <div id="tileSourceBadge"></div>
     <div id="dimsInfo"></div>
 
     <div class="secLabel">Joint</div>
@@ -238,15 +248,15 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
   </div>
 </div>
 
-<!-- Three.js + GLTFLoader -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/environments/RoomEnvironment.js"></script>
 
 <script>
 'use strict';
-/* ═══════════════════════════════════════════════════════════
-   ÉTAT
-═══════════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════
+   STATE
+═══════════════════════════════════════ */
 const S = {
   xrSession:null, xrMode:false, xrRefSpace:null,
   hitTestSrc:null, hitReady:false,
@@ -256,40 +266,37 @@ const S = {
   tileCM:{w:60,h:60}, tileRot:0,
   polyMode:false, polyPts:[], polyClosed:false, polyValidated:false,
   opacity:0.88, jointColor:'#e8e0d8', jointSize:3,
-  floorMesh:null, texImg:null,
+  floorMesh:null,
+  texImg:null,
+  glbTexCanvas:null,
+  useGlbTex:false,
   glbLoading:false,
 };
 const CLOSE_SNAP = 32;
 
-/* ═══════════════════════════════════════════════════════════
-   LIRE LES PRODUITS DEPUIS L'URL (?products=…)
-   Appelé AVANT le splash, pour afficher le badge.
-═══════════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════
+   URL PRODUCTS
+═══════════════════════════════════════ */
 function parseProductsFromURL() {
   try {
-    const params = new URLSearchParams(window.location.search);
-    const raw = params.get('products');
+    const raw = new URLSearchParams(window.location.search).get('products');
     if (!raw) return null;
-    const decoded = decodeURIComponent(raw);
-    const prods = JSON.parse(decoded);
-    if (Array.isArray(prods) && prods.length > 0) return prods;
-  } catch(e) { console.warn('[FloorAR] URL products parse error:', e); }
-  return null;
+    const prods = JSON.parse(decodeURIComponent(raw));
+    return Array.isArray(prods) && prods.length ? prods : null;
+  } catch(e){ return null; }
 }
 
-/* Afficher le badge produits sur le splash dès le chargement */
-(function showSplashBadge() {
+(function showSplashBadge(){
   const prods = parseProductsFromURL();
-  if (prods && prods.length) {
-    const badge = document.getElementById('prodCountBadge');
-    badge.textContent = prods.length + ' produit' + (prods.length > 1 ? 's' : '') + ' chargé' + (prods.length > 1 ? 's' : '');
-    badge.style.display = 'block';
-  }
+  if (!prods) return;
+  const badge = document.getElementById('prodCountBadge');
+  badge.textContent = prods.length + ' produit'+(prods.length>1?'s':'')+' chargé'+(prods.length>1?'s':'');
+  badge.style.display = 'block';
 })();
 
-/* ═══════════════════════════════════════════════════════════
-   THREE.JS
-═══════════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════
+   THREE.JS INIT
+═══════════════════════════════════════ */
 let scene, camera, renderer, gltfLoader, xrReticleMesh;
 
 function initThree() {
@@ -297,18 +304,31 @@ function initThree() {
   scene = new THREE.Scene();
   camera = new THREE.PerspectiveCamera(70, innerWidth/innerHeight, 0.01, 100);
 
-  renderer = new THREE.WebGLRenderer({ canvas:cv, alpha:true, antialias:true });
+  renderer = new THREE.WebGLRenderer({
+    canvas:cv, alpha:true, antialias:true, logarithmicDepthBuffer:true
+  });
   renderer.setSize(innerWidth, innerHeight);
-  renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
   renderer.outputEncoding = THREE.sRGBEncoding;
+  renderer.physicallyCorrectLights = true;
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.xr.enabled = true;
 
-  scene.add(new THREE.AmbientLight(0xffffff, 1.1));
-  const sun = new THREE.DirectionalLight(0xffffff, 1.3);
-  sun.position.set(3,8,5); scene.add(sun);
+  // PBR environment (PlaceAR quality)
+  const pmrem = new THREE.PMREMGenerator(renderer);
+  pmrem.compileEquirectangularShader();
+  scene.environment = pmrem.fromScene(new THREE.RoomEnvironment()).texture;
+  pmrem.dispose();
+
+  // Lights
+  scene.add(new THREE.AmbientLight(0xffffff, 1.2));
+  const sun = new THREE.DirectionalLight(0xffffff, 1.4);
+  sun.position.set(3,8,5); sun.castShadow=true; scene.add(sun);
   const fill = new THREE.DirectionalLight(0xffffff, 0.4);
   fill.position.set(-4,2,-4); scene.add(fill);
 
+  // XR reticle
   const rg = new THREE.RingGeometry(0.09,0.12,32).rotateX(-Math.PI/2);
   const rm = new THREE.MeshBasicMaterial({color:0x52B46B, side:THREE.DoubleSide});
   xrReticleMesh = new THREE.Mesh(rg, rm);
@@ -327,9 +347,9 @@ function initThree() {
   });
 }
 
-/* ═══════════════════════════════════════════════════════════
+/* ═══════════════════════════════════════
    WEBXR
-═══════════════════════════════════════════════════════════ */
+═══════════════════════════════════════ */
 async function checkXR() {
   if (!navigator.xr) return false;
   try { return await navigator.xr.isSessionSupported('immersive-ar'); }
@@ -339,145 +359,131 @@ async function checkXR() {
 async function startXR() {
   try {
     const session = await navigator.xr.requestSession('immersive-ar', {
-      requiredFeatures: ['hit-test'],
-      optionalFeatures: ['dom-overlay','plane-detection'],
-      domOverlay: { root: document.body },
+      requiredFeatures:['hit-test'],
+      optionalFeatures:['dom-overlay','plane-detection'],
+      domOverlay:{root:document.body},
     });
-    S.xrSession = session; S.xrMode = true;
-
+    S.xrSession=session; S.xrMode=true;
     renderer.xr.setReferenceSpaceType('local');
     await renderer.xr.setSession(session);
     S.xrRefSpace = await session.requestReferenceSpace('local');
-
-    const viewerSpace = await session.requestReferenceSpace('viewer');
-    S.hitTestSrc = await session.requestHitTestSource({
-      space: viewerSpace,
-      entityTypes: ['plane','point'],
-    });
+    const vs = await session.requestReferenceSpace('viewer');
+    S.hitTestSrc = await session.requestHitTestSource({space:vs, entityTypes:['plane','point']});
     S.hitReady = true;
-
-    session.addEventListener('end', () => {
-      S.xrMode=false; S.xrSession=null;
-      S.hitReady=false; S.hitTestSrc=null;
+    session.addEventListener('end', ()=>{
+      S.xrMode=false; S.xrSession=null; S.hitReady=false; S.hitTestSrc=null;
       xrReticleMesh.visible=false;
       document.getElementById('arPill').classList.remove('active');
       document.getElementById('arPillLabel').textContent='Live';
       setStatus('Session AR terminée');
     });
-
     renderer.setAnimationLoop(xrLoop);
     document.getElementById('arPill').classList.add('active');
     document.getElementById('arPillLabel').textContent='AR Actif';
     setStatus('Pointez le sol · Délimitez la zone','scanning');
     setSheetH(SHEET_PEEK);
     postToFlutter({type:'ready'});
-
   } catch(err) {
     console.error('WebXR:', err);
-    const banner = document.getElementById('noXrBanner');
-    banner.style.display='block';
-    setTimeout(()=>banner.style.display='none', 4000);
+    const b=document.getElementById('noXrBanner');
+    b.style.display='block'; setTimeout(()=>b.style.display='none',4000);
     setStatus('WebXR non dispo · mode caméra','error');
     await startFallback();
   }
 }
 
 function xrLoop(timestamp, frame) {
-  if (!frame) { renderer.render(scene, camera); return; }
+  if (!frame){renderer.render(scene,camera);return;}
   if (S.hitReady && S.hitTestSrc) {
     const results = frame.getHitTestResults(S.hitTestSrc);
     if (results.length) {
       const pose = results[0].getPose(S.xrRefSpace);
       if (pose) {
-        xrReticleMesh.visible = true;
+        xrReticleMesh.visible=true;
         xrReticleMesh.matrix.fromArray(pose.transform.matrix);
-        S.hitMatrix = pose.transform.matrix;
-        S.reticleVisible = true;
+        S.hitMatrix=pose.transform.matrix; S.reticleVisible=true;
       }
-    } else {
-      xrReticleMesh.visible = false;
-      S.reticleVisible = false;
-    }
+    } else { xrReticleMesh.visible=false; S.reticleVisible=false; }
   }
   renderer.render(scene, camera);
 }
 
-/* ═══════════════════════════════════════════════════════════
-   FALLBACK caméra classique
-═══════════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════
+   FALLBACK
+═══════════════════════════════════════ */
 async function startFallback() {
-  S.fallback = true;
+  S.fallback=true;
   try {
     const stream = await navigator.mediaDevices.getUserMedia({
       video:{facingMode:'environment',width:{ideal:1280},height:{ideal:720}},audio:false,
     });
-    const vid = document.createElement('video');
+    const vid=document.createElement('video');
     vid.srcObject=stream; vid.autoplay=true; vid.playsInline=true; vid.muted=true;
     await vid.play();
-    const vt = new THREE.VideoTexture(vid);
-    scene.background = vt;
-  } catch(e) { setStatus('Caméra refusée','error'); }
-
-  camera.position.set(0, 1.6, 0.1);
-  camera.lookAt(0, 0, -1.5);
-  renderer.setAnimationLoop(() => renderer.render(scene, camera));
-  S.reticleVisible = true;
+    scene.background = new THREE.VideoTexture(vid);
+  } catch(e){setStatus('Caméra refusée','error');}
+  camera.position.set(0,1.6,0.1); camera.lookAt(0,0,-1.5);
+  renderer.setAnimationLoop(()=>renderer.render(scene,camera));
+  S.reticleVisible=true;
   setStatus('Mode caméra · Délimitez la zone','ok');
   setSheetH(SHEET_PEEK);
 }
 
-/* ═══════════════════════════════════════════════════════════
-   BRIDGE FLUTTER (WebView fallback — non utilisé en launchUrl)
-═══════════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════
+   FLUTTER BRIDGE
+═══════════════════════════════════════ */
 window.receiveFromFlutter = function(jsonStr) {
-  try {
-    const d = JSON.parse(jsonStr);
-    if (d.type==='products') ingestProducts(d.products);
-  } catch(e) { console.error('receiveFromFlutter', e); }
+  try{const d=JSON.parse(jsonStr);if(d.type==='products')ingestProducts(d.products);}
+  catch(e){console.error('receiveFromFlutter',e);}
 };
-
 function postToFlutter(obj) {
-  const s = JSON.stringify(obj);
-  try {
-    if (typeof FlutterBridge!=='undefined') { FlutterBridge.postMessage(s); return; }
-    if (window.webkit?.messageHandlers?.FlutterBridge) { window.webkit.messageHandlers.FlutterBridge.postMessage(s); }
-  } catch(e) { console.log('[bridge]', obj); }
+  const s=JSON.stringify(obj);
+  try{
+    if(typeof FlutterBridge!=='undefined'){FlutterBridge.postMessage(s);return;}
+    if(window.webkit?.messageHandlers?.FlutterBridge){window.webkit.messageHandlers.FlutterBridge.postMessage(s);}
+  }catch(e){console.log('[bridge]',obj);}
 }
 
-/* ═══════════════════════════════════════════════════════════
-   PRODUITS
-═══════════════════════════════════════════════════════════ */
-function normCm(v) {
-  if (!v||isNaN(v)) return 60;
+/* ═══════════════════════════════════════
+   PRODUCTS
+═══════════════════════════════════════ */
+function normCm(v){
+  if(!v||isNaN(v)) return 60;
   const n=parseFloat(v);
-  if (n>500) return n/10;
-  if (n<5) return n*100;
+  if(n>500) return n/10;
+  if(n<5)   return n*100;
   return n;
 }
 
 function ingestProducts(prods) {
-  S.products = prods;
+  S.products=prods;
   buildProductScroll();
-  if (prods.length) selectProduct(prods[0]);
+  if(prods.length) selectProduct(prods[0]);
   setStatus(prods.length+' produit(s) chargé(s)','ok');
 }
 
+function hasAnyGLB(p) {
+  if((p.model3D||p.modelUrl||'').toLowerCase().endsWith('.glb')) return true;
+  if(p.variants) return p.variants.some(v=>(v.model3D||v.modelUrl||'').toLowerCase().endsWith('.glb'));
+  return false;
+}
+
 function buildProductScroll() {
-  const el = document.getElementById('productScroll');
+  const el=document.getElementById('productScroll');
   el.innerHTML='';
-  if (!S.products.length) {
+  if(!S.products.length){
     el.innerHTML='<div style="padding:16px;color:var(--grey);font-size:11px">Aucun produit disponible</div>';
     return;
   }
   S.products.forEach(p=>{
-    const card = document.createElement('div');
+    const card=document.createElement('div');
     card.className='prodCard'; card.dataset.id=p.id;
-    /* Chercher l'image : champ image ou imageUrl (compatibilité ARProductScreen) */
-    const imgSrc = p.image || p.imageUrl || '';
-    const dim = p.dimensions
-      ? normCm(p.dimensions.width).toFixed(0)+'×'+normCm(p.dimensions.height).toFixed(0)+' cm' : '';
+    const imgSrc=p.image||p.imageUrl||'';
+    const dim=p.dimensions?normCm(p.dimensions.width).toFixed(0)+'×'+normCm(p.dimensions.height).toFixed(0)+' cm':'';
+    const hasGLB=hasAnyGLB(p);
     card.innerHTML=
       '<img class="prodCard-img" src="'+imgSrc+'" onerror="this.style.background=\'#ccc\'">'+
+      (hasGLB?'<div class="prodCard-glb">3D</div>':'')+
       '<div class="prodCard-body">'+
         '<div class="prodCard-name">'+(p.name||'Produit')+'</div>'+
         '<div class="prodCard-dims">'+dim+'</div>'+
@@ -489,39 +495,38 @@ function buildProductScroll() {
 }
 
 function selectProduct(p) {
-  S.selProduct = p;
+  S.selProduct=p;
   document.querySelectorAll('.prodCard').forEach(c=>c.classList.toggle('active',c.dataset.id===p.id));
-  if (p.dimensions) {
+  if(p.dimensions){
     S.tileCM={w:normCm(p.dimensions.width),h:normCm(p.dimensions.height)};
     syncTileSliders();
     showDims('API: '+S.tileCM.w.toFixed(1)+'×'+S.tileCM.h.toFixed(1)+' cm');
   }
   buildVariants(p);
-  if (p.variants?.length) selectVariant(p.variants[0]);
-  else { S.texImg=null; rebuildFloor(); }
+  if(p.variants?.length) selectVariant(p.variants[0]);
+  else { S.texImg=null; S.glbTexCanvas=null; S.useGlbTex=false; rebuildFloor(); }
   setStatus(p.name,'ok');
 }
 
-function syncTileSliders() {
+function syncTileSliders(){
   document.getElementById('tileWSlider').value=Math.round(S.tileCM.w);
   document.getElementById('tileWDisplay').textContent=Math.round(S.tileCM.w);
   document.getElementById('tileHSlider').value=Math.round(S.tileCM.h);
   document.getElementById('tileHDisplay').textContent=Math.round(S.tileCM.h);
 }
 
-function buildVariants(p) {
+function buildVariants(p){
   const row=document.getElementById('variantRow');
   const lbl=document.getElementById('varSecLabel');
   row.innerHTML='';
-  if (!p.variants?.length){row.style.display='none';lbl.style.display='none';return;}
+  if(!p.variants?.length){row.style.display='none';lbl.style.display='none';return;}
   row.style.display='flex';lbl.style.display='flex';
   p.variants.forEach(v=>{
     const wrap=document.createElement('div');
     wrap.style.cssText='display:flex;flex-direction:column;align-items:center;gap:2px';
     const sw=document.createElement('div');
     sw.className='varSwatch';sw.dataset.id=v.id;
-    /* Support texture ou imageUrl */
-    const texSrc = v.texture || v.imageUrl || '';
+    const texSrc=v.texture||v.imageUrl||'';
     sw.innerHTML='<img src="'+texSrc+'" onerror="this.style.display=\'none\'">';
     const nm=document.createElement('div');
     nm.className='varName';nm.textContent=v.colorName||'';
@@ -530,54 +535,177 @@ function buildVariants(p) {
   });
 }
 
-function selectVariant(v) {
+function selectVariant(v){
   S.selVariant=v;
   document.querySelectorAll('.varSwatch').forEach(s=>s.classList.toggle('active',s.dataset.id===v.id));
-  /* Support model3D ou modelUrl (compatibilité ARProductScreen) */
-  const modelUrl = v.model3D || v.modelUrl || '';
-  const texUrl = v.texture || v.imageUrl || '';
-  if (modelUrl.toLowerCase().endsWith('.glb')) {
-    loadGLBDims(modelUrl, texUrl);
-  } else if (texUrl) {
+  const modelUrl=v.model3D||v.modelUrl||'';
+  const texUrl=v.texture||v.imageUrl||'';
+  if(modelUrl.toLowerCase().endsWith('.glb')){
+    loadGLBForTile(modelUrl, texUrl);
+  } else if(texUrl){
+    S.useGlbTex=false;
+    setTileSourceBadge('tex','🖼 Texture image');
     loadTexImg(texUrl);
   } else {
-    S.texImg=null; rebuildFloor();
+    S.texImg=null; S.glbTexCanvas=null; S.useGlbTex=false;
+    document.getElementById('tileSourceBadge').style.display='none';
+    rebuildFloor();
   }
 }
 
-/* ═══════════════════════════════════════════════════════════
-   GLB → BBOX → DIMENSIONS
-═══════════════════════════════════════════════════════════ */
-async function loadGLBDims(url, texUrl) {
-  if (S.glbLoading) return;
+/* ═══════════════════════════════════════
+   GLB LOADING PIPELINE (PlaceAR quality)
+   Loads via GLTFLoader → extracts bbox dims
+   → extracts baked diffuse texture → renders
+   onto tile canvas for floor tiling
+═══════════════════════════════════════ */
+async function loadGLBForTile(url, texUrl) {
+  if(S.glbLoading) return;
   S.glbLoading=true;
   showGlbLoader('Analyse du modèle 3D…');
   setStatus('Chargement GLB…','loading');
+  setTileSourceBadge('glb','🧊 Texture GLB 3D');
+
   try {
-    const buf = await fetch(url,{mode:'cors'}).then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.arrayBuffer();});
-    const dims = extractGLBBBox(buf);
-    if (dims&&dims.sizeX>0&&dims.sizeZ>0) {
-      const sorted=[dims.sizeX,dims.sizeY,dims.sizeZ].sort((a,b)=>b-a);
-      const wCm=sorted[0]*100, hCm=sorted[1]*100;
-      if (wCm>=1&&wCm<=1000&&hCm>=1&&hCm<=1000) {
-        S.tileCM={w:wCm,h:hCm};
-        syncTileSliders();
-        showDims('GLB: '+wCm.toFixed(1)+'×'+hCm.toFixed(1)+' cm');
-        setStatus('GLB · '+wCm.toFixed(0)+'×'+hCm.toFixed(0)+' cm','ok');
-      } else { setStatus('GLB analysé · dims produit','ok'); }
-    } else { setStatus('Dims produit conservées','ok'); }
-    if (texUrl) await loadTexImg(texUrl);
-    else { S.texImg=null; rebuildFloor(); }
-  } catch(e) {
-    console.warn('GLB err',e);
-    setStatus('GLB inaccessible · dims produit','ok');
-    if (texUrl) await loadTexImg(texUrl);
-    else { S.texImg=null; rebuildFloor(); }
+    // Full GLTFLoader load (same as PlaceAR)
+    const gltf = await new Promise((resolve, reject) => {
+      gltfLoader.load(
+        url,
+        resolve,
+        (progress) => {
+          if(progress.total > 0){
+            const pct = Math.round(progress.loaded / progress.total * 100);
+            document.getElementById('glbProgress').textContent = pct + '%';
+            document.getElementById('glbLoaderTxt').textContent = 'Chargement GLB ' + pct + '%…';
+          }
+        },
+        reject
+      );
+    });
+
+    const model = gltf.scene;
+    // Normalize transform before measuring
+    model.position.set(0,0,0);
+    model.rotation.set(0,0,0);
+    model.scale.set(1,1,1);
+    model.updateMatrixWorld(true);
+
+    // Apply same material fixes as PlaceAR
+    model.traverse(c => {
+      if(!c.isMesh) return;
+      const mats = Array.isArray(c.material) ? c.material : [c.material];
+      mats.forEach(mat => {
+        ['map','normalMap','roughnessMap','metalnessMap','emissiveMap','aoMap'].forEach(k => {
+          if(mat[k]) mat[k].encoding = THREE.sRGBEncoding;
+        });
+        mat.needsUpdate = true;
+      });
+    });
+
+    // BBox → tile dimensions
+    const bb = new THREE.Box3().setFromObject(model);
+    const size = bb.getSize(new THREE.Vector3());
+    const sorted = [size.x, size.y, size.z].sort((a,b)=>b-a);
+    const wCm = sorted[0]*100, hCm = sorted[1]*100;
+    if(wCm>=1 && wCm<=1000 && hCm>=1 && hCm<=1000){
+      S.tileCM = {w:wCm, h:hCm};
+      syncTileSliders();
+      showDims('GLB: '+wCm.toFixed(1)+'×'+hCm.toFixed(1)+' cm');
+      setStatus('GLB chargé · '+wCm.toFixed(0)+'×'+hCm.toFixed(0)+' cm','ok');
+    } else {
+      setStatus('GLB analysé · dims produit','ok');
+    }
+
+    // Extract baked diffuse texture from first mesh
+    const tileCanvas = extractGLBTextureToCanvas(model);
+    if(tileCanvas){
+      S.glbTexCanvas = tileCanvas;
+      S.useGlbTex = true;
+      S.texImg = null;
+    } else {
+      // Fallback to URL texture
+      S.useGlbTex = false;
+      if(texUrl){
+        setTileSourceBadge('tex','🖼 Texture image (fallback)');
+        await loadTexImgAsync(texUrl);
+      } else {
+        S.texImg = null; S.glbTexCanvas = null;
+      }
+    }
+
+  } catch(err) {
+    console.warn('GLB load failed:', err);
+    setStatus('GLB inaccessible · texture URL','ok');
+    S.useGlbTex = false;
+
+    // Try raw buffer for dims only
+    try {
+      const buf = await fetch(url, {mode:'cors'}).then(r=>r.arrayBuffer());
+      const dims = extractGLBBBoxFromBuffer(buf);
+      if(dims && dims.sizeX>0){
+        const arr = [dims.sizeX,dims.sizeY,dims.sizeZ].sort((a,b)=>b-a);
+        const wCm=arr[0]*100, hCm=arr[1]*100;
+        if(wCm>=1 && wCm<=1000){
+          S.tileCM={w:wCm,h:hCm};
+          syncTileSliders();
+          showDims('GLB (buffer): '+wCm.toFixed(1)+'×'+hCm.toFixed(1)+' cm');
+        }
+      }
+    } catch(e2){}
+
+    if(texUrl){
+      setTileSourceBadge('tex','🖼 Texture image');
+      await loadTexImgAsync(texUrl);
+    } else {
+      S.texImg=null; S.glbTexCanvas=null;
+    }
   }
-  S.glbLoading=false; hideGlbLoader();
+
+  S.glbLoading = false;
+  hideGlbLoader();
+  rebuildFloor();
 }
 
-function extractGLBBBox(buffer) {
+/**
+ * Extracts the primary diffuse texture from a loaded THREE.js GLTF model
+ * and draws it onto a canvas at tile resolution.
+ * Returns null if no texture found or CORS prevents access.
+ */
+function extractGLBTextureToCanvas(model) {
+  const PX_PER_CM = 4;
+  const W = Math.max(8, Math.round(S.tileCM.w * PX_PER_CM));
+  const H = Math.max(8, Math.round(S.tileCM.h * PX_PER_CM));
+
+  let foundImage = null;
+  model.traverse(c => {
+    if(foundImage || !c.isMesh) return;
+    const mats = Array.isArray(c.material) ? c.material : [c.material];
+    for(const mat of mats){
+      if(mat.map && mat.map.image){
+        foundImage = mat.map.image;
+        break;
+      }
+    }
+  });
+
+  if(!foundImage) return null;
+
+  const cv = document.createElement('canvas');
+  cv.width = W; cv.height = H;
+  const ctx = cv.getContext('2d');
+  try {
+    ctx.drawImage(foundImage, 0, 0, W, H);
+    // test pixel read to detect CORS tainting
+    ctx.getImageData(0, 0, 1, 1);
+  } catch(e) {
+    console.warn('GLB texture CORS tainted – falling back to URL texture');
+    return null;
+  }
+  return cv;
+}
+
+/** Raw ArrayBuffer GLB bbox extraction (for dims when GLTFLoader fails) */
+function extractGLBBBoxFromBuffer(buffer) {
   try {
     const view=new DataView(buffer);
     if(view.getUint32(0,true)!==0x46546C67) return null;
@@ -613,39 +741,52 @@ function extractGLBBBox(buffer) {
       }
     });
     return found?{sizeX:maxX-minX,sizeY:maxY-minY,sizeZ:maxZ-minZ}:null;
-  }catch(e){console.warn('extractGLBBBox',e);return null;}
+  }catch(e){return null;}
 }
 
-/* ═══════════════════════════════════════════════════════════
+/* ═══════════════════════════════════════
    TEXTURE IMAGE
-═══════════════════════════════════════════════════════════ */
+═══════════════════════════════════════ */
 function loadTexImg(url) {
+  loadTexImgAsync(url).then(()=>rebuildFloor());
+}
+function loadTexImgAsync(url){
   return new Promise(res=>{
     const img=new Image();img.crossOrigin='anonymous';
-    img.onload=()=>{S.texImg=img;rebuildFloor();res();};
-    img.onerror=()=>{S.texImg=null;rebuildFloor();res();};
+    img.onload=()=>{S.texImg=img;res();};
+    img.onerror=()=>{S.texImg=null;res();};
     img.src=url;
   });
 }
 
-/* ═══════════════════════════════════════════════════════════
-   HELPERS UI
-═══════════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════
+   UI HELPERS
+═══════════════════════════════════════ */
 function setStatus(m,cls=''){
   document.getElementById('statusText').textContent=m;
   document.getElementById('statusToast').className=cls;
 }
-function showDims(t){const e=document.getElementById('dimsInfo');e.style.display='block';e.textContent='Dimensions réelles : '+t;}
-function showGlbLoader(t){document.getElementById('glbLoaderTxt').textContent=t;document.getElementById('glbLoader').classList.add('visible');}
+function showDims(t){
+  const e=document.getElementById('dimsInfo');
+  e.style.display='block';e.textContent='Dimensions réelles : '+t;
+}
+function setTileSourceBadge(type,label){
+  const b=document.getElementById('tileSourceBadge');
+  b.style.display='inline-block';b.className=type;b.textContent=label;
+}
+function showGlbLoader(t){
+  document.getElementById('glbLoaderTxt').textContent=t;
+  document.getElementById('glbProgress').textContent='';
+  document.getElementById('glbLoader').classList.add('visible');
+}
 function hideGlbLoader(){document.getElementById('glbLoader').classList.remove('visible');}
 function ptDist(a,b){return Math.hypot(a.x-b.x,a.y-b.y);}
 
-/* ═══════════════════════════════════════════════════════════
-   CANVAS POLY 2D
-═══════════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════
+   POLY CANVAS 2D
+═══════════════════════════════════════ */
 const polyCanvasEl=document.getElementById('polyCanvas');
 let polyCtx;
-
 function resizePolyCanvas(){polyCanvasEl.width=innerWidth;polyCanvasEl.height=innerHeight;}
 function initPolyCanvas(){resizePolyCanvas();polyCtx=polyCanvasEl.getContext('2d');}
 
@@ -764,7 +905,7 @@ polyCanvasEl.addEventListener('touchend',e=>{
   if(pts.length>=3&&ptDist({x:t.clientX,y:t.clientY},pts[0])<CLOSE_SNAP){closePoly();return;}
   pts.push({x:t.clientX,y:t.clientY});redrawPoly(t.clientX,t.clientY);updatePolyUI();
 },{passive:true});
-polyCanvasEl.addEventListener('mousemove',e=>{if(S.polyMode&&!S.polyClosed) redrawPoly(e.clientX,e.clientY);});
+polyCanvasEl.addEventListener('mousemove',e=>{if(S.polyMode&&!S.polyClosed)redrawPoly(e.clientX,e.clientY);});
 polyCanvasEl.addEventListener('touchmove',e=>{if(S.polyMode&&!S.polyClosed){const t=e.touches[0];redrawPoly(t.clientX,t.clientY);}},{passive:true});
 
 document.getElementById('pbUndo').addEventListener('click',()=>{
@@ -776,45 +917,55 @@ document.getElementById('pbValidate').addEventListener('click',validatePoly);
 document.getElementById('pbCancel').addEventListener('click',cancelPoly);
 document.getElementById('polyBtn').addEventListener('click',()=>{if(S.polyMode)validatePoly();else enterPolyMode();});
 
-/* ═══════════════════════════════════════════════════════════
-   PROJECTION 2D → PLAN 3D
-═══════════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════
+   SCREEN → FLOOR PLANE PROJECTION
+═══════════════════════════════════════ */
 function screenToFloorPlane(sx, sy, yFloor) {
   const ndcX=(sx/innerWidth)*2-1;
   const ndcY=-(sy/innerHeight)*2+1;
   const ray=new THREE.Vector3(ndcX,ndcY,0.5).unproject(camera);
   ray.sub(camera.position).normalize();
   const dY=ray.y;
-  if (Math.abs(dY)<0.0001) return null;
+  if(Math.abs(dY)<0.0001) return null;
   const t=(yFloor-camera.position.y)/dY;
-  if (t<0) return null;
-  return new THREE.Vector3(
-    camera.position.x+ray.x*t,
-    yFloor,
-    camera.position.z+ray.z*t,
-  );
+  if(t<0) return null;
+  return new THREE.Vector3(camera.position.x+ray.x*t, yFloor, camera.position.z+ray.z*t);
 }
 
-/* ═══════════════════════════════════════════════════════════
-   TEXTURE CANVAS CARREAU
-═══════════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════
+   BUILD TILE CANVAS
+   Priority: GLB baked texture > URL image > procedural
+═══════════════════════════════════════ */
 function buildTileCanvas() {
-  const PX_PER_CM = 3;
-  const W = Math.max(4, Math.round(S.tileCM.w * PX_PER_CM));
-  const H = Math.max(4, Math.round(S.tileCM.h * PX_PER_CM));
+  const PX_PER_CM = 4;
+  const W = Math.max(8, Math.round(S.tileCM.w * PX_PER_CM));
+  const H = Math.max(8, Math.round(S.tileCM.h * PX_PER_CM));
   const cv = document.createElement('canvas');
   cv.width=W; cv.height=H;
-  const ctx=cv.getContext('2d');
+  const ctx = cv.getContext('2d');
 
-  if (S.texImg) {
-    ctx.drawImage(S.texImg,0,0,W,H);
+  if(S.useGlbTex && S.glbTexCanvas){
+    // Baked GLB texture
+    ctx.drawImage(S.glbTexCanvas, 0, 0, W, H);
+  } else if(S.texImg){
+    // URL image texture
+    ctx.drawImage(S.texImg, 0, 0, W, H);
   } else {
+    // Procedural fallback
     const grd=ctx.createLinearGradient(0,0,W,H);
-    grd.addColorStop(0,'#dedad4');grd.addColorStop(1,'#cac6be');
+    grd.addColorStop(0,'#dedad4');
+    grd.addColorStop(0.5,'#d2cec8');
+    grd.addColorStop(1,'#cac6be');
     ctx.fillStyle=grd;ctx.fillRect(0,0,W,H);
+    // subtle noise
+    for(let i=0;i<150;i++){
+      ctx.fillStyle='rgba(0,0,0,'+(Math.random()*0.04)+')';
+      ctx.fillRect(Math.random()*W,Math.random()*H,2,2);
+    }
   }
 
-  if (S.tileRot!==0) {
+  // Rotation
+  if(S.tileRot!==0){
     const tmp=document.createElement('canvas');tmp.width=W;tmp.height=H;
     const tc=tmp.getContext('2d');
     tc.save();tc.translate(W/2,H/2);tc.rotate(S.tileRot*Math.PI/180);
@@ -822,7 +973,8 @@ function buildTileCanvas() {
     ctx.clearRect(0,0,W,H);ctx.drawImage(tmp,0,0);
   }
 
-  if (S.jointColor&&S.jointSize>0) {
+  // Grout joint
+  if(S.jointColor && S.jointSize>0){
     const jPx=Math.max(1,Math.round(S.jointSize*PX_PER_CM/10));
     ctx.strokeStyle=S.jointColor;ctx.lineWidth=jPx;
     ctx.strokeRect(jPx/2,jPx/2,W-jPx,H-jPx);
@@ -831,33 +983,36 @@ function buildTileCanvas() {
   return cv;
 }
 
-/* ═══════════════════════════════════════════════════════════
-   CONSTRUCTION MESH SOL
-═══════════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════
+   REBUILD FLOOR MESH
+   Polygon zone → ShapeGeometry → tiled PBR material
+═══════════════════════════════════════ */
 function rebuildFloor() {
-  if (!S.polyValidated||S.polyPts.length<3) return;
-  if (S.glbLoading) return;
+  if(!S.polyValidated || S.polyPts.length<3) return;
+  if(S.glbLoading) return;
 
-  if (S.floorMesh) {
+  // Dispose previous
+  if(S.floorMesh){
     scene.remove(S.floorMesh);
     S.floorMesh.geometry.dispose();
-    if (S.floorMesh.material.map) S.floorMesh.material.map.dispose();
+    if(S.floorMesh.material.map) S.floorMesh.material.map.dispose();
     S.floorMesh.material.dispose();
     S.floorMesh=null;
   }
 
+  // Y floor level
   let yFloor=0;
-  if (S.xrMode&&S.hitMatrix) {
-    const m=new THREE.Matrix4().fromArray(S.hitMatrix);
+  if(S.xrMode && S.hitMatrix){
     const pos=new THREE.Vector3();
-    m.decompose(pos,new THREE.Quaternion(),new THREE.Vector3());
+    new THREE.Matrix4().fromArray(S.hitMatrix).decompose(pos,new THREE.Quaternion(),new THREE.Vector3());
     yFloor=pos.y;
   }
 
+  // Project 2D screen points → 3D floor plane
   const pts3=[];
-  for (const p of S.polyPts) {
+  for(const p of S.polyPts){
     let w3=screenToFloorPlane(p.x,p.y,yFloor);
-    if (!w3) {
+    if(!w3){
       const ndcX=(p.x/innerWidth)*2-1;
       const ndcY=-(p.y/innerHeight)*2+1;
       w3=new THREE.Vector3(ndcX*3,yFloor,-ndcY*3+camera.position.z-1);
@@ -865,15 +1020,16 @@ function rebuildFloor() {
     pts3.push(w3);
   }
 
-  if (S.xrMode&&S.hitMatrix) {
+  // Anchor to XR surface centroid
+  if(S.xrMode && S.hitMatrix){
     const ref=new THREE.Vector3();
     new THREE.Matrix4().fromArray(S.hitMatrix).decompose(ref,new THREE.Quaternion(),new THREE.Vector3());
     const cx3=pts3.reduce((s,p)=>s+p.x,0)/pts3.length;
     const cz3=pts3.reduce((s,p)=>s+p.z,0)/pts3.length;
-    const dx=ref.x-cx3,dz=ref.z-cz3;
-    pts3.forEach(p=>{p.x+=dx;p.z+=dz;p.y=ref.y;});
+    pts3.forEach(p=>{p.x+=ref.x-cx3;p.z+=ref.z-cz3;p.y=ref.y;});
   }
 
+  // THREE.Shape in XZ plane
   const shape=new THREE.Shape();
   shape.moveTo(pts3[0].x,pts3[0].z);
   for(let i=1;i<pts3.length;i++) shape.lineTo(pts3[i].x,pts3[i].z);
@@ -881,18 +1037,18 @@ function rebuildFloor() {
 
   const geo=new THREE.ShapeGeometry(shape);
 
+  // Tile-sized UV mapping (repeat texture per tile)
   const tW=S.tileCM.w/100;
   const tH=S.tileCM.h/100;
-  const pos=geo.attributes.position.array;
-
-  const uvArr=new Float32Array(pos.length/3*2);
-  for(let i=0;i<pos.length/3;i++){
-    uvArr[i*2]  =pos[i*3]  /tW;
-    uvArr[i*2+1]=pos[i*3+1]/tH;
+  const posArr=geo.attributes.position.array;
+  const uvArr=new Float32Array(posArr.length/3*2);
+  for(let i=0;i<posArr.length/3;i++){
+    uvArr[i*2]  =posArr[i*3]  /tW;
+    uvArr[i*2+1]=posArr[i*3+1]/tH;
   }
   geo.setAttribute('uv',new THREE.BufferAttribute(uvArr,2));
 
-  const posArr=geo.attributes.position.array;
+  // Flip XY → XZ (ShapeGeometry is in XY; floor is in XZ)
   for(let i=0;i<posArr.length/3;i++){
     posArr[i*3+2]=posArr[i*3+1];
     posArr[i*3+1]=yFloor+0.003;
@@ -900,45 +1056,51 @@ function rebuildFloor() {
   geo.attributes.position.needsUpdate=true;
   geo.computeVertexNormals();
 
+  // Build tile canvas & texture
   const tileCanvas=buildTileCanvas();
   const tex=new THREE.CanvasTexture(tileCanvas);
   tex.wrapS=tex.wrapT=THREE.RepeatWrapping;
   tex.encoding=THREE.sRGBEncoding;
+  tex.anisotropy=renderer.capabilities.getMaxAnisotropy();
 
+  // PBR material (PlaceAR quality)
   const mat=new THREE.MeshStandardMaterial({
     map:tex,
     transparent:true,
     opacity:S.opacity,
-    roughness:0.45,
-    metalness:0.05,
+    roughness:0.42,
+    metalness:0.04,
+    envMapIntensity:0.55,
     side:THREE.DoubleSide,
   });
 
   S.floorMesh=new THREE.Mesh(geo,mat);
+  S.floorMesh.receiveShadow=true;
   scene.add(S.floorMesh);
 }
 
-function refreshTexture() {
-  if (!S.floorMesh) { rebuildFloor(); return; }
+function refreshTexture(){
+  if(!S.floorMesh){rebuildFloor();return;}
   const old=S.floorMesh.material.map;
   const tc=buildTileCanvas();
   const tex=new THREE.CanvasTexture(tc);
   tex.wrapS=tex.wrapT=THREE.RepeatWrapping;
   tex.encoding=THREE.sRGBEncoding;
-  if (old) old.dispose();
+  tex.anisotropy=renderer.capabilities.getMaxAnisotropy();
+  if(old) old.dispose();
   S.floorMesh.material.map=tex;
   S.floorMesh.material.needsUpdate=true;
 }
 
-function refreshOpacity() {
-  if (!S.floorMesh) return;
+function refreshOpacity(){
+  if(!S.floorMesh) return;
   S.floorMesh.material.opacity=S.opacity;
   S.floorMesh.material.needsUpdate=true;
 }
 
-/* ═══════════════════════════════════════════════════════════
-   CONTRÔLES SHEET
-═══════════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════
+   CONTROLS
+═══════════════════════════════════════ */
 document.querySelectorAll('.jointSwatch').forEach(sw=>{
   sw.addEventListener('click',()=>{
     document.querySelectorAll('.jointSwatch').forEach(s=>s.classList.remove('active'));
@@ -971,9 +1133,9 @@ document.getElementById('rotSlider').addEventListener('input',e=>{
   refreshTexture();
 });
 
-/* ═══════════════════════════════════════════════════════════
+/* ═══════════════════════════════════════
    RESET & CAPTURE
-═══════════════════════════════════════════════════════════ */
+═══════════════════════════════════════ */
 document.getElementById('resetBtn').addEventListener('click',()=>{
   if(S.polyMode) cancelPoly();
   S.polyValidated=false;S.polyPts=[];S.polyClosed=false;
@@ -1004,9 +1166,9 @@ document.getElementById('captureBtn').addEventListener('click',()=>{
   postToFlutter({type:'capture'});
 });
 
-/* ═══════════════════════════════════════════════════════════
+/* ═══════════════════════════════════════
    SHEET DRAG
-═══════════════════════════════════════════════════════════ */
+═══════════════════════════════════════ */
 const SHEET_PEEK=92,SHEET_MID=440,SHEET_FULL=Math.round(innerHeight*.92);
 let dragY=null,dragH=0;
 function setSheetH(h,anim=true){
@@ -1023,10 +1185,10 @@ function endDrag(){if(dragY===null)return;const h=document.getElementById('sheet
 window.addEventListener('mouseup',endDrag);window.addEventListener('touchend',endDrag);
 handle.addEventListener('click',()=>{const h=document.getElementById('sheet').getBoundingClientRect().height;setSheetH(h<=SHEET_PEEK+10?SHEET_MID:h>=SHEET_FULL-20?SHEET_PEEK:SHEET_FULL);});
 
-/* ═══════════════════════════════════════════════════════════
-   PRODUITS DÉMO (fallback si aucun produit reçu)
-═══════════════════════════════════════════════════════════ */
-function ingestDemo() {
+/* ═══════════════════════════════════════
+   DEMO PRODUCTS
+═══════════════════════════════════════ */
+function ingestDemo(){
   ingestProducts([
     {id:'d1',name:'Carreau 60×60 Blanc',image:'',category:'Carrelage',
      dimensions:{width:60,height:60},
@@ -1043,41 +1205,30 @@ function ingestDemo() {
   ]);
 }
 
-/* ═══════════════════════════════════════════════════════════
-   SPLASH → DÉMARRAGE
-   Ordre de priorité pour les produits :
-   1. URL params (?products=…)  ← Flutter via launchUrl
-   2. window.receiveFromFlutter ← Flutter via WebView bridge
-   3. ingestDemo()              ← fallback développement
-═══════════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════
+   BOOT
+═══════════════════════════════════════ */
 document.getElementById('splashBtn').addEventListener('click', async()=>{
   document.getElementById('splash').classList.add('hidden');
   initThree();
   initPolyCanvas();
 
-  const xrOk = await checkXR();
-  if (xrOk) {
-    await startXR();
-  } else {
-    await startFallback();
-  }
+  const xrOk=await checkXR();
+  if(xrOk) await startXR();
+  else await startFallback();
 
   postToFlutter({type:'ready'});
 
-  /* ── Priorité 1 : produits depuis l'URL ── */
-  const urlProds = parseProductsFromURL();
-  if (urlProds && urlProds.length) {
-    console.log('[FloorAR] ' + urlProds.length + ' produits depuis URL params');
+  // Priority 1: URL params
+  const urlProds=parseProductsFromURL();
+  if(urlProds && urlProds.length){
     ingestProducts(urlProds);
-    return; /* Pas besoin du fallback */
+    return;
   }
 
-  /* ── Priorité 2 & 3 : attendre Flutter bridge ou démo ── */
+  // Priority 2: Flutter bridge → Priority 3: demo
   setTimeout(()=>{
-    if (!S.products.length) {
-      console.log('[FloorAR] Aucun produit reçu → démo');
-      ingestDemo();
-    }
+    if(!S.products.length) ingestDemo();
   }, 2500);
 });
 </script>
