@@ -435,8 +435,10 @@ function initThreeJS(){
   scene.add(new THREE.AmbientLight(0xffffff, 1.2));
   const dir = new THREE.DirectionalLight(0xffffff, 1.4);
   dir.position.set(3,8,5); dir.castShadow=true; scene.add(dir);
-  scene.add(Object.assign(new THREE.DirectionalLight(0xffffff,.4), {position: new THREE.Vector3(-4,2,-4)}));
-
+  // ✅ This is the correct way
+const fillLight = new THREE.DirectionalLight(0xffffff, 0.4);
+fillLight.position.set(-4, 2, -4);
+scene.add(fillLight);
   const reticleGeo = new THREE.RingGeometry(0.12,0.15,32).rotateX(-Math.PI/2);
   xrReticleMesh = new THREE.Mesh(reticleGeo, new THREE.MeshBasicMaterial({color:0x52B46B,side:THREE.DoubleSide}));
   xrReticleMesh.visible=false; xrReticleMesh.matrixAutoUpdate=false;
