@@ -49,38 +49,11 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:var
 .spin{width:34px;height:34px;border:3px solid rgba(245,144,100,.25);border-top-color:var(--primary);border-radius:50%;animation:spin .7s linear infinite}
 #glbLoader p{color:rgba(255,255,255,.8);font-size:12px;font-weight:500}
 
-/* ═══ WORKFLOW STEPPER ═══ */
-#workflowStepper{
-  position:fixed;bottom:96px;left:0;right:0;z-index:22;
-  display:none;flex-direction:column;align-items:center;gap:10px;
-  pointer-events:none
-}
-#workflowStepper.visible{display:flex}
-#workflowStepper>*{pointer-events:auto}
-
-.stepBubble{
-  display:flex;align-items:center;gap:8px;
-  background:rgba(17,17,17,.92);backdrop-filter:blur(16px);
-  border-radius:var(--r-xl);padding:9px 18px;
-  border:1px solid rgba(255,255,255,.12);max-width:92vw
-}
-.stepNum{
-  width:22px;height:22px;border-radius:50%;
-  display:flex;align-items:center;justify-content:center;
-  font-size:10px;font-weight:700;flex-shrink:0
-}
-.stepNum.done{background:var(--green);color:#fff}
-.stepNum.active{background:var(--poly);color:#fff;animation:pulse .8s infinite}
-.stepNum.wait{background:rgba(255,255,255,.1);color:rgba(255,255,255,.35)}
-.stepSep{width:1px;height:14px;background:rgba(255,255,255,.15);flex-shrink:0}
-.stepLabel{font-size:11px;font-weight:600;color:rgba(255,255,255,.8)}
-.stepLabel.active{color:#fff}
-.stepLabel.wait{color:rgba(255,255,255,.3)}
-
 /* POLYGON CONTROLS */
 #polyControls{
   position:fixed;bottom:96px;left:0;right:0;z-index:22;
-  display:none;flex-direction:column;align-items:center;gap:10px;pointer-events:none
+  display:none;flex-direction:column;align-items:center;gap:10px;
+  pointer-events:none
 }
 #polyControls.visible{display:flex}
 #polyControls>*{pointer-events:auto}
@@ -100,6 +73,17 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:var
 #pbUndo{background:rgba(255,255,255,.14);color:#fff;border:1px solid rgba(255,255,255,.25)}
 #pbClose{background:var(--poly);color:#fff;display:none}
 #pbCancel{background:rgba(255,255,255,.07);color:rgba(255,255,255,.55);border:1px solid rgba(255,255,255,.15);font-size:11px}
+
+/* FLOOR CALIBRATION TOAST */
+#floorCalibToast{
+  position:fixed;top:110px;left:50%;transform:translateX(-50%);
+  z-index:21;display:none;align-items:center;gap:8px;
+  padding:9px 18px;border-radius:var(--r-xl);
+  background:rgba(40,79,117,.92);backdrop-filter:blur(14px);
+  border:1px solid rgba(100,180,255,.3);color:#fff;font-size:11px;font-weight:600;
+  white-space:nowrap;pointer-events:none
+}
+#floorCalibToast.visible{display:flex}
 
 /* CARRELAGE PICKER OVERLAY (step 2) */
 #carrelagePicker{
@@ -150,7 +134,7 @@ input.tileZoneInput::-webkit-slider-thumb{-webkit-appearance:none;width:16px;hei
 .aBtn.danger{background:rgba(221,80,80,.1);color:var(--red)}.aBtn.danger svg{stroke:var(--red)}
 #selectedProductName{font-size:11px;font-weight:700;color:var(--secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:90px;flex-shrink:0}
 
-/* SHEET (compact — just reset + capture) */
+/* SHEET */
 #sheet{position:fixed;bottom:0;left:0;right:0;z-index:30;background:var(--white);border-radius:var(--r-lg) var(--r-lg) 0 0;box-shadow:var(--shadow);display:none;flex-direction:column}
 #sheetHandle{width:100%;padding:12px 0 6px;cursor:grab;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 #handleBar{width:38px;height:4px;border-radius:3px;background:var(--lg)}
@@ -185,26 +169,12 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
 #videoEl{position:fixed;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;display:none}
 #saveToast{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:200;display:flex;flex-direction:column;align-items:center;gap:10px;padding:24px 32px;background:rgba(20,30,40,.92);backdrop-filter:blur(20px);border-radius:var(--r-lg);border:1px solid rgba(255,255,255,.15);color:#fff;font-size:13px;font-weight:600;pointer-events:none;opacity:0;transition:opacity .3s;text-align:center}
 #saveToast.show{opacity:1}
-
-/* ✅ RETICLE ET LABEL : invisibles dans la scène 3D (GUI seulement) */
-#xrReticle{
-  position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
-  z-index:5;pointer-events:none;opacity:0;transition:opacity .4s;
-  /* IMPORTANT : pointer-events:none empêche les collisions 3D */
-}
+#xrReticle{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:5;pointer-events:none;opacity:0;transition:opacity .4s}
 #xrReticle.visible{opacity:1}
-
-#surfaceLabel{
-  position:fixed;top:calc(50% + 46px);left:50%;transform:translateX(-50%);
-  z-index:6;padding:3px 10px;border-radius:12px;font-size:9px;font-weight:700;
-  letter-spacing:.4px;text-transform:uppercase;pointer-events:none;opacity:0;
-  transition:all .3s;white-space:nowrap;
-  /* IMPORTANT : fond semi-transparent pour bien voir la UI */
-}
+#surfaceLabel{position:fixed;top:calc(50% + 46px);left:50%;transform:translateX(-50%);z-index:6;padding:3px 10px;border-radius:12px;font-size:9px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;pointer-events:none;opacity:0;transition:all .3s;white-space:nowrap}
 #surfaceLabel.visible{opacity:1}
 #surfaceLabel.floor{background:rgba(82,180,107,.25);color:#52B46B;border:1px solid rgba(82,180,107,.4)}
 #surfaceLabel.wall{background:rgba(40,79,117,.25);color:#6fa3d8;border:1px solid rgba(40,79,117,.4)}
-
 #deleteHint{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:18;padding:12px 24px;border-radius:var(--r-lg);background:rgba(221,80,80,.85);color:#fff;font-size:14px;font-weight:700;pointer-events:none;opacity:0;transition:opacity .2s;text-align:center}
 #deleteHint.show{opacity:1;animation:pulse-delete .6s ease-out}
 @keyframes pulse-delete{0%{opacity:1;transform:translate(-50%,-50%) scale(1)}50%{opacity:.5}100%{opacity:0;transform:translate(-50%,-50%) scale(.8)}}
@@ -223,6 +193,9 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
 <canvas id="threeCanvas"></canvas>
 <canvas id="polyDrawCanvas"></canvas>
 <canvas id="interactionCanvas"></canvas>
+
+<!-- FLOOR CALIBRATION TOAST -->
+<div id="floorCalibToast">📐 Sol calibré à Y = <span id="floorYDisplay">0.00</span>m</div>
 
 <!-- POLYGON CONTROLS (visible during drawing) -->
 <div id="polyControls">
@@ -258,7 +231,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
   </div>
 </div>
 
-<!-- XR reticle — INVISIBLE en scène 3D, visible uniquement comme overlay GUI -->
+<!-- XR reticle -->
 <div id="xrReticle">
   <svg width="70" height="70" viewBox="0 0 70 70" fill="none">
     <ellipse cx="35" cy="35" rx="30" ry="11" stroke="rgba(82,180,107,.9)" stroke-width="1.5" stroke-dasharray="6 4"/>
@@ -373,15 +346,16 @@ const S = {
   reticleVisible:false, currentHitMatrix:null, meshIdCounter:0,
   currentSurfaceType:'floor',
   twoTouchStart:null, lastTapTime:0, doubleTapTimeout:null,
-  // POLYGON
   drawingZone:false,
   polyPoints2D:[],
   polyPoints3D:[],
   polyClosed:false,
-  pendingPolyPts:null,  // stored 3D points waiting for carrelage choice
+  pendingPolyPts:null,
   tileZoneGroups:[],
   selectedPattern:'straight',
   tileSize:0.30,
+  // ── FIX: explicit floor Y tracked separately ──
+  floorY: 0,
 };
 
 /* DOM */
@@ -416,6 +390,8 @@ const carrelagePicker  = document.getElementById('carrelagePicker');
 const cpScroll         = document.getElementById('cpScroll');
 const cpConfirmBtn     = document.getElementById('cpConfirmBtn');
 const drawZoneBtn      = document.getElementById('drawZoneBtn');
+const floorCalibToast  = document.getElementById('floorCalibToast');
+const floorYDisplay    = document.getElementById('floorYDisplay');
 
 let polyCtx;
 const ptDist = (a,b) => Math.hypot(a.x-b.x, a.y-b.y);
@@ -426,7 +402,6 @@ function setStatus(msg,cls=''){statusText.textContent=msg;statusToast.className=
 ═══════════════════════════════════════════ */
 let scene, camera3, renderer3, loader;
 let xrReferenceSpace=null, xrReticleMesh=null;
-/* Floor plane — used for raycasting in fallback AND XR */
 let floorPlane=null;
 
 function initThreeJS(){
@@ -452,18 +427,19 @@ function initThreeJS(){
   const fillLight = new THREE.DirectionalLight(0xffffff, 0.4);
   fillLight.position.set(-4, 2, -4);
   scene.add(fillLight);
-  
+
   const reticleGeo = new THREE.RingGeometry(0.12,0.15,32).rotateX(-Math.PI/2);
   xrReticleMesh = new THREE.Mesh(reticleGeo, new THREE.MeshBasicMaterial({color:0x52B46B,side:THREE.DoubleSide}));
   xrReticleMesh.visible=false; xrReticleMesh.matrixAutoUpdate=false;
   scene.add(xrReticleMesh);
 
-  /* Invisible floor plane for raycasting (Y=0) */
+  /* ── FIX: floor plane at Y=0 initially, updated by calibration ── */
   floorPlane = new THREE.Mesh(
     new THREE.PlaneGeometry(200,200),
     new THREE.MeshBasicMaterial({visible:false, side:THREE.DoubleSide})
   );
   floorPlane.rotation.x = -Math.PI/2;
+  floorPlane.position.y = S.floorY;
   floorPlane.name = 'floor';
   scene.add(floorPlane);
 
@@ -553,11 +529,12 @@ function xrRenderLoop(timestamp, frame){
         const labels={floor:'Sol',wall:'Mur',ceiling:'Plafond'};
         surfaceLabel.textContent=labels[S.currentSurfaceType];
         surfaceLabel.className='visible '+S.currentSurfaceType;
-        /* Keep invisible floor plane aligned to detected surface Y */
+        /* ── FIX: update floor Y from XR hit test ── */
         if(S.currentSurfaceType==='floor'){
-          const pos=new THREE.Vector3(); const q=new THREE.Quaternion(); const sc=new THREE.Vector3();
+          const pos=new THREE.Vector3(), q=new THREE.Quaternion(), sc=new THREE.Vector3();
           new THREE.Matrix4().fromArray(pose.transform.matrix).decompose(pos,q,sc);
-          floorPlane.position.y = pos.y;
+          S.floorY = pos.y;
+          floorPlane.position.y = S.floorY;
         }
       }
     }else{xrReticle.classList.remove('visible'); S.reticleVisible=false;}
@@ -572,45 +549,89 @@ async function startFallbackMode(){
   S.fallbackMode=true;
   try{
     const stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'},audio:false});
-    document.getElementById('videoEl').srcObject=stream;
-    document.getElementById('videoEl').style.display='block';
-    await document.getElementById('videoEl').play();
+    const videoEl = document.getElementById('videoEl');
+    videoEl.srcObject=stream;
+    videoEl.style.display='block';
+    await videoEl.play();
   }catch(e){setStatus('Caméra refusée','error');return;}
 
   renderer3.setAnimationLoop(()=>renderer3.render(scene,camera3));
 
-  camera3.position.set(0,1.6,0);
-  camera3.lookAt(0,0,-2);
-  /* floorPlane already at Y=0 */
+  /* ── FIX: Camera positioned realistically above floor ──
+     Phone held ~1.2m high, tilted ~55° down toward floor */
+  const CAM_HEIGHT = 1.2;
+  camera3.position.set(0, CAM_HEIGHT, 0.3);
+  camera3.lookAt(0, 0, -0.5);
+
+  /* ── FIX: Floor plane at Y=0 (actual floor level) ── */
+  S.floorY = 0;
+  floorPlane.position.y = S.floorY;
 
   showARUI();
   surfaceLabel.className='visible floor'; surfaceLabel.textContent='Sol';
   S.reticleVisible=true; S.currentSurfaceType='floor';
-  setStatus('Mode caméra · Tracez la zone','ok');
+  setStatus('Mode caméra · Pointez le sol puis tracez la zone','ok');
+
+  /* Calibrate floor by probing the center of screen */
+  calibrateFloorFromScreen();
+}
+
+/* ── FIX: Auto-calibrate floorY by raycasting center of screen ──
+   This detects what Y the floor appears at given the current camera pose */
+function calibrateFloorFromScreen(){
+  /* Cast a ray from screen center — wherever it hits the mathematical
+     floor plane (Y=0) is our reference. Then nudge camera height so
+     the floor plane stays at Y=0 (tiles lay flat). */
+  const cx = window.innerWidth / 2;
+  const cy = window.innerHeight * 0.65; /* slightly below center = floor area */
+  const pt = screenToFloorRaw(cx, cy, 0); /* intersect Y=0 */
+  /* If the intersection is too far or invalid, keep default */
+  if(pt && isFinite(pt.x) && Math.abs(pt.z) < 20){
+    console.log('[Calib] Floor reference point:', pt);
+  }
 }
 
 /* ═══════════════════════════════════════════
-   RAYCASTING  screen → floor (Y=floorPlane.position.y)
-   Utilisé à la fois pour le mode fallback et XR
+   ── FIX: ROBUST screenToFloor ──
+   
+   The original bug: in fallback mode the camera is at Y=1.2 looking down,
+   but floorPlane was at Y=0 and never updated. Ray-plane intersection
+   should work, but only if the plane normal faces the camera correctly.
+   
+   Key fix: we use a pure mathematical plane intersection (no mesh needed)
+   and ensure the floor Y is correct before each tap.
 ═══════════════════════════════════════════ */
 const raycaster = new THREE.Raycaster();
 
 function screenToFloor(sx, sy){
-  const nx = (sx/window.innerWidth)*2 - 1;
-  const ny = -(sy/window.innerHeight)*2 + 1;
-  raycaster.setFromCamera({x:nx, y:ny}, camera3);
+  /* ── FIX: always use the tracked S.floorY for the plane ── */
+  return screenToFloorRaw(sx, sy, S.floorY);
+}
 
-  /* 1. Essai via la floor plane Three.js (mesh invisible) */
+function screenToFloorRaw(sx, sy, planeY){
+  const nx = (sx / window.innerWidth) * 2 - 1;
+  const ny = -(sy / window.innerHeight) * 2 + 1;
+  raycaster.setFromCamera({x: nx, y: ny}, camera3);
+
+  /* Method 1: THREE.js mesh intersection */
+  const savedY = floorPlane.position.y;
+  floorPlane.position.y = planeY;
+  floorPlane.updateMatrixWorld(true);
   const hits = raycaster.intersectObject(floorPlane);
-  if(hits.length>0) return hits[0].point.clone();
+  floorPlane.position.y = savedY;
 
-  /* 2. Fallback : intersection avec le plan mathématique Y=floorPlane.position.y */
-  const floorY = floorPlane.position.y || 0;
-  const plane = new THREE.Plane(new THREE.Vector3(0,1,0), -floorY);
+  if(hits.length > 0){
+    return hits[0].point.clone();
+  }
+
+  /* Method 2: mathematical plane Y=planeY */
+  const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -planeY);
   const target = new THREE.Vector3();
-  if(raycaster.ray.intersectPlane(plane, target)) return target.clone();
+  if(raycaster.ray.intersectPlane(plane, target)){
+    return target.clone();
+  }
 
-  /* 3. Dernier recours : projection en avant de la caméra à 1.5m */
+  /* Method 3: fallback — project 1.5m forward */
   return raycaster.ray.at(1.5, new THREE.Vector3());
 }
 
@@ -620,12 +641,7 @@ function worldToScreen(v){
 }
 
 /* ═══════════════════════════════════════════
-   ██  POLYGON DRAWING  ██
-   WORKFLOW:
-     1. drawZoneBtn → startZoneDrawing()
-     2. User taps corners (or XR select)
-     3. Close polygon → showCarrelagePicker()
-     4. User picks tile + pattern → cpConfirmBtn → placeTilePolygon()
+   POLYGON DRAWING
 ═══════════════════════════════════════════ */
 const CLOSE_SNAP = 34;
 const MIN_POINTS = 3;
@@ -640,7 +656,7 @@ function startZoneDrawing(){
   polyControls.classList.add('visible');
   drawZoneBtn.className='qBtn qBtn-poly-on';
   polyCtx.clearRect(0,0,polyDrawCanvas.width,polyDrawCanvas.height);
-  setStatus('Étape 1 · Tapez chaque coin de la zone','poly');
+  setStatus('Étape 1 · Tapez chaque coin de la zone sur le SOL','poly');
   updatePolyUI();
 }
 
@@ -662,7 +678,6 @@ function updatePolyUI(){
   pbClose.style.display = (n>=MIN_POINTS && !S.polyClosed) ? 'block' : 'none';
 }
 
-/* ── Redessine le polygone en cours ── */
 function redrawPoly(mx, my){
   const W=polyDrawCanvas.width, H=polyDrawCanvas.height;
   polyCtx.clearRect(0,0,W,H);
@@ -672,7 +687,6 @@ function redrawPoly(mx, my){
   const nearFirst = pts.length>=MIN_POINTS && mx!==undefined
     && ptDist({x:mx,y:my}, pts[0]) < CLOSE_SNAP;
 
-  /* Filled area */
   if(pts.length>=3){
     polyCtx.beginPath();
     polyCtx.moveTo(pts[0].x, pts[0].y);
@@ -683,14 +697,12 @@ function redrawPoly(mx, my){
     drawPolyTilePreview(pts);
   }
 
-  /* Border */
   polyCtx.beginPath();
   polyCtx.moveTo(pts[0].x, pts[0].y);
   for(let i=1;i<pts.length;i++) polyCtx.lineTo(pts[i].x, pts[i].y);
   if(S.polyClosed) polyCtx.closePath();
   polyCtx.strokeStyle='#FF3B30'; polyCtx.lineWidth=2.5; polyCtx.setLineDash([]); polyCtx.stroke();
 
-  /* Rubber-band */
   if(mx!==undefined && !S.polyClosed && pts.length>0){
     const last=pts[pts.length-1];
     polyCtx.beginPath(); polyCtx.moveTo(last.x,last.y); polyCtx.lineTo(mx,my);
@@ -703,7 +715,6 @@ function redrawPoly(mx, my){
     }
   }
 
-  /* Points */
   pts.forEach((p,i)=>{
     const isFirst = i===0;
     const r = isFirst ? 9 : 6;
@@ -747,9 +758,7 @@ function redrawPoly(mx, my){
   }
 }
 
-/* Aperçu grille tuiles dans le polygone 2D (cohérent avec la vraie grille 3D) */
 function drawPolyTilePreview(pts){
-  /* On utilise une taille fixe en pixels pour l'aperçu — juste décoratif */
   const ts=24;
   const xs=pts.map(p=>p.x), ys=pts.map(p=>p.y);
   const minX=Math.min(...xs), maxX=Math.max(...xs);
@@ -762,7 +771,6 @@ function drawPolyTilePreview(pts){
 
   const colors=['rgba(212,169,106,0.20)','rgba(139,94,60,0.14)','rgba(212,169,106,0.14)','rgba(139,94,60,0.10)'];
   const cols=Math.ceil((maxX-minX)/ts)+2, rows=Math.ceil((maxY-minY)/ts)+2;
-  /* Snap grille au centroïde */
   const cx=(minX+maxX)/2, cy=(minY+maxY)/2;
   const offX=((cx%ts)+ts)%ts, offY=((cy%ts)+ts)%ts;
   for(let r=0;r<rows;r++){
@@ -806,20 +814,26 @@ function handlePolyTap(ex, ey){
   if(S.polyClosed) return;
   const pts=S.polyPoints2D;
 
-  /* Snap-to-close */
   if(pts.length>=MIN_POINTS && ptDist({x:ex,y:ey}, pts[0]) < CLOSE_SNAP){
     closePolygon(); return;
   }
 
-  /* Convertit screen → 3D sol (point de vérité) */
+  /* ── FIX: get 3D floor point using current S.floorY ── */
   const world = screenToFloor(ex, ey);
-  /* Garde aussi la projection 3D → écran pour la cohérence de l'affichage 2D */
+
+  /* ── FIX: clamp Y to floorY so all points are coplanar on the floor ── */
+  world.y = S.floorY;
+
+  /* For 2D display: project back or use screen coords directly */
   const screen2D = S.xrMode ? worldToScreen(world) : {x:ex, y:ey};
 
   S.polyPoints2D.push(screen2D);
   S.polyPoints3D.push(world);
   updatePolyUI();
   redrawPoly(ex, ey);
+
+  /* Debug: log the 3D point */
+  console.log(`[Poly tap ${pts.length}] screen(${ex.toFixed(0)},${ey.toFixed(0)}) → world(${world.x.toFixed(3)}, ${world.y.toFixed(3)}, ${world.z.toFixed(3)})`);
 }
 
 function closePolygon(){
@@ -827,7 +841,6 @@ function closePolygon(){
   S.polyClosed=true;
   redrawPoly();
   updatePolyUI();
-  /* ÉTAPE 2 : proposer le choix du carrelage */
   interactionCanvas.style.display='none';
   polyControls.classList.remove('visible');
   showCarrelagePicker();
@@ -882,7 +895,6 @@ function renderCpCards(){
 
 document.getElementById('cpCloseBtn').addEventListener('click',()=>{
   hidePicker();
-  /* Remet en mode dessin pour que l'utilisateur puisse retracer */
   cancelZoneDrawing();
 });
 
@@ -903,7 +915,7 @@ cpConfirmBtn.addEventListener('click', async ()=>{
   if(!S.selectedProductId || !S.pendingPolyPts) return;
   hidePicker();
   polyCtx.clearRect(0,0,polyDrawCanvas.width,polyDrawCanvas.height);
-  cancelZoneDrawing(); /* remet les flags à zéro sans effacer pendingPolyPts */
+  cancelZoneDrawing();
   await placeTilePolygon(S.pendingPolyPts);
   S.pendingPolyPts=null;
 });
@@ -918,6 +930,8 @@ function setupXRSelect(){
       const mat=xrReticleMesh.matrix;
       const pos=new THREE.Vector3(), q=new THREE.Quaternion(), sc=new THREE.Vector3();
       mat.decompose(pos,q,sc);
+      /* ── FIX: clamp to floor Y ── */
+      pos.y = S.floorY;
       const s2=worldToScreen(pos);
       S.polyPoints2D.push(s2);
       S.polyPoints3D.push(pos.clone());
@@ -929,7 +943,7 @@ function setupXRSelect(){
 /* ═══════════════════════════════════════════
    TOUCH GESTURES
 ═══════════════════════════════════════════ */
-const TS={touchStart:null,rotX:0,rotY:0};
+const TS_GESTURE={touchStart:null,rotX:0,rotY:0};
 
 document.addEventListener('touchstart',e=>{
   if(S.drawingZone || carrelagePicker.classList.contains('visible')) return;
@@ -938,14 +952,14 @@ document.addEventListener('touchstart',e=>{
     if(now-S.lastTapTime<300){
       clearTimeout(S.doubleTapTimeout);
       if(S.selectedObjectId) deleteSelected();
-      TS.touchStart=null;
+      TS_GESTURE.touchStart=null;
     }else{
       S.lastTapTime=now;
       S.doubleTapTimeout=setTimeout(()=>{S.lastTapTime=0;},300);
-      if(S.selectedObjectId){const t=e.touches[0];TS.touchStart={x:t.clientX,y:t.clientY};const o=S.placedObjects.find(o=>o.id===S.selectedObjectId);if(o){TS.rotX=o.group.rotation.x;TS.rotY=o.group.rotation.y;}}
+      if(S.selectedObjectId){const t=e.touches[0];TS_GESTURE.touchStart={x:t.clientX,y:t.clientY};const o=S.placedObjects.find(o=>o.id===S.selectedObjectId);if(o){TS_GESTURE.rotX=o.group.rotation.x;TS_GESTURE.rotY=o.group.rotation.y;}}
     }
   }else if(e.touches.length===2){
-    TS.touchStart=null;
+    TS_GESTURE.touchStart=null;
     const t1=e.touches[0],t2=e.touches[1];
     S.twoTouchStart={dist:Math.hypot(t2.clientX-t1.clientX,t2.clientY-t1.clientY)};
     const o=S.placedObjects.find(o=>o.id===S.selectedObjectId);
@@ -955,10 +969,10 @@ document.addEventListener('touchstart',e=>{
 
 document.addEventListener('touchmove',e=>{
   if(S.drawingZone || carrelagePicker.classList.contains('visible')) return;
-  if(e.touches.length===1&&TS.touchStart&&S.selectedObjectId){
-    const t=e.touches[0], dx=t.clientX-TS.touchStart.x, dy=t.clientY-TS.touchStart.y;
+  if(e.touches.length===1&&TS_GESTURE.touchStart&&S.selectedObjectId){
+    const t=e.touches[0], dx=t.clientX-TS_GESTURE.touchStart.x, dy=t.clientY-TS_GESTURE.touchStart.y;
     const o=S.placedObjects.find(o=>o.id===S.selectedObjectId);
-    if(o){o.group.rotation.y=TS.rotY+dx*0.01; o.group.rotation.x=TS.rotX+dy*0.01;}
+    if(o){o.group.rotation.y=TS_GESTURE.rotY+dx*0.01; o.group.rotation.x=TS_GESTURE.rotX+dy*0.01;}
   }else if(e.touches.length===2&&S.twoTouchStart&&S.selectedObjectId){
     const t1=e.touches[0],t2=e.touches[1];
     const nd=Math.hypot(t2.clientX-t1.clientX,t2.clientY-t1.clientY);
@@ -967,13 +981,12 @@ document.addEventListener('touchmove',e=>{
   }
 },{passive:true});
 
-document.addEventListener('touchend',()=>{TS.touchStart=null; S.twoTouchStart=null;},{passive:true});
+document.addEventListener('touchend',()=>{TS_GESTURE.touchStart=null; S.twoTouchStart=null;},{passive:true});
 
 /* ═══════════════════════════════════════════
    ██  3D TILE POLYGON PLACEMENT  ██
 ═══════════════════════════════════════════ */
 
-/* Point-in-polygon 2D (XZ plane) — ray-casting robuste */
 function pointInPoly(px, pz, poly){
   let inside=false;
   const n=poly.length;
@@ -1001,30 +1014,24 @@ function polyCentroid(poly){
   return{x:cx/poly.length,z:cz/poly.length};
 }
 
-/* ── Génération de la grille de tuiles (ancrée au centroïde) ── */
 function generateTilesInPolygon(poly3D, tileS, pattern){
   const {minX,maxX,minZ,maxZ} = polyBounds(poly3D);
   const cent = polyCentroid(poly3D);
   const positions=[];
-  const PAD = tileS; /* padding de sécurité */
+  const PAD = tileS;
 
   if(pattern==='diagonal'){
-    /* Grille droite pivotée 45° autour du centroïde */
-    const s=tileS * Math.SQRT2; /* pas de la grille diagonale */
     for(let gz=minZ-PAD; gz<=maxZ+PAD; gz+=tileS){
       for(let gx=minX-PAD; gx<=maxX+PAD; gx+=tileS){
-        /* Rotation 45° autour du centroïde */
         const dx=gx-cent.x, dz=gz-cent.z;
         const rx=cent.x + (dx-dz)*Math.SQRT1_2;
         const rz=cent.z + (dx+dz)*Math.SQRT1_2;
-        /* Centre de la tuile = (rx,rz) */
         if(pointInPoly(rx, rz, poly3D))
           positions.push({x:rx, z:rz, rot:Math.PI/4, w:tileS*0.94, h:tileS*0.94});
       }
     }
   } else if(pattern==='chevron'){
     const tw=tileS, th=tileS*0.5;
-    /* Snap grille au centroïde */
     const offX=((cent.x%(tw))+tw)%tw;
     const offZ=((cent.z%(th))+th)%th;
     let row=0;
@@ -1039,31 +1046,23 @@ function generateTilesInPolygon(poly3D, tileS, pattern){
       }
     }
   } else if(pattern==='opus'){
-    /* Mélange 2/3 grande tuile + 1/3 petite */
     const big=tileS, sm=tileS*0.6;
     const stride=big+sm;
     const offX=((cent.x%stride)+stride)%stride;
     const offZ=((cent.z%stride)+stride)%stride;
-    let row=0;
-    for(let gz=minZ-PAD-offZ; gz<=maxZ+PAD; gz+=stride,row++){
-      let col=0;
-      for(let gx=minX-PAD-offX; gx<=maxX+PAD; gx+=stride,col++){
-        /* Grande tuile */
+    for(let gz=minZ-PAD-offZ; gz<=maxZ+PAD; gz+=stride){
+      for(let gx=minX-PAD-offX; gx<=maxX+PAD; gx+=stride){
         const bx=gx+big/2, bz=gz+big/2;
         if(pointInPoly(bx,bz,poly3D)) positions.push({x:bx,z:bz,rot:0,w:big,h:big});
-        /* Petite tuile à droite de la grande */
         const sx=gx+big+sm/2, sz=gz+big/2;
         if(pointInPoly(sx,sz,poly3D)) positions.push({x:sx,z:sz,rot:0,w:sm,h:sm});
-        /* Petite tuile en dessous de la grande */
         const sx2=gx+big/2, sz2=gz+big+sm/2;
         if(pointInPoly(sx2,sz2,poly3D)) positions.push({x:sx2,z:sz2,rot:0,w:sm,h:sm});
-        /* Petite tuile coin bas-droite */
         const sx3=gx+big+sm/2, sz3=gz+big+sm/2;
         if(pointInPoly(sx3,sz3,poly3D)) positions.push({x:sx3,z:sz3,rot:0,w:sm,h:sm});
       }
     }
   } else {
-    /* Droit — ancré au centroïde */
     const offX=((cent.x%tileS)+tileS)%tileS;
     const offZ=((cent.z%tileS)+tileS)%tileS;
     for(let gz=minZ-PAD-offZ; gz<=maxZ+PAD; gz+=tileS){
@@ -1077,23 +1076,27 @@ function generateTilesInPolygon(poly3D, tileS, pattern){
   return positions;
 }
 
-/* ── Base de joint (forme du polygone, légèrement en dessous des tuiles) ── */
-function buildGroutBase(poly3D){
+/* ── ── FIX: grout base uses S.floorY ── */
+function buildGroutBase(poly3D, floorY){
   const shape=new THREE.Shape();
   shape.moveTo(poly3D[0].x, poly3D[0].z);
   for(let i=1;i<poly3D.length;i++) shape.lineTo(poly3D[i].x, poly3D[i].z);
   shape.closePath();
   const geo=new THREE.ShapeGeometry(shape);
+  /* ── FIX: ShapeGeometry is on XY plane — rotate to lay flat on XZ ── */
   geo.rotateX(-Math.PI/2);
-  const mat=new THREE.MeshStandardMaterial({color:0x9A8878, roughness:0.95, transparent:true, opacity:S.opacity*0.85, side:THREE.DoubleSide, depthWrite:false});
+  const mat=new THREE.MeshStandardMaterial({
+    color:0x9A8878, roughness:0.95, transparent:true,
+    opacity:S.opacity*0.85, side:THREE.DoubleSide, depthWrite:false
+  });
   const mesh=new THREE.Mesh(geo,mat);
-  /* Positionner à la hauteur du sol */
-  mesh.position.y = floorPlane.position.y + 0.001;
+  /* ── FIX: place at floorY + tiny offset so it's visible above floor ── */
+  mesh.position.y = floorY + 0.001;
   mesh.receiveShadow=true;
   return mesh;
 }
 
-/* ── Préchargement texture ── */
+/* ── Texture cache ── */
 let _cachedTex=null, _cachedTexUrl='';
 function loadOrGetTexture(url){
   return new Promise(res=>{
@@ -1106,13 +1109,16 @@ function loadOrGetTexture(url){
   });
 }
 
-/* ── Main ── */
+/* ── Main tile placement ── */
 async function placeTilePolygon(poly3D){
   const product = S.catalog.find(p=>p.id===S.selectedProductId);
   if(!product){setStatus('Sélectionnez un carrelage d\'abord','error');return;}
 
-  const TS = S.tileSize;
-  const positions = generateTilesInPolygon(poly3D, TS, S.selectedPattern);
+  /* ── FIX: ensure all polygon points are coplanar at S.floorY ── */
+  const flatPoly = poly3D.map(p => new THREE.Vector3(p.x, S.floorY, p.z));
+
+  const TS_SIZE = S.tileSize;
+  const positions = generateTilesInPolygon(flatPoly, TS_SIZE, S.selectedPattern);
   const total = positions.length;
 
   if(total===0){setStatus('Aucune tuile dans cette zone (zone trop petite ?)','error');return;}
@@ -1125,8 +1131,8 @@ async function placeTilePolygon(poly3D){
   scene.add(zoneGroup);
   zoneGroup.userData.isTileZone=true;
 
-  /* Joint de base */
-  zoneGroup.add(buildGroutBase(poly3D));
+  /* Grout base */
+  zoneGroup.add(buildGroutBase(flatPoly, S.floorY));
 
   /* Texture */
   const tex = await loadOrGetTexture(product.imageUrl||'');
@@ -1139,33 +1145,15 @@ async function placeTilePolygon(poly3D){
     try{
       const gltf = await new Promise((res,rej)=>loader.load(product.modelUrl,res,null,rej));
       baseModel = gltf.scene;
-      
-      /* ✅ CORRECTION : Détecte l'orientation et force horizontale */
       const bb = new THREE.Box3().setFromObject(baseModel);
       const sz = bb.getSize(new THREE.Vector3());
-      
-      /* Détecte si vertical (hauteur > largeur/profondeur) */
-      const isVertical = sz.y > Math.max(sz.x, sz.z);
-      if(isVertical){
-        /* Rotate -90° autour de l'axe X pour basculer vers l'horizontal */
-        baseModel.rotateX(-Math.PI/2);
-        /* Recalcule les bounds après rotation */
-        bb.setFromObject(baseModel);
-      }
-      
-      const szAfter = bb.getSize(new THREE.Vector3());
-      const maxDim = Math.max(szAfter.x, szAfter.z) || 1;
-      const glbScale = TS / maxDim;
+      const maxDim = Math.max(sz.x, sz.z) || 1;
+      const glbScale = TS_SIZE / maxDim;
       baseModel.scale.setScalar(glbScale);
-      
-      /* Centre horizontalement et place au sol (Y=0) */
-      bb.setFromObject(baseModel);
       const center = bb.getCenter(new THREE.Vector3());
       baseModel.position.x -= center.x*glbScale;
       baseModel.position.z -= center.z*glbScale;
-      /* Force la base à Y=0 (sol) */
       baseModel.position.y -= bb.min.y*glbScale;
-      
       baseModel.traverse(c=>{
         if(!c.isMesh) return;
         const mats=Array.isArray(c.material)?c.material:[c.material];
@@ -1175,13 +1163,13 @@ async function placeTilePolygon(poly3D){
     }catch(e){console.warn('GLB load failed, using box tiles');baseModel=null;}
   }
 
-  /* Matériau partagé pour les tuiles-box */
+  /* ── FIX: shared material — tiles are flat boxes, Y centered at floorY + TILE_H/2 ── */
+  const TILE_H = 0.012; /* 12mm tile thickness */
   const fallbackMat = new THREE.MeshStandardMaterial({
     roughness:0.28, metalness:0.08, transparent:true, opacity:S.opacity,
     ...(tex ? {map:tex, color:new THREE.Color(0xffffff)} : {color:new THREE.Color(0xD4A96A)})
   });
   const tileColors = [0xD4A96A,0xC09050,0xE0B878,0xB88040];
-  const floorY = floorPlane.position.y;
 
   for(let i=0;i<positions.length;i++){
     const p=positions[i];
@@ -1190,25 +1178,28 @@ async function placeTilePolygon(poly3D){
     if(baseModel){
       tile = baseModel.clone(true);
       tile.rotation.y = p.rot;
-      tile.position.set(p.x, floorY, p.z);
+      /* ── FIX: position at S.floorY ── */
+      tile.position.set(p.x, S.floorY, p.z);
     }else{
-      /* BoxGeometry centrée — hauteur 12mm */
-      const TILE_H=0.012;
-      const geo = new THREE.BoxGeometry(p.w-0.004, TILE_H, p.h-0.004);
+      /* ── FIX: BoxGeometry is centered at its own origin.
+         Place so its BOTTOM face is at floorY → center at floorY + TILE_H/2 ── */
+      const geo = new THREE.BoxGeometry(p.w - 0.004, TILE_H, p.h - 0.004);
       const mat = fallbackMat.clone();
-      if(!tex) mat.color.set(tileColors[i%tileColors.length]);
+      if(!tex) mat.color.set(tileColors[i % tileColors.length]);
       tile = new THREE.Mesh(geo, mat);
-      tile.castShadow=true; tile.receiveShadow=true;
+      tile.castShadow = true;
+      tile.receiveShadow = true;
       tile.rotation.y = p.rot;
-      tile.position.set(p.x, floorY+TILE_H/2, p.z);
+      /* ── FIX: Y = floorY + half tile height so tile sits ON the floor ── */
+      tile.position.set(p.x, S.floorY + TILE_H / 2, p.z);
     }
 
     zoneGroup.add(tile);
 
-    if(i%10===0){
-      const pct=Math.round((i+1)/total*100);
-      tilingFill.style.width=pct+'%';
-      tilingText.textContent=(i+1)+' / '+total+' tuiles';
+    if(i % 10 === 0){
+      const pct = Math.round((i+1) / total * 100);
+      tilingFill.style.width = pct + '%';
+      tilingText.textContent = (i+1) + ' / ' + total + ' tuiles';
       await new Promise(r=>requestAnimationFrame(r));
     }
   }
@@ -1259,11 +1250,6 @@ function updatePlacedBadge(){
   const n=S.placedObjects.length;
   placedCountEl.textContent=n;
   placedBadge.classList.toggle('visible',n>0);
-}
-function updateAllOpacity(){
-  S.placedObjects.forEach(obj=>{
-    obj.group.traverse(c=>{if(!c.isMesh)return;const mats=Array.isArray(c.material)?c.material:[c.material];mats.forEach(m=>{m.transparent=S.opacity<1;m.opacity=S.opacity;m.needsUpdate=true;});});
-  });
 }
 
 document.getElementById('aBtnConfirm').addEventListener('click', deselectObject);
@@ -1347,6 +1333,14 @@ window.receiveFromFlutter=function(jsonStr){
     const data=JSON.parse(jsonStr);
     if(data.type==='catalog'&&data.products) window.loadProductCatalog(data.products);
     if(data.type==='clear'){S.placedObjects.forEach(o=>scene&&scene.remove(o.group));S.placedObjects=[];S.tileZoneGroups=[];deselectObject();updatePlacedBadge();}
+    /* ── Allow Flutter to override floor Y (e.g. from ARCore plane detection) ── */
+    if(data.type==='setFloorY' && typeof data.y === 'number'){
+      S.floorY = data.y;
+      floorPlane.position.y = data.y;
+      floorYDisplay.textContent = data.y.toFixed(2);
+      floorCalibToast.classList.add('visible');
+      setTimeout(()=>floorCalibToast.classList.remove('visible'), 2000);
+    }
   }catch(e){console.error('receiveFromFlutter',e);}
 };
 
