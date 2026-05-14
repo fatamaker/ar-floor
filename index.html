@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no"/>
-<title>PlaceAR · Carrelage</title>
+<title>PlaceAR · Carrelage v2</title>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -11,12 +11,19 @@
   --primary:#F59064;--secondary:#284F75;--lg:#F0F0F0;--lg2:#F7F7F7;--dg:#6E6E6E;
   --hint:#474747;--grey:#AAAAAA;--green:#52B46B;--red:#DD5050;--white:#ffffff;
   --tile:#D4A96A;--tile2:#8B5E3C;
+  --poly:#FF3B30;
   --font:'Montserrat',sans-serif;
   --r-sm:8px;--r-md:14px;--r-lg:22px;--r-xl:32px;
   --shadow:0 8px 40px rgba(40,79,117,0.18);
 }
 html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:var(--font)}
 #threeCanvas{position:fixed;inset:0;width:100%;height:100%;z-index:0}
+
+/* ── LAYERS ── */
+/* polyDrawCanvas sits over Three.js, pointer-events:none (only draws) */
+#polyDrawCanvas{position:fixed;inset:0;width:100%;height:100%;z-index:2;pointer-events:none}
+/* interactionCanvas captures taps when in poly mode */
+#interactionCanvas{position:fixed;inset:0;width:100%;height:100%;z-index:3;display:none;cursor:crosshair}
 
 /* TOP BAR */
 #topBar{position:fixed;top:0;left:0;right:0;z-index:20;display:flex;align-items:center;justify-content:space-between;padding:14px 18px 10px;background:linear-gradient(to bottom,rgba(0,0,0,.65) 0%,transparent 100%);pointer-events:none}
@@ -35,12 +42,14 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:var
 #statusToast.scanning #statusDot{background:var(--primary);animation:pulse .8s infinite}
 #statusToast.error #statusDot{background:var(--red)}
 #statusToast.tiling #statusDot{background:var(--tile);animation:pulse .8s infinite}
+#statusToast.poly #statusDot{background:var(--poly);animation:pulse .8s infinite}
 
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
 @keyframes spin{to{transform:rotate(360deg)}}
 @keyframes fadeInDown{from{opacity:0;transform:translateX(-50%) translateY(-10px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+@keyframes snapPop{0%{transform:scale(1)}40%{transform:scale(1.25)}100%{transform:scale(1)}}
 
-/* LOADER */
+/* GLB LOADER */
 #glbLoader{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center;flex-direction:column;gap:14px}
 #glbLoader.visible{display:flex}
 .spin{width:34px;height:34px;border:3px solid rgba(245,144,100,.25);border-top-color:var(--primary);border-radius:50%;animation:spin .7s linear infinite}
@@ -53,9 +62,38 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:var
 .aBtn{flex:1;min-width:42px;display:flex;flex-direction:column;align-items:center;gap:3px;padding:9px 5px;border-radius:var(--r-md);border:none;cursor:pointer;font-family:var(--font);font-size:8px;font-weight:600;letter-spacing:.3px;color:var(--hint);background:var(--lg2);transition:all .2s;text-transform:uppercase}
 .aBtn:active{transform:scale(.93)}
 .aBtn svg{width:17px;height:17px;stroke:var(--dg);fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
-.aBtn.delete{color:var(--red)}.aBtn.delete svg{stroke:var(--red)}
 .aBtn.confirm{background:var(--secondary);color:#fff}.aBtn.confirm svg{stroke:#fff}
 #selectedProductName{font-size:11px;font-weight:700;color:var(--secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:80px;flex-shrink:0}
+
+/* ═══════════════════════════════
+   POLYGON CONTROLS (FloorAR v20 style)
+═══════════════════════════════ */
+#polyControls{
+  position:fixed;bottom:106px;left:0;right:0;z-index:22;
+  display:none;flex-direction:column;align-items:center;gap:10px;
+  pointer-events:none
+}
+#polyControls.visible{display:flex}
+#polyControls>*{pointer-events:auto}
+
+.polyInfoPill{
+  background:rgba(17,17,17,.9);backdrop-filter:blur(16px);
+  border:1px solid rgba(255,59,48,.4);border-radius:var(--r-xl);
+  padding:8px 22px;font-size:11px;font-weight:600;color:#fff;text-align:center;
+  max-width:88vw
+}
+.polyInfoPill span{color:var(--poly)}
+
+.polyBtnRow{display:flex;gap:10px}
+.polyBtn{
+  padding:10px 18px;border-radius:var(--r-md);border:none;cursor:pointer;
+  font-family:var(--font);font-size:12px;font-weight:700;transition:all .18s;white-space:nowrap
+}
+.polyBtn:active{transform:scale(.95)}
+#pbUndo{background:rgba(255,255,255,.14);color:#fff;border:1px solid rgba(255,255,255,.25)}
+#pbClose{background:var(--poly);color:#fff;display:none}
+#pbValidate{background:var(--green);color:#fff;display:none}
+#pbCancel{background:rgba(255,255,255,.07);color:rgba(255,255,255,.55);border:1px solid rgba(255,255,255,.15);font-size:11px}
 
 /* SHEET */
 #sheet{position:fixed;bottom:0;left:0;right:0;z-index:30;background:var(--white);border-radius:var(--r-lg) var(--r-lg) 0 0;box-shadow:var(--shadow);display:flex;flex-direction:column;transition:height .35s cubic-bezier(.32,.72,0,1)}
@@ -66,9 +104,9 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:var
 .qBtn:active{transform:scale(.96)}
 .qBtn-primary{background:var(--secondary);color:#fff}
 .qBtn-ghost{background:var(--lg2);color:var(--hint)}
+.qBtn-poly{background:rgba(255,59,48,.1);color:var(--poly);border:1.5px solid rgba(255,59,48,.3)}
+.qBtn-poly-on{background:rgba(255,59,48,.22);color:var(--poly);border:1.5px solid rgba(255,59,48,.7)}
 .qBtn-danger{background:rgba(221,80,80,.12);color:var(--red)}
-.qBtn-tile{background:linear-gradient(135deg,#D4A96A,#8B5E3C);color:#fff;position:relative;overflow:hidden}
-.qBtn-tile::before{content:'⬛⬛';font-size:8px;position:absolute;top:2px;left:6px;opacity:.4;letter-spacing:1px}
 #sheetContent{flex:1;overflow-y:auto;padding:0 14px 28px;-webkit-overflow-scrolling:touch;scrollbar-width:none;min-height:0}
 #sheetContent::-webkit-scrollbar{display:none}
 #sheet.collapsed #sheetContent{overflow:hidden;opacity:0;pointer-events:none}
@@ -78,7 +116,6 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:var
 #catTabs::-webkit-scrollbar{display:none}
 .catTab{flex-shrink:0;padding:7px 14px;border-radius:var(--r-xl);font-size:10px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;border:1.5px solid var(--lg);background:var(--lg2);color:var(--grey);cursor:pointer;transition:all .2s}
 .catTab.active{background:var(--secondary);color:#fff;border-color:var(--secondary)}
-/* CARRELAGE special tab */
 .catTab.carrelage-tab{border-color:#D4A96A;background:linear-gradient(135deg,rgba(212,169,106,.15),rgba(139,94,60,.15));color:#8B5E3C}
 .catTab.carrelage-tab.active{background:linear-gradient(135deg,#D4A96A,#8B5E3C);color:#fff;border-color:#D4A96A}
 #productScroll{display:flex;gap:10px;overflow-x:auto;padding-bottom:6px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
@@ -91,18 +128,17 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:var
 .prodCard-name{font-size:9px;font-weight:700;color:var(--hint);overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
 .prodCard-sub{font-size:8px;color:var(--grey);margin-top:1px}
 .prodCard-badge{position:absolute;top:5px;right:5px;background:rgba(40,79,117,.88);color:#fff;font-size:7px;font-weight:700;padding:2px 6px;border-radius:10px}
-/* CARRELAGE card style */
 .prodCard.carrelage-card{border-color:rgba(212,169,106,.4)}
 .prodCard.carrelage-card.active{border-color:#D4A96A;box-shadow:0 0 0 3px rgba(212,169,106,.2)}
 .prodCard.carrelage-card .prodCard-badge{background:linear-gradient(135deg,#D4A96A,#8B5E3C)}
 
-/* CARRELAGE ZONE PANEL */
+/* TILE ZONE PANEL */
 #tileZonePanel{display:none;background:linear-gradient(135deg,rgba(212,169,106,.08),rgba(139,94,60,.08));border:1.5px solid rgba(212,169,106,.3);border-radius:var(--r-md);padding:12px;margin:8px 0;position:relative}
 #tileZonePanel.visible{display:block}
 #tileZonePanel::before{content:'🪟 Zone Carrelage';position:absolute;top:-8px;left:12px;background:#fff;padding:0 6px;font-size:8px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#8B5E3C}
 .tileZoneRow{display:flex;gap:8px;margin-top:8px;align-items:center}
-.tileZoneLabel{font-size:9px;font-weight:600;color:var(--dg);width:50px;flex-shrink:0}
-.tileZoneVal{font-size:10px;font-weight:700;color:#8B5E3C;background:rgba(212,169,106,.15);padding:2px 8px;border-radius:6px;min-width:36px;text-align:center}
+.tileZoneLabel{font-size:9px;font-weight:600;color:var(--dg);width:58px;flex-shrink:0}
+.tileZoneVal{font-size:10px;font-weight:700;color:#8B5E3C;background:rgba(212,169,106,.15);padding:2px 8px;border-radius:6px;min-width:40px;text-align:center}
 .tileZoneInput{flex:1;-webkit-appearance:none;height:4px;background:linear-gradient(to right,#D4A96A,#8B5E3C);border-radius:3px;outline:none}
 .tileZoneInput::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:#8B5E3C;cursor:pointer;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.2)}
 .tilePatternRow{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
@@ -110,18 +146,8 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:var
 .tilePattern:active{transform:scale(.95)}
 .tilePattern.active{background:linear-gradient(135deg,#D4A96A,#8B5E3C);color:#fff;border-color:transparent}
 .tilePattern-icon{font-size:16px;display:block;margin-bottom:2px}
-.tileDrawBtn{width:100%;margin-top:10px;padding:11px;background:linear-gradient(135deg,#D4A96A,#8B5E3C);color:#fff;border:none;border-radius:var(--r-md);font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer;transition:all .2s;box-shadow:0 3px 12px rgba(212,169,106,.3)}
+.tileDrawBtn{width:100%;margin-top:10px;padding:11px;background:linear-gradient(135deg,var(--poly),rgba(200,30,20,1));color:#fff;border:none;border-radius:var(--r-md);font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer;transition:all .2s;box-shadow:0 3px 12px rgba(255,59,48,.25)}
 .tileDrawBtn:active{transform:scale(.97)}
-.tileDrawBtn.drawing{background:linear-gradient(135deg,#DD5050,#B03030);animation:pulse-bg 1s infinite}
-@keyframes pulse-bg{0%,100%{opacity:1}50%{opacity:.8}}
-
-/* DRAWING OVERLAY */
-#drawOverlay{position:fixed;inset:0;z-index:15;display:none;cursor:crosshair}
-#drawOverlay.visible{display:block}
-#drawCanvas{position:fixed;inset:0;z-index:16;pointer-events:none}
-#drawInstructions{position:fixed;top:80px;left:50%;transform:translateX(-50%);z-index:17;padding:10px 20px;border-radius:var(--r-xl);background:rgba(139,94,60,.9);backdrop-filter:blur(10px);color:#fff;font-size:12px;font-weight:700;pointer-events:none;text-align:center;border:1px solid rgba(212,169,106,.5)}
-#drawCancelBtn{position:fixed;bottom:200px;left:50%;transform:translateX(-50%);z-index:17;padding:10px 28px;border-radius:var(--r-xl);background:rgba(221,80,80,.9);color:#fff;border:none;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer;display:none}
-#drawCancelBtn.visible{display:block}
 
 /* SLIDERS */
 input[type=range]{-webkit-appearance:none;width:100%;height:4px;background:var(--lg);border-radius:3px;outline:none}
@@ -140,6 +166,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
 .startFeature{display:flex;align-items:center;gap:10px;font-size:12px;color:rgba(255,255,255,.7)}
 .startFeature-dot{width:6px;height:6px;border-radius:50%;background:var(--primary);flex-shrink:0}
 .startFeature-dot.tile{background:#D4A96A}
+.startFeature-dot.poly{background:var(--poly)}
 #startArBtn{padding:16px 40px;background:var(--primary);color:#fff;border:none;border-radius:var(--r-xl);font-family:var(--font);font-size:15px;font-weight:700;cursor:pointer;box-shadow:0 6px 24px rgba(245,144,100,.4);width:100%;max-width:280px}
 #noXrMsg{color:rgba(255,100,100,.8);font-size:12px;margin-top:12px;text-align:center;display:none}
 
@@ -153,12 +180,11 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
 #surfaceLabel.visible{opacity:1}
 #surfaceLabel.floor{background:rgba(82,180,107,.25);color:#52B46B;border:1px solid rgba(82,180,107,.4)}
 #surfaceLabel.wall{background:rgba(40,79,117,.25);color:#6fa3d8;border:1px solid rgba(40,79,117,.4)}
-#surfaceLabel.ceiling{background:rgba(245,144,100,.25);color:#F59064;border:1px solid rgba(245,144,100,.4)}
 #gestureHint{position:fixed;bottom:120px;left:50%;transform:translateX(-50%);z-index:19;padding:8px 16px;border-radius:20px;background:rgba(0,0,0,.7);color:rgba(255,255,255,.85);font-size:11px;font-weight:600;pointer-events:none;opacity:0;transition:opacity .3s;text-align:center}
 #gestureHint.visible{opacity:1}
 #deleteHint{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:18;padding:12px 24px;border-radius:var(--r-lg);background:rgba(221,80,80,.85);color:#fff;font-size:14px;font-weight:700;pointer-events:none;opacity:0;transition:opacity .2s;text-align:center}
 #deleteHint.show{opacity:1;animation:pulse-delete .6s ease-out}
-@keyframes pulse-delete{0%{opacity:1;transform:translate(-50%,-50%) scale(1)}50%{opacity:0.5}100%{opacity:0;transform:translate(-50%,-50%) scale(0.8)}}
+@keyframes pulse-delete{0%{opacity:1;transform:translate(-50%,-50%) scale(1)}50%{opacity:.5}100%{opacity:0;transform:translate(-50%,-50%) scale(.8)}}
 
 /* TILING PROGRESS */
 #tilingProgress{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:60;background:rgba(20,30,40,.95);border:1px solid rgba(212,169,106,.4);border-radius:var(--r-lg);padding:24px 32px;color:#fff;text-align:center;display:none}
@@ -172,10 +198,22 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
 
 <video id="videoEl" autoplay playsinline muted></video>
 <canvas id="threeCanvas"></canvas>
-<canvas id="drawCanvas"></canvas>
-<div id="drawOverlay"></div>
-<div id="drawInstructions">Tracez la zone de carrelage</div>
-<button id="drawCancelBtn">✕ Annuler</button>
+
+<!-- Polygon drawing layer (always visible, pointer-events:none) -->
+<canvas id="polyDrawCanvas"></canvas>
+<!-- Interaction capture (only active in poly mode) -->
+<canvas id="interactionCanvas"></canvas>
+
+<!-- POLYGON CONTROLS (FloorAR v20 style) -->
+<div id="polyControls">
+  <div class="polyInfoPill" id="polyInfo">Tapez les <span>coins de la zone</span> · 0 pt</div>
+  <div class="polyBtnRow">
+    <button class="polyBtn" id="pbUndo">↩ Suppr.</button>
+    <button class="polyBtn" id="pbClose">⬡ Fermer</button>
+    <button class="polyBtn" id="pbValidate">✓ Poser les tuiles</button>
+    <button class="polyBtn" id="pbCancel">✕</button>
+  </div>
+</div>
 
 <div id="xrReticle">
   <svg width="70" height="70" viewBox="0 0 70 70" fill="none">
@@ -209,8 +247,9 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
   <div class="startSub">Visualisez meubles et carrelages en réalité augmentée</div>
   <div class="startFeatures">
     <div class="startFeature"><div class="startFeature-dot"></div>Placement AR sol, murs, plafond</div>
-    <div class="startFeature"><div class="startFeature-dot tile"></div>Zone carrelage : dessinez, remplissage auto</div>
-    <div class="startFeature"><div class="startFeature-dot tile"></div>Motifs : droit, diagonal, chevron, opus</div>
+    <div class="startFeature"><div class="startFeature-dot poly"></div>Polygone libre : tapez chaque coin</div>
+    <div class="startFeature"><div class="startFeature-dot poly"></div>Fermeture automatique au 1er point</div>
+    <div class="startFeature"><div class="startFeature-dot tile"></div>Remplissage GLB : droit, diagonal, chevron, opus</div>
     <div class="startFeature"><div class="startFeature-dot"></div>Gestes : rotation, zoom, suppression</div>
   </div>
   <button id="startArBtn">🚀 Lancer la AR</button>
@@ -258,7 +297,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
       </svg>
     </button>
     <button class="qBtn qBtn-primary" id="placeBtn" style="flex:2">⊕ Placer</button>
-    <button class="qBtn qBtn-tile" id="tileZoneBtn" style="flex:2.5">🪟 Zone Carrelage</button>
+    <button class="qBtn qBtn-poly" id="tileZoneBtn" style="flex:2.5">⬡ Zone Carrelage</button>
     <button class="qBtn qBtn-ghost" id="captureBtn" style="max-width:44px" title="Capture">
       <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
         <path d="M1 4Q1 3 2 3L4 3 4.8 1.8 8.2 1.8 9 3 11 3Q12 3 12 4L12 11Q12 12 11 12L2 12Q1 12 1 11Z"/>
@@ -274,36 +313,18 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
     <!-- CARRELAGE ZONE PANEL -->
     <div id="tileZonePanel">
       <div class="tileZoneRow">
-        <span class="tileZoneLabel">Largeur</span>
-        <input type="range" class="tileZoneInput" id="zoneWidthSlider" min="1" max="5" step="0.5" value="2">
-        <span class="tileZoneVal" id="zoneWidthVal">2m</span>
-      </div>
-      <div class="tileZoneRow">
-        <span class="tileZoneLabel">Longueur</span>
-        <input type="range" class="tileZoneInput" id="zoneLengthSlider" min="1" max="5" step="0.5" value="2">
-        <span class="tileZoneVal" id="zoneLengthVal">2m</span>
-      </div>
-      <div class="tileZoneRow">
         <span class="tileZoneLabel">Taille tuile</span>
         <input type="range" class="tileZoneInput" id="tileSizeSlider" min="10" max="60" step="5" value="30">
         <span class="tileZoneVal" id="tileSizeVal">30cm</span>
       </div>
       <div style="font-size:9px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#8B5E3C;margin-top:12px;margin-bottom:6px">Motif de pose</div>
       <div class="tilePatternRow">
-        <div class="tilePattern active" data-pattern="straight">
-          <span class="tilePattern-icon">⬛</span>Droit
-        </div>
-        <div class="tilePattern" data-pattern="diagonal">
-          <span class="tilePattern-icon">◆</span>Diagonal
-        </div>
-        <div class="tilePattern" data-pattern="chevron">
-          <span class="tilePattern-icon">〰</span>Chevron
-        </div>
-        <div class="tilePattern" data-pattern="opus">
-          <span class="tilePattern-icon">▦</span>Opus
-        </div>
+        <div class="tilePattern active" data-pattern="straight"><span class="tilePattern-icon">⬛</span>Droit</div>
+        <div class="tilePattern" data-pattern="diagonal"><span class="tilePattern-icon">◆</span>Diagonal</div>
+        <div class="tilePattern" data-pattern="chevron"><span class="tilePattern-icon">〰</span>Chevron</div>
+        <div class="tilePattern" data-pattern="opus"><span class="tilePattern-icon">▦</span>Opus</div>
       </div>
-      <button class="tileDrawBtn" id="startDrawZoneBtn">🖊 Dessiner la zone sur le sol</button>
+      <button class="tileDrawBtn" id="startDrawZoneBtn">✏️ Tracer le polygone sur le sol</button>
     </div>
 
     <div class="secLabel">Réglages</div>
@@ -336,24 +357,21 @@ const S = {
   hitTestSource:null, hitTestSourceInitialized:false,
   reticleVisible:false, currentHitMatrix:null, meshIdCounter:0,
   currentSurfaceType:'floor',
-  detectedPlanes:new Map(),
   twoTouchStart:null, lastTapTime:0, doubleTapTimeout:null,
-  // CARRELAGE TILING
-  tileMode:false,
+  // POLYGON TILING
   drawingZone:false,
-  drawPoints:[],         // points 2D écran pour délimitation
-  tileZoneGroups:[],     // groupes THREE de toutes les tuiles posées
+  polyPoints2D:[],   // [{x,y}] screen coords
+  polyPoints3D:[],   // [THREE.Vector3] world coords
+  polyClosed:false,
+  tileZoneGroups:[],
   selectedPattern:'straight',
-  zoneWidth:2, zoneLength:2, tileSize:0.30,
-  selectedTileProductId:null,
+  tileSize:0.30,
 };
 
 /* DOM */
 const threeCanvas    = document.getElementById('threeCanvas');
-const drawCanvas     = document.getElementById('drawCanvas');
-const drawOverlay    = document.getElementById('drawOverlay');
-const drawInstr      = document.getElementById('drawInstructions');
-const drawCancelBtn  = document.getElementById('drawCancelBtn');
+const polyDrawCanvas = document.getElementById('polyDrawCanvas');
+const interactionCanvas = document.getElementById('interactionCanvas');
 const startScreen    = document.getElementById('startScreen');
 const startArBtn     = document.getElementById('startArBtn');
 const noXrMsg        = document.getElementById('noXrMsg');
@@ -380,9 +398,16 @@ const startDrawBtn   = document.getElementById('startDrawZoneBtn');
 const tilingProgress = document.getElementById('tilingProgress');
 const tilingFill     = document.getElementById('tilingProgressFill');
 const tilingText     = document.getElementById('tilingProgressText');
+// Polygon controls
+const polyControls   = document.getElementById('polyControls');
+const polyInfo       = document.getElementById('polyInfo');
+const pbUndo         = document.getElementById('pbUndo');
+const pbClose        = document.getElementById('pbClose');
+const pbValidate     = document.getElementById('pbValidate');
+const pbCancel       = document.getElementById('pbCancel');
 
-let dCtx; // canvas 2D context for drawing
-
+let polyCtx;
+function ptDist(a,b){return Math.hypot(a.x-b.x,a.y-b.y);}
 function setStatus(msg,cls=''){statusText.textContent=msg;statusToast.className=cls;statusToast.style.display='flex';}
 
 /* ═══════════════════════════════════════════
@@ -422,17 +447,22 @@ function initThreeJS(){
 
   loader=new THREE.GLTFLoader();
 
-  // Setup draw canvas
-  drawCanvas.width=window.innerWidth;
-  drawCanvas.height=window.innerHeight;
-  dCtx=drawCanvas.getContext('2d');
+  // Init polygon draw canvas
+  polyDrawCanvas.width=window.innerWidth;
+  polyDrawCanvas.height=window.innerHeight;
+  polyCtx=polyDrawCanvas.getContext('2d');
+  interactionCanvas.width=window.innerWidth;
+  interactionCanvas.height=window.innerHeight;
 
   window.addEventListener('resize',()=>{
     camera3.aspect=window.innerWidth/window.innerHeight;
     camera3.updateProjectionMatrix();
     renderer3.setSize(window.innerWidth,window.innerHeight);
-    drawCanvas.width=window.innerWidth;
-    drawCanvas.height=window.innerHeight;
+    polyDrawCanvas.width=window.innerWidth;
+    polyDrawCanvas.height=window.innerHeight;
+    interactionCanvas.width=window.innerWidth;
+    interactionCanvas.height=window.innerHeight;
+    if(S.drawingZone) redrawPoly();
   });
 }
 
@@ -451,7 +481,7 @@ async function startXRSession(){
       optionalFeatures:['dom-overlay','plane-detection'],
       domOverlay:{root:document.body},
     });
-    S.xrSession=session; S.xrMode=true;
+    S.xrSession=session;S.xrMode=true;
     renderer3.xr.setReferenceSpaceType('local');
     await renderer3.xr.setSession(session);
     xrReferenceSpace=await session.requestReferenceSpace('local');
@@ -529,7 +559,7 @@ async function startFallbackMode(){
 }
 
 /* ═══════════════════════════════════════════
-   RAYCASTING
+   RAYCASTING — screen → floor
 ═══════════════════════════════════════════ */
 const raycaster=new THREE.Raycaster();
 
@@ -538,335 +568,265 @@ function screenToFloor(sx,sy){
   const ny=-(sy/window.innerHeight)*2+1;
   raycaster.setFromCamera({x:nx,y:ny},camera3);
   const fl=scene.getObjectByName('floor');
-  if(!fl)return new THREE.Vector3(nx*2,0,-2);
-  const hits=raycaster.intersectObject(fl);
-  return hits.length?hits[0].point:new THREE.Vector3(nx*2,0,-(1.5+ny));
+  if(fl){const hits=raycaster.intersectObject(fl);if(hits.length)return hits[0].point.clone();}
+  const plane=new THREE.Plane(new THREE.Vector3(0,1,0),0);
+  const target=new THREE.Vector3();
+  raycaster.ray.intersectPlane(plane,target);
+  return target.clone();
+}
+
+function worldToScreen(v){
+  const vec=v.clone().project(camera3);
+  return{x:(vec.x+1)/2*window.innerWidth,y:(-(vec.y-1)/2)*window.innerHeight};
 }
 
 /* ═══════════════════════════════════════════
-   ██████  TILING SYSTEM  ██████
+   ██  POLYGON DRAWING — FloorAR v20 style  ██
 ═══════════════════════════════════════════ */
+const CLOSE_SNAP = 32; // px – snap distance to close polygon
+const MIN_POINTS = 3;
 
-// Generate tile positions based on pattern inside a rectangular zone
-function generateTilePositions(centerX, centerZ, zoneW, zoneL, tileS, pattern, rotation=0){
-  const positions=[];
-  const cols=Math.ceil(zoneW/tileS);
-  const rows=Math.ceil(zoneL/tileS);
-  const startX=centerX-(cols*tileS)/2+tileS/2;
-  const startZ=centerZ-(rows*tileS)/2+tileS/2;
-
-  if(pattern==='straight'){
-    for(let r=0;r<rows;r++){
-      for(let c=0;c<cols;c++){
-        positions.push({x:startX+c*tileS, z:startZ+r*tileS, rot:0, w:tileS, h:tileS});
-      }
-    }
-  } else if(pattern==='diagonal'){
-    for(let r=0;r<rows;r++){
-      for(let c=0;c<cols;c++){
-        positions.push({x:startX+c*tileS, z:startZ+r*tileS, rot:Math.PI/4, w:tileS*0.9, h:tileS*0.9});
-      }
-    }
-  } else if(pattern==='chevron'){
-    for(let r=0;r<rows;r++){
-      for(let c=0;c<cols;c++){
-        const isRight=(c+r)%2===0;
-        positions.push({
-          x:startX+c*tileS, z:startZ+r*tileS,
-          rot:isRight?-Math.PI/6:Math.PI/6,
-          w:tileS, h:tileS*0.5
-        });
-      }
-    }
-  } else if(pattern==='opus'){
-    // Opus pattern: alternating large and small tiles
-    for(let r=0;r<rows;r++){
-      for(let c=0;c<cols;c++){
-        const big=(r+c)%3!==0;
-        positions.push({
-          x:startX+c*tileS, z:startZ+r*tileS,
-          rot:0,
-          w:big?tileS:tileS*0.5, h:big?tileS:tileS*0.5
-        });
-      }
-    }
-  }
-  return positions;
-}
-
-// Create a simple tile geometry with color/texture
-function createTileMesh(w, h, tileData){
-  const product=S.catalog.find(p=>p.id===S.selectedProductId);
-  const colorHex=tileData.color||0xD4A96A;
-  const mat=new THREE.MeshStandardMaterial({
-    color:colorHex,
-    roughness:0.3, metalness:0.1,
-    transparent:true, opacity:S.opacity
-  });
-  // If product has a texture image, apply it
-  if(product&&product.imageUrl&&product.imageUrl.length>4){
-    const tex=new THREE.TextureLoader().load(product.imageUrl);
-    tex.wrapS=tex.wrapT=THREE.RepeatWrapping;
-    mat.map=tex;mat.color.set(0xffffff);
-  }
-  const geo=new THREE.BoxGeometry(w-0.005,0.012,h-0.005);
-  const tile=new THREE.Mesh(geo,mat);
-  tile.castShadow=true;tile.receiveShadow=true;
-  return tile;
-}
-
-// Generate grout lines between tiles
-function createGroutMesh(positions, tileS, zoneW, zoneL, cx, cz){
-  const mat=new THREE.MeshStandardMaterial({color:0xB0A090,roughness:0.9,transparent:true,opacity:S.opacity});
-  const group=new THREE.Group();
-  // Grout = thin lines on Y axis, slightly below tiles
-  // Simplified: one big plane slightly smaller in color
-  const geo=new THREE.PlaneGeometry(zoneW,zoneL);
-  const grout=new THREE.Mesh(geo,mat);
-  grout.rotation.x=-Math.PI/2;
-  grout.position.set(cx,0.000,cz);
-  group.add(grout);
-  return group;
-}
-
-async function placeTileZone(centerPos){
-  const product=S.catalog.find(p=>p.id===S.selectedProductId);
-  if(!product){setStatus('Sélectionnez un carrelage d\'abord','error');return;}
-
-  const W=S.zoneWidth, L=S.zoneLength, TS=S.tileSize;
-  const positions=generateTilePositions(centerPos.x,centerPos.z,W,L,TS,S.selectedPattern);
-  const total=positions.length;
-
-  // Show progress
-  tilingProgress.classList.add('visible');
-  tilingFill.style.width='0%';tilingText.textContent='0 / '+total+' tuiles';
-
-  const zoneGroup=new THREE.Group();
-  scene.add(zoneGroup);
-  zoneGroup.userData.isTileZone=true;
-
-  // Add grout base
-  const groutMat=new THREE.MeshStandardMaterial({color:0x9A8878,roughness:0.95,transparent:true,opacity:S.opacity*0.8});
-  const groutGeo=new THREE.BoxGeometry(W,0.008,L);
-  const groutMesh=new THREE.Mesh(groutGeo,groutMat);
-  groutMesh.position.set(centerPos.x,0.001,centerPos.z);
-  groutMesh.receiveShadow=true;
-  zoneGroup.add(groutMesh);
-
-  // Alternating tile colors for visual variety
-  const tileColors=[0xD4A96A,0xC09050,0xE0B878,0xB88040];
-
-  const useGlb=product.modelUrl&&product.modelUrl.length>4;
-
-  if(useGlb){
-    // Load ONE GLB and clone it for each position
-    setStatus('Chargement du modèle carrelage…','scanning');
-    let baseModel=null;
-    try{
-      baseModel=await new Promise((res,rej)=>loader.load(product.modelUrl,gltf=>res(gltf.scene),null,rej));
-      // Compute its base scale to fit tileSize
-      const bb=new THREE.Box3().setFromObject(baseModel);
-      const sz=bb.getSize(new THREE.Vector3());
-      const maxDim=Math.max(sz.x,sz.z)||1;
-      const glbScale=TS/maxDim;
-      baseModel.scale.setScalar(glbScale);
-      baseModel.traverse(c=>{
-        if(!c.isMesh)return;
-        const mats=Array.isArray(c.material)?c.material:[c.material];
-        mats.forEach(m=>{m.side=THREE.DoubleSide;m.transparent=true;m.opacity=S.opacity;m.needsUpdate=true;});
-        c.castShadow=true;c.receiveShadow=true;
-      });
-    }catch(e){console.warn('GLB load failed, using plane tiles');baseModel=null;}
-
-    for(let i=0;i<positions.length;i++){
-      const p=positions[i];
-      let tile;
-      if(baseModel){
-        tile=baseModel.clone();
-        tile.rotation.y=p.rot;
-      }else{
-        const tileColor=tileColors[i%tileColors.length];
-        tile=createTileMesh(p.w,p.h,{color:tileColor});
-        tile.rotation.y=p.rot;
-      }
-      tile.position.set(p.x,0.006,p.z);
-      zoneGroup.add(tile);
-
-      const pct=Math.round((i+1)/total*100);
-      tilingFill.style.width=pct+'%';
-      tilingText.textContent=(i+1)+' / '+total+' tuiles';
-      if(i%8===0) await new Promise(r=>requestAnimationFrame(r));
-    }
-  }else{
-    // Plane-based colored tiles
-    for(let i=0;i<positions.length;i++){
-      const p=positions[i];
-      const tileColor=tileColors[i%tileColors.length];
-      const tile=createTileMesh(p.w,p.h,{color:tileColor});
-      tile.position.set(p.x,0.006,p.z);
-      tile.rotation.y=p.rot;
-      // Apply product texture
-      if(product.imageUrl){
-        const tex=new THREE.TextureLoader().load(product.imageUrl);
-        tex.wrapS=tex.wrapT=THREE.RepeatWrapping;
-        tile.material.map=tex;tile.material.color.set(0xffffff);tile.material.needsUpdate=true;
-      }
-      zoneGroup.add(tile);
-
-      const pct=Math.round((i+1)/total*100);
-      tilingFill.style.width=pct+'%';
-      tilingText.textContent=(i+1)+' / '+total+' tuiles';
-      if(i%12===0) await new Promise(r=>requestAnimationFrame(r));
-    }
-  }
-
-  tilingProgress.classList.remove('visible');
-  S.tileZoneGroups.push(zoneGroup);
-  updatePlacedBadge();
-
-  const id=++S.meshIdCounter;
-  S.placedObjects.push({id,group:zoneGroup,name:product.name+' zone',productId:product.id,scaleVal:1,baseScale:1,isTileZone:true});
-  selectObject(id);
-  setStatus(total+' tuiles posées !','ok');
-  postToFlutter({type:'tile_zone',count:total});
-}
-
-/* ═══════════════════════════════════════════
-   ZONE DRAWING UI
-═══════════════════════════════════════════ */
 function startZoneDrawing(){
   if(!S.selectedProductId){setStatus('Sélectionnez d\'abord un carrelage','error');return;}
-  const product=S.catalog.find(p=>p.id===S.selectedProductId);
-  if(product&&product.category&&!/carrelage|tile|sol|floor/i.test(product.category)){
-    // Allow any product but warn
-  }
-  S.drawingZone=true;S.drawPoints=[];
-  drawOverlay.classList.add('visible');
-  drawCancelBtn.classList.add('visible');
-  drawInstr.style.display='block';
-  drawInstr.textContent='Appuyez pour définir le centre de la zone';
-  setStatus('Tapez sur le sol pour placer la zone','tiling');
+  S.drawingZone=true;
+  S.polyPoints2D=[];
+  S.polyPoints3D=[];
+  S.polyClosed=false;
+
+  // Show interaction canvas (captures taps)
+  interactionCanvas.style.display='block';
+  polyControls.classList.add('visible');
+  tileZoneBtn.className='qBtn qBtn-poly-on';
+
+  polyCtx.clearRect(0,0,polyDrawCanvas.width,polyDrawCanvas.height);
+  setStatus('Tapez chaque coin de la zone','poly');
   setSheetH(PEEK);
+  updatePolyUI();
 }
 
 function cancelZoneDrawing(){
-  S.drawingZone=false;S.drawPoints=[];
-  drawOverlay.classList.remove('visible');
-  drawCancelBtn.classList.remove('visible');
-  drawInstr.style.display='none';
-  dCtx.clearRect(0,0,drawCanvas.width,drawCanvas.height);
+  S.drawingZone=false;S.polyPoints2D=[];S.polyPoints3D=[];S.polyClosed=false;
+  interactionCanvas.style.display='none';
+  polyControls.classList.remove('visible');
+  tileZoneBtn.className='qBtn qBtn-poly';
+  polyCtx.clearRect(0,0,polyDrawCanvas.width,polyDrawCanvas.height);
   setStatus('Dessin annulé','ok');
 }
 
-// Handle tap on draw overlay to place tile zone
-drawOverlay.addEventListener('click',(e)=>{
-  if(!S.drawingZone)return;
-  const pos=screenToFloor(e.clientX,e.clientY);
+function updatePolyUI(){
+  const n=S.polyPoints2D.length;
+  polyInfo.innerHTML='Tapez les <span>coins de la zone</span> · '+n+' pt'+(n>1?'s':'');
+  pbClose.style.display = (n>=MIN_POINTS&&!S.polyClosed)?'block':'none';
+  pbValidate.style.display = S.polyClosed?'block':'none';
+}
 
-  // Draw visual feedback on canvas
-  dCtx.clearRect(0,0,drawCanvas.width,drawCanvas.height);
+/* ── Redessine le polygone en cours ──────────────────── */
+function redrawPoly(mouseX, mouseY){
+  const W=polyDrawCanvas.width, H=polyDrawCanvas.height;
+  polyCtx.clearRect(0,0,W,H);
+  const pts=S.polyPoints2D;
+  if(!pts.length) return;
 
-  // Draw a decorative zone rectangle on screen
-  const W=160,H=100;
-  const sx=e.clientX,sy=e.clientY;
-  dCtx.save();
-  dCtx.strokeStyle='rgba(212,169,106,0.9)';
-  dCtx.lineWidth=2;
-  dCtx.setLineDash([8,4]);
-  dCtx.strokeRect(sx-W/2,sy-H/2,W,H);
+  const nearFirst = pts.length>=MIN_POINTS && mouseX!==undefined
+    && ptDist({x:mouseX,y:mouseY},pts[0])<CLOSE_SNAP;
 
-  // Fill with tile pattern preview
-  const tilePreviewSize=20;
-  const colors=['rgba(212,169,106,0.6)','rgba(192,144,80,0.6)','rgba(224,184,120,0.6)','rgba(184,128,64,0.6)'];
-  const tCols=Math.ceil(W/tilePreviewSize);
-  const tRows=Math.ceil(H/tilePreviewSize);
-  for(let r=0;r<tRows;r++){
-    for(let c=0;c<tCols;c++){
-      const ci=(r+c)%4;
-      dCtx.fillStyle=colors[ci];
-      if(S.selectedPattern==='diagonal'){
-        dCtx.save();dCtx.translate(sx-W/2+c*tilePreviewSize+tilePreviewSize/2,sy-H/2+r*tilePreviewSize+tilePreviewSize/2);
-        dCtx.rotate(Math.PI/4);dCtx.fillRect(-tilePreviewSize/2+1,-tilePreviewSize/2+1,tilePreviewSize-2,tilePreviewSize-2);
-        dCtx.restore();
-      }else{
-        dCtx.fillRect(sx-W/2+c*tilePreviewSize+1,sy-H/2+r*tilePreviewSize+1,tilePreviewSize-2,tilePreviewSize-2);
-      }
+  /* ── Filled preview ── */
+  if(pts.length>=3){
+    polyCtx.beginPath();polyCtx.moveTo(pts[0].x,pts[0].y);
+    for(let i=1;i<pts.length;i++) polyCtx.lineTo(pts[i].x,pts[i].y);
+    polyCtx.closePath();
+    // Tile grid preview
+    const grad=polyCtx.createLinearGradient(pts[0].x,pts[0].y,pts[pts.length-1].x,pts[pts.length-1].y);
+    grad.addColorStop(0,'rgba(255,59,48,0.12)');
+    grad.addColorStop(1,'rgba(255,59,48,0.06)');
+    polyCtx.fillStyle=grad;polyCtx.fill();
+    drawPolyTilePreview(pts);
+  }
+
+  /* ── Border ── */
+  polyCtx.beginPath();polyCtx.moveTo(pts[0].x,pts[0].y);
+  for(let i=1;i<pts.length;i++) polyCtx.lineTo(pts[i].x,pts[i].y);
+  if(S.polyClosed) polyCtx.closePath();
+  polyCtx.strokeStyle='#FF3B30';polyCtx.lineWidth=2.5;polyCtx.setLineDash([]);polyCtx.stroke();
+
+  /* ── Rubber-band line ── */
+  if(mouseX!==undefined&&pts.length>0&&!S.polyClosed){
+    const last=pts[pts.length-1];
+    polyCtx.beginPath();polyCtx.moveTo(last.x,last.y);polyCtx.lineTo(mouseX,mouseY);
+    polyCtx.strokeStyle='rgba(255,255,255,.35)';polyCtx.lineWidth=1.5;polyCtx.setLineDash([5,4]);
+    polyCtx.stroke();polyCtx.setLineDash([]);
+    // Closing preview line
+    if(pts.length>=MIN_POINTS){
+      polyCtx.beginPath();polyCtx.moveTo(mouseX,mouseY);polyCtx.lineTo(pts[0].x,pts[0].y);
+      polyCtx.strokeStyle=nearFirst?'#FF3B30':'rgba(255,255,255,.2)';
+      polyCtx.lineWidth=nearFirst?2.5:1;polyCtx.setLineDash(nearFirst?[]:[6,4]);
+      polyCtx.stroke();polyCtx.setLineDash([]);
     }
   }
 
-  // Center cross
-  dCtx.strokeStyle='rgba(255,255,255,0.9)';dCtx.lineWidth=2;dCtx.setLineDash([]);
-  dCtx.beginPath();dCtx.moveTo(sx-10,sy);dCtx.lineTo(sx+10,sy);dCtx.stroke();
-  dCtx.beginPath();dCtx.moveTo(sx,sy-10);dCtx.lineTo(sx,sy+10);dCtx.stroke();
+  /* ── Points ── */
+  pts.forEach((p,i)=>{
+    const isFirst=i===0;
+    const r=isFirst?9:6;
 
-  // Dimensions label
-  dCtx.fillStyle='rgba(212,169,106,1)';dCtx.font='bold 11px Montserrat,sans-serif';
-  dCtx.fillText(`${S.zoneWidth}m × ${S.zoneLength}m`,sx-W/2,sy-H/2-8);
-  dCtx.restore();
+    // Snap ring on first point
+    if(isFirst&&pts.length>=MIN_POINTS){
+      polyCtx.beginPath();polyCtx.arc(p.x,p.y,CLOSE_SNAP,0,Math.PI*2);
+      polyCtx.strokeStyle=nearFirst?'rgba(255,59,48,.55)':'rgba(255,59,48,.2)';
+      polyCtx.lineWidth=1;polyCtx.setLineDash([4,3]);polyCtx.stroke();polyCtx.setLineDash([]);
+    }
 
-  drawInstr.textContent='Placement en cours…';
+    // Glow aura
+    polyCtx.beginPath();polyCtx.arc(p.x,p.y,r+8,0,Math.PI*2);
+    polyCtx.fillStyle=isFirst?'rgba(255,59,48,.15)':'rgba(255,255,255,.06)';polyCtx.fill();
 
-  // Place after short visual delay
-  setTimeout(async()=>{
-    cancelZoneDrawing();
-    await placeTileZone(pos);
-  },600);
-});
+    // Point circle
+    const g=polyCtx.createRadialGradient(p.x,p.y,0,p.x,p.y,r);
+    g.addColorStop(0,isFirst?'#fff':'#ffe');
+    g.addColorStop(1,isFirst?'#FF3B30':'rgba(255,140,100,.7)');
+    polyCtx.beginPath();polyCtx.arc(p.x,p.y,r,0,Math.PI*2);
+    polyCtx.fillStyle=g;polyCtx.fill();
+    polyCtx.strokeStyle=isFirst?'#fff':'rgba(255,59,48,.85)';polyCtx.lineWidth=2;polyCtx.stroke();
 
-drawCancelBtn.addEventListener('click',cancelZoneDrawing);
+    // Index label
+    polyCtx.font='bold 9px Montserrat,sans-serif';
+    polyCtx.fillStyle=isFirst?'rgba(255,59,48,1)':'rgba(212,169,106,1)';
+    polyCtx.textAlign='center';polyCtx.textBaseline='middle';
+    polyCtx.fillText(i+1,p.x,p.y-22);
 
-/* ═══════════════════════════════════════════
-   CARRELAGE PANEL CONTROLS
-═══════════════════════════════════════════ */
-tileZoneBtn.addEventListener('click',()=>{
-  const cat=S.catalog.filter(p=>p.category&&/carrelage|tile|sol/i.test(p.category));
-  // Switch to carrelage tab
-  document.querySelectorAll('.catTab').forEach(t=>{
-    if(t.dataset.cat==='Carrelage'||t.classList.contains('carrelage-tab')){
-      t.click();
+    // "Fermer ici" badge near first point when snap
+    if(isFirst&&nearFirst){
+      const bx=p.x+14, by=p.y-34;
+      polyCtx.fillStyle='#FF3B30';
+      polyCtx.beginPath();
+      if(polyCtx.roundRect)polyCtx.roundRect(bx,by,64,20,6);else polyCtx.rect(bx,by,64,20);
+      polyCtx.fill();
+      polyCtx.font='bold 10px Montserrat,sans-serif';polyCtx.fillStyle='#fff';
+      polyCtx.textAlign='left';polyCtx.textBaseline='middle';
+      polyCtx.fillText('⬡ Fermer',bx+8,by+10);
     }
   });
-  tileZonePanel.classList.add('visible');
-  setSheetH(MID);
-});
 
-startDrawBtn.addEventListener('click',startZoneDrawing);
+  // Cursor dot
+  if(mouseX!==undefined&&!nearFirst&&!S.polyClosed){
+    polyCtx.beginPath();polyCtx.arc(mouseX,mouseY,4,0,Math.PI*2);
+    polyCtx.fillStyle='rgba(255,255,255,.4)';polyCtx.fill();
+  }
+}
 
-document.getElementById('zoneWidthSlider').addEventListener('input',e=>{
-  S.zoneWidth=parseFloat(e.target.value);
-  document.getElementById('zoneWidthVal').textContent=S.zoneWidth+'m';
-});
-document.getElementById('zoneLengthSlider').addEventListener('input',e=>{
-  S.zoneLength=parseFloat(e.target.value);
-  document.getElementById('zoneLengthVal').textContent=S.zoneLength+'m';
-});
-document.getElementById('tileSizeSlider').addEventListener('input',e=>{
-  S.tileSize=parseInt(e.target.value)/100;
-  document.getElementById('tileSizeVal').textContent=e.target.value+'cm';
-});
+/* Quick tile grid preview drawn inside polygon during tracing */
+function drawPolyTilePreview(pts){
+  const ts=22;
+  const xs=pts.map(p=>p.x),ys=pts.map(p=>p.y);
+  const minX=Math.min(...xs),maxX=Math.max(...xs);
+  const minY=Math.min(...ys),maxY=Math.max(...ys);
 
-document.querySelectorAll('.tilePattern').forEach(btn=>{
-  btn.addEventListener('click',()=>{
-    document.querySelectorAll('.tilePattern').forEach(b=>b.classList.remove('active'));
-    btn.classList.add('active');
-    S.selectedPattern=btn.dataset.pattern;
-  });
+  polyCtx.save();
+  polyCtx.beginPath();
+  polyCtx.moveTo(pts[0].x,pts[0].y);
+  for(let i=1;i<pts.length;i++) polyCtx.lineTo(pts[i].x,pts[i].y);
+  polyCtx.closePath();polyCtx.clip();
+
+  const cols=Math.ceil((maxX-minX)/ts)+1;
+  const rows=Math.ceil((maxY-minY)/ts)+1;
+  const tileColors=['rgba(255,100,80,0.18)','rgba(255,80,60,0.12)','rgba(255,120,100,0.18)','rgba(255,60,40,0.10)'];
+  for(let r=0;r<rows;r++){
+    for(let c=0;c<cols;c++){
+      const tx=minX+c*ts, ty=minY+r*ts;
+      polyCtx.fillStyle=tileColors[(r+c)%4];
+      polyCtx.fillRect(tx+1,ty+1,ts-2,ts-2);
+    }
+  }
+  polyCtx.restore();
+}
+
+/* ── Interaction canvas events ──────────────────── */
+interactionCanvas.addEventListener('click',e=>{
+  if(!S.drawingZone||e.clientY>sheet.getBoundingClientRect().top) return;
+  handlePolyTap(e.clientX,e.clientY);
 });
+interactionCanvas.addEventListener('touchend',e=>{
+  if(!S.drawingZone) return;
+  e.preventDefault();
+  const t=e.changedTouches[0];
+  if(t.clientY>sheet.getBoundingClientRect().top) return;
+  handlePolyTap(t.clientX,t.clientY);
+},{passive:false});
+interactionCanvas.addEventListener('mousemove',e=>{
+  if(!S.drawingZone||S.polyClosed) return;
+  redrawPoly(e.clientX,e.clientY);
+});
+interactionCanvas.addEventListener('touchmove',e=>{
+  if(!S.drawingZone||S.polyClosed) return;
+  const t=e.touches[0];
+  redrawPoly(t.clientX,t.clientY);
+},{passive:true});
+
+function handlePolyTap(ex,ey){
+  if(S.polyClosed) return;
+  const pts=S.polyPoints2D;
+
+  // Snap-to-close
+  if(pts.length>=MIN_POINTS && ptDist({x:ex,y:ey},pts[0])<CLOSE_SNAP){
+    closePolygon(); return;
+  }
+
+  // Add point — get both 2D and 3D coords
+  const world=screenToFloor(ex,ey);
+  S.polyPoints2D.push({x:ex,y:ey});
+  S.polyPoints3D.push(world);
+  updatePolyUI();
+  redrawPoly(ex,ey);
+}
+
+function closePolygon(){
+  if(S.polyPoints2D.length<MIN_POINTS) return;
+  S.polyClosed=true;
+  redrawPoly();
+  updatePolyUI();
+  setStatus('Polygone fermé · Appuyez sur Poser les tuiles','poly');
+}
+
+function undoLastPoint(){
+  if(S.polyClosed){
+    S.polyClosed=false;
+    updatePolyUI();
+    redrawPoly();
+    return;
+  }
+  if(!S.polyPoints2D.length) return;
+  S.polyPoints2D.pop();S.polyPoints3D.pop();
+  updatePolyUI();redrawPoly();
+}
+
+async function validatePoly(){
+  if(S.polyPoints3D.length<MIN_POINTS) return;
+  const pts=S.polyPoints3D.slice();
+  cancelZoneDrawing();
+  await placeTilePolygon(pts);
+}
+
+/* ── Polygon control buttons ──────────────────── */
+pbUndo.addEventListener('click',undoLastPoint);
+pbClose.addEventListener('click',closePolygon);
+pbValidate.addEventListener('click',validatePoly);
+pbCancel.addEventListener('click',cancelZoneDrawing);
 
 /* ═══════════════════════════════════════════
-   XR SELECT
+   XR SELECT (tap in XR mode adds reticle position)
 ═══════════════════════════════════════════ */
 function setupXRSelect(){
   if(!S.xrSession)return;
   S.xrSession.addEventListener('select',()=>{
     if(S.drawingZone){
-      // In XR mode, tap places the zone at reticle position
-      if(S.reticleVisible){
+      if(S.reticleVisible&&!S.polyClosed){
         const mat=xrReticleMesh.matrix;
         const pos=new THREE.Vector3(),quat=new THREE.Quaternion(),sc=new THREE.Vector3();
         mat.decompose(pos,quat,sc);
-        cancelZoneDrawing();
-        placeTileZone(pos);
+        const screenPos=worldToScreen(pos);
+        S.polyPoints2D.push(screenPos);
+        S.polyPoints3D.push(pos.clone());
+        updatePolyUI();redrawPoly();
       }
       return;
     }
@@ -875,11 +835,8 @@ function setupXRSelect(){
       const pos=new THREE.Vector3(),quat=new THREE.Quaternion(),sc=new THREE.Vector3();
       mat.decompose(pos,quat,sc);
       placeProductAtPosition(pos,quat);
-      S.pendingPlace=false;
-      setStatus('Placé !','ok');
-    }else{
-      deselectObject();
-    }
+      S.pendingPlace=false;setStatus('Placé !','ok');
+    }else{deselectObject();}
   });
 }
 
@@ -911,7 +868,7 @@ document.addEventListener('touchstart',e=>{
   }else if(e.touches.length===2){
     TOUCH_STATE.touchStart=null;
     const t1=e.touches[0],t2=e.touches[1];
-    S.twoTouchStart={x1:t1.clientX,y1:t1.clientY,x2:t2.clientX,y2:t2.clientY,dist:Math.hypot(t2.clientX-t1.clientX,t2.clientY-t1.clientY)};
+    S.twoTouchStart={dist:Math.hypot(t2.clientX-t1.clientX,t2.clientY-t1.clientY)};
     const obj=S.placedObjects.find(o=>o.id===S.selectedObjectId);
     if(obj)S.touchStartScale=obj.scaleVal;
     gestureHint.textContent='✌️ Pincez pour redimensionner';
@@ -937,7 +894,241 @@ document.addEventListener('touchmove',e=>{
 document.addEventListener('touchend',()=>{TOUCH_STATE.touchStart=null;S.twoTouchStart=null;gestureHint.classList.remove('visible');},{passive:true});
 
 /* ═══════════════════════════════════════════
-   PLACE PRODUCT (furniture)
+   ██  3D TILE POLYGON PLACEMENT  ██
+═══════════════════════════════════════════ */
+
+function pointInPolygon2D(px,pz,poly){
+  let inside=false;
+  const n=poly.length;
+  for(let i=0,j=n-1;i<n;j=i++){
+    const xi=poly[i].x,zi=poly[i].z;
+    const xj=poly[j].x,zj=poly[j].z;
+    const intersect=((zi>pz)!==(zj>pz))&&(px<(xj-xi)*(pz-zi)/(zj-zi)+xi);
+    if(intersect)inside=!inside;
+  }
+  return inside;
+}
+
+function polygonCentroid(poly){
+  let cx=0,cz=0;
+  poly.forEach(p=>{cx+=p.x;cz+=p.z;});
+  return{x:cx/poly.length,z:cz/poly.length};
+}
+
+/* ── Improved tile grid generation ─────────────────
+   Uses a density approach so tiles look natural at any polygon size.
+   Respects tile aspect ratio and pattern.
+────────────────────────────────────────────────── */
+function generateTilesInPolygon(poly3D, tileS, pattern){
+  const xs=poly3D.map(p=>p.x),zs=poly3D.map(p=>p.z);
+  const minX=Math.min(...xs)-tileS*2, maxX=Math.max(...xs)+tileS*2;
+  const minZ=Math.min(...zs)-tileS*2, maxZ=Math.max(...zs)+tileS*2;
+  const positions=[];
+  const cent=polygonCentroid(poly3D);
+
+  if(pattern==='diagonal'){
+    const s=tileS;
+    // Snap origin to centroid for clean layout
+    for(let gz=minZ-tileS;gz<=maxZ+tileS;gz+=s){
+      for(let gx=minX-tileS;gx<=maxX+tileS;gx+=s){
+        // Rotate grid 45° around centroid
+        const dx=gx-cent.x, dz=gz-cent.z;
+        const rx=cent.x+(dx-dz)*0.7071;
+        const rz=cent.z+(dx+dz)*0.7071;
+        if(pointInPolygon2D(rx,rz,poly3D)){
+          positions.push({x:rx,z:rz,rot:Math.PI/4,w:tileS*0.93,h:tileS*0.93});
+        }
+      }
+    }
+  } else if(pattern==='chevron'){
+    const halfW=tileS*0.5, halfH=tileS;
+    for(let row=0;row<=Math.ceil((maxZ-minZ)/halfH)+2;row++){
+      for(let col=0;col<=Math.ceil((maxX-minX)/tileS)+2;col++){
+        const gx=minX+col*tileS+(row%2)*halfW;
+        const gz=minZ+row*halfH;
+        if(pointInPolygon2D(gx,gz,poly3D)){
+          const rot=(col+row)%2===0?-Math.PI/6:Math.PI/6;
+          positions.push({x:gx,z:gz,rot,w:tileS,h:halfH});
+        }
+      }
+    }
+  } else if(pattern==='opus'){
+    const bigS=tileS, smallS=tileS*0.55;
+    for(let r=0;r<=Math.ceil((maxZ-minZ)/bigS)+2;r++){
+      for(let c=0;c<=Math.ceil((maxX-minX)/bigS)+2;c++){
+        const big=(r+c)%3!==2;
+        const s=big?bigS:smallS;
+        const gx=minX+c*bigS+(big?0:(bigS-smallS)/2);
+        const gz=minZ+r*bigS+(big?0:(bigS-smallS)/2);
+        if(pointInPolygon2D(gx,gz,poly3D)){
+          positions.push({x:gx,z:gz,rot:0,w:s,h:s});
+        }
+      }
+    }
+  } else {
+    // straight — snap to grid aligned to centroid
+    const offX=((cent.x%tileS)+tileS)%tileS;
+    const offZ=((cent.z%tileS)+tileS)%tileS;
+    for(let gz=minZ-offZ;gz<=maxZ+tileS;gz+=tileS){
+      for(let gx=minX-offX;gx<=maxX+tileS;gx+=tileS){
+        const cx2=gx+tileS/2, cz2=gz+tileS/2;
+        if(pointInPolygon2D(cx2,cz2,poly3D)){
+          positions.push({x:cx2,z:cz2,rot:0,w:tileS,h:tileS});
+        }
+      }
+    }
+  }
+  return positions;
+}
+
+/* ── Grout base shape ─────────────────────────── */
+function buildGroutBase(poly3D){
+  const shape=new THREE.Shape();
+  shape.moveTo(poly3D[0].x,poly3D[0].z);
+  for(let i=1;i<poly3D.length;i++) shape.lineTo(poly3D[i].x,poly3D[i].z);
+  shape.closePath();
+  const geo=new THREE.ShapeGeometry(shape);
+  geo.rotateX(-Math.PI/2);
+  const mat=new THREE.MeshStandardMaterial({color:0x9A8878,roughness:0.95,transparent:true,opacity:S.opacity*0.85,side:THREE.DoubleSide});
+  const mesh=new THREE.Mesh(geo,mat);
+  mesh.position.y=0.001;mesh.receiveShadow=true;
+  return mesh;
+}
+
+/* ── Texture preload helper ───────────────────── */
+let _cachedTexture=null, _cachedTexUrl='';
+function loadOrGetTexture(url){
+  return new Promise(res=>{
+    if(!url){res(null);return;}
+    if(url===_cachedTexUrl&&_cachedTexture){res(_cachedTexture);return;}
+    const tex=new THREE.TextureLoader().load(url,t=>{
+      t.wrapS=t.wrapT=THREE.RepeatWrapping;
+      _cachedTexture=t;_cachedTexUrl=url;res(t);
+    },null,()=>res(null));
+  });
+}
+
+/* ── Main placement function ─────────────────── */
+async function placeTilePolygon(poly3D){
+  const product=S.catalog.find(p=>p.id===S.selectedProductId);
+  if(!product){setStatus('Sélectionnez un carrelage d\'abord','error');return;}
+
+  const TS=S.tileSize;
+  const positions=generateTilesInPolygon(poly3D,TS,S.selectedPattern);
+  const total=positions.length;
+
+  if(total===0){setStatus('Aucune tuile dans cette zone','error');return;}
+
+  tilingProgress.classList.add('visible');
+  tilingFill.style.width='0%';
+  tilingText.textContent='0 / '+total+' tuiles';
+
+  const zoneGroup=new THREE.Group();
+  scene.add(zoneGroup);
+  zoneGroup.userData.isTileZone=true;
+
+  // Grout base
+  zoneGroup.add(buildGroutBase(poly3D));
+
+  // Preload texture once (improves performance vs loading per tile)
+  const tex=await loadOrGetTexture(product.imageUrl||'');
+
+  const useGlb=product.modelUrl&&product.modelUrl.length>4;
+  let baseModel=null;
+
+  if(useGlb){
+    setStatus('Chargement du modèle GLB…','scanning');
+    try{
+      const gltf=await new Promise((res,rej)=>loader.load(product.modelUrl,res,null,rej));
+      baseModel=gltf.scene;
+
+      // Normalize GLB to tile size
+      const bb=new THREE.Box3().setFromObject(baseModel);
+      const sz=bb.getSize(new THREE.Vector3());
+      const maxDim=Math.max(sz.x,sz.z)||1;
+      const glbScale=TS/maxDim;
+      baseModel.scale.setScalar(glbScale);
+
+      // Center model on XZ
+      const center=bb.getCenter(new THREE.Vector3());
+      baseModel.position.x-=center.x*glbScale;
+      baseModel.position.z-=center.z*glbScale;
+      baseModel.position.y-=bb.min.y*glbScale;
+
+      // Apply texture + transparency to all meshes
+      baseModel.traverse(c=>{
+        if(!c.isMesh)return;
+        const mats=Array.isArray(c.material)?c.material:[c.material];
+        mats.forEach(m=>{
+          m.side=THREE.DoubleSide;
+          m.transparent=true;m.opacity=S.opacity;
+          if(tex&&!m.map){m.map=tex;m.color.set(0xffffff);}
+          m.needsUpdate=true;
+        });
+        c.castShadow=true;c.receiveShadow=true;
+      });
+    }catch(e){
+      console.warn('GLB load failed, using box tiles');
+      baseModel=null;
+    }
+  }
+
+  // Shared material for box fallback (one mat, not one per tile)
+  const fallbackMat=new THREE.MeshStandardMaterial({
+    roughness:0.3,metalness:0.1,transparent:true,opacity:S.opacity,
+    ...(tex?{map:tex,color:new THREE.Color(0xffffff)}:{color:new THREE.Color(0xD4A96A)})
+  });
+  const tileColors=[0xD4A96A,0xC09050,0xE0B878,0xB88040];
+
+  for(let i=0;i<positions.length;i++){
+    const p=positions[i];
+    let tile;
+
+    if(baseModel){
+      // Clone the GLB (deep clone to share geometry but have independent transforms)
+      tile=baseModel.clone(true);
+      tile.rotation.y=p.rot;
+      tile.position.set(p.x,0,p.z);
+    }else{
+      // Shared-geometry box (far fewer draw calls)
+      const geo=new THREE.BoxGeometry(p.w-0.005,0.012,p.h-0.005);
+      const mat=fallbackMat.clone();
+      if(!tex){mat.color.set(tileColors[i%tileColors.length]);}
+      tile=new THREE.Mesh(geo,mat);
+      tile.castShadow=true;tile.receiveShadow=true;
+      tile.rotation.y=p.rot;
+      tile.position.set(p.x,0.006,p.z);
+    }
+
+    zoneGroup.add(tile);
+
+    // Progress update (batch every 10 to avoid layout thrashing)
+    if(i%10===0){
+      const pct=Math.round((i+1)/total*100);
+      tilingFill.style.width=pct+'%';
+      tilingText.textContent=(i+1)+' / '+total+' tuiles';
+      await new Promise(r=>requestAnimationFrame(r));
+    }
+  }
+
+  tilingProgress.classList.remove('visible');
+  S.tileZoneGroups.push(zoneGroup);
+  updatePlacedBadge();
+
+  const id=++S.meshIdCounter;
+  S.placedObjects.push({
+    id,group:zoneGroup,
+    name:product.name+' (polygone)',
+    productId:product.id,
+    scaleVal:1,baseScale:1,isTileZone:true
+  });
+  selectObject(id);
+  setStatus(`✓ ${total} tuiles posées · motif ${S.selectedPattern}`,'ok');
+  postToFlutter({type:'tile_zone',count:total});
+}
+
+/* ═══════════════════════════════════════════
+   PLACE PRODUCT (furniture / non-tile)
 ═══════════════════════════════════════════ */
 function placeProductAtPosition(pos,quat){
   const product=S.catalog.find(p=>p.id===S.selectedProductId);
@@ -964,7 +1155,8 @@ function placeProductAtPosition(pos,quat){
       model.position.x-=center.x;model.position.z-=center.z;model.position.y-=bb2.min.y;
       model.traverse(c=>{if(!c.isMesh)return;c.castShadow=true;c.receiveShadow=true;});
       group.add(model);entry.model=model;selectObject(id);
-    },null,(err)=>{glbLoader.classList.remove('visible');
+    },null,(err)=>{
+      glbLoader.classList.remove('visible');
       const fb=new THREE.Mesh(new THREE.BoxGeometry(0.5,0.5,0.5),new THREE.MeshStandardMaterial({color:0xccaa88,transparent:true,opacity:S.opacity}));
       fb.position.y=0.25;group.add(fb);entry.model=fb;entry.baseScale=1;selectObject(id);
     });
@@ -988,7 +1180,6 @@ function deselectObject(){S.selectedObjectId=null;actionBar.classList.remove('vi
 function scaleObject(obj,val){
   const c=Math.max(0.05,Math.min(8,val));obj.scaleVal=c;
   if(obj.model)obj.model.scale.setScalar((obj.baseScale||1)*c);
-  // For tile zones, scale the whole group
   if(obj.isTileZone)obj.group.scale.setScalar(c);
 }
 function deleteSelected(){
@@ -1049,6 +1240,27 @@ document.getElementById('resetBtn').addEventListener('click',()=>{
 
 document.getElementById('captureBtn').addEventListener('click',doCapture);
 
+tileZoneBtn.addEventListener('click',()=>{
+  tileZonePanel.classList.add('visible');
+  setSheetH(MID);
+});
+
+startDrawBtn.addEventListener('click',startZoneDrawing);
+
+document.getElementById('tileSizeSlider').addEventListener('input',e=>{
+  S.tileSize=parseInt(e.target.value)/100;
+  document.getElementById('tileSizeVal').textContent=e.target.value+'cm';
+});
+
+document.querySelectorAll('.tilePattern').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.tilePattern').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    S.selectedPattern=btn.dataset.pattern;
+    if(S.drawingZone)redrawPoly();
+  });
+});
+
 document.getElementById('scaleSlider').addEventListener('input',e=>{
   S.scaleMultiplier=parseInt(e.target.value)/100;
   document.getElementById('scaleDisp').textContent=e.target.value;
@@ -1060,6 +1272,24 @@ document.getElementById('opacSlider').addEventListener('input',e=>{
   document.getElementById('opacDisp').textContent=e.target.value;
   updateAllOpacity();
 });
+
+/* ═══════════════════════════════════════════
+   CAPTURE
+═══════════════════════════════════════════ */
+async function doCapture(){
+  const showSaveToast=(icon,txt)=>{document.getElementById('saveToastIcon').textContent=icon;document.getElementById('saveToastText').textContent=txt;const t=document.getElementById('saveToast');t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200);};
+  try{
+    renderer3.render(scene,camera3);
+    threeCanvas.toBlob(async blob=>{
+      if(!blob)return;
+      const file=new File([blob],'placeAR.png',{type:'image/png'});
+      if(navigator.canShare&&navigator.canShare({files:[file]})){try{await navigator.share({files:[file],title:'PlaceAR'});showSaveToast('📸','Partagé !');return;}catch{}}
+      const a=document.createElement('a');a.download='placeAR.png';a.href=URL.createObjectURL(blob);a.click();
+      setTimeout(()=>URL.revokeObjectURL(a.href),3000);showSaveToast('💾','Image sauvegardée !');
+    },'image/png');
+  }catch(e){showSaveToast('❌','Erreur capture');}
+  postToFlutter({type:'capture'});
+}
 
 /* ═══════════════════════════════════════════
    CATALOG
@@ -1081,13 +1311,12 @@ function buildCategoryTabs(products){
     if(/carrelage|tile|sol/i.test(cat))tab.classList.add('carrelage-tab');
     tab.dataset.cat=cat;
     tab.textContent=cat.charAt(0).toUpperCase()+cat.slice(1);
-    tab.addEventListener('click',()=>switchCat(cat,tab));
-    catTabs.appendChild(tab);
-    // Show tile zone panel when carrelage tab selected
     tab.addEventListener('click',()=>{
+      switchCat(cat,tab);
       const isCarrelage=/carrelage|tile|sol/i.test(cat);
       tileZonePanel.classList.toggle('visible',isCarrelage);
     });
+    catTabs.appendChild(tab);
   });
 }
 
@@ -1124,7 +1353,7 @@ function selectProductById(id){
   const isCarrelage=p&&p.category&&/carrelage|tile|sol/i.test(p.category);
   if(isCarrelage){
     tileZonePanel.classList.add('visible');
-    setStatus('Configurez la zone puis appuyez sur "Dessiner la zone"','tiling');
+    setStatus('Configurez puis "Tracer le polygone"','tiling');
   }else{
     tileZonePanel.classList.remove('visible');
   }
@@ -1133,24 +1362,6 @@ function selectProductById(id){
 
 function updateActiveCards(){
   document.querySelectorAll('.prodCard').forEach(c=>c.classList.toggle('active',c.dataset.id===S.selectedProductId));
-}
-
-/* ═══════════════════════════════════════════
-   CAPTURE
-═══════════════════════════════════════════ */
-async function doCapture(){
-  const showSaveToast=(icon,txt)=>{document.getElementById('saveToastIcon').textContent=icon;document.getElementById('saveToastText').textContent=txt;const t=document.getElementById('saveToast');t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200);};
-  try{
-    renderer3.render(scene,camera3);
-    threeCanvas.toBlob(async blob=>{
-      if(!blob)return;
-      const file=new File([blob],'placeAR.png',{type:'image/png'});
-      if(navigator.canShare&&navigator.canShare({files:[file]})){try{await navigator.share({files:[file],title:'PlaceAR'});showSaveToast('📸','Partagé !');return;}catch{}}
-      const a=document.createElement('a');a.download='placeAR.png';a.href=URL.createObjectURL(blob);a.click();
-      setTimeout(()=>URL.revokeObjectURL(a.href),3000);showSaveToast('💾','Image sauvegardée !');
-    },'image/png');
-  }catch(e){showSaveToast('❌','Erreur capture');}
-  postToFlutter({type:'capture'});
 }
 
 /* ═══════════════════════════════════════════
@@ -1172,7 +1383,6 @@ window.receiveFromFlutter=function(jsonStr){
   }catch(e){console.error('receiveFromFlutter',e);}
 };
 
-/* URL params */
 function loadFromUrlParams(){
   const params=new URLSearchParams(window.location.search);
   const pp=params.get('products');if(!pp)return;
@@ -1186,21 +1396,17 @@ function loadFromUrlParams(){
 function escapeHtml(s){if(!s)return'';return s.toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 
 /* ═══════════════════════════════════════════
-   MOCK CATALOG — with Carrelage category
+   MOCK CATALOG
 ═══════════════════════════════════════════ */
 const MOCK_CATALOG=[
-  // CARRELAGE
-  {id:'t1',name:'Zellige Vert',         category:'Carrelage', modelUrl:'', imageUrl:'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=200'},
-  {id:'t2',name:'Marbre Blanc',         category:'Carrelage', modelUrl:'', imageUrl:'https://images.unsplash.com/photo-1615873968403-89e068629265?w=200'},
-  {id:'t3',name:'Carreaux Ciment',      category:'Carrelage', modelUrl:'', imageUrl:'https://images.unsplash.com/photo-1565193566173-7a0ee3dbe261?w=200'},
-  {id:'t4',name:'Tomettes Terre Cuite', category:'Carrelage', modelUrl:'', imageUrl:'https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?w=200'},
-  {id:'t5',name:'Carrelage Mosaïque',   category:'Carrelage', modelUrl:'', imageUrl:'https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?w=200'},
-  // SALON
-  {id:'m1',name:'Canapé Moderne',       category:'Salon',     modelUrl:'', imageUrl:'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=200'},
-  {id:'m2',name:'Table Basse',          category:'Salon',     modelUrl:'', imageUrl:'https://images.unsplash.com/photo-1533090161767-e6ffed986c88?w=200'},
-  // PLAFOND / MUR
-  {id:'m3',name:'Lustre Plafond',       category:'Plafond',   modelUrl:'', imageUrl:'https://images.unsplash.com/photo-1507473885765-e6ed057f782c?w=200'},
-  {id:'m4',name:'Tableau Mural',        category:'Mur',       modelUrl:'', imageUrl:'https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?w=200'},
+  {id:'t1',name:'Zellige Vert',         category:'Carrelage',modelUrl:'',imageUrl:'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=200'},
+  {id:'t2',name:'Marbre Blanc',         category:'Carrelage',modelUrl:'',imageUrl:'https://images.unsplash.com/photo-1615873968403-89e068629265?w=200'},
+  {id:'t3',name:'Carreaux Ciment',      category:'Carrelage',modelUrl:'',imageUrl:'https://images.unsplash.com/photo-1565193566173-7a0ee3dbe261?w=200'},
+  {id:'t4',name:'Tomettes Terre Cuite', category:'Carrelage',modelUrl:'',imageUrl:'https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?w=200'},
+  {id:'t5',name:'Carrelage Mosaïque',   category:'Carrelage',modelUrl:'',imageUrl:'https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?w=200'},
+  {id:'m1',name:'Canapé Moderne',       category:'Salon',    modelUrl:'',imageUrl:'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=200'},
+  {id:'m2',name:'Table Basse',          category:'Salon',    modelUrl:'',imageUrl:'https://images.unsplash.com/photo-1533090161767-e6ffed986c88?w=200'},
+  {id:'m3',name:'Lustre Plafond',       category:'Plafond',  modelUrl:'',imageUrl:'https://images.unsplash.com/photo-1507473885765-e6ed057f782c?w=200'},
 ];
 
 /* ═══════════════════════════════════════════
@@ -1213,7 +1419,13 @@ startArBtn.addEventListener('click',async()=>{
   startArBtn.disabled=true;startArBtn.textContent='Vérification…';
   S.xrSupported=await checkXRSupport();
   if(S.xrSupported){await startXRSession();setupXRSelect();}
-  else{noXrMsg.style.display='block';startArBtn.textContent='📷 Mode Caméra';startArBtn.disabled=false;startArBtn.onclick=startFallbackMode;await startFallbackMode();}
+  else{
+    noXrMsg.style.display='block';
+    startArBtn.textContent='📷 Mode Caméra';
+    startArBtn.disabled=false;
+    startArBtn.onclick=startFallbackMode;
+    await startFallbackMode();
+  }
   setTimeout(()=>{if(S.catalog.length===0)window.loadProductCatalog(MOCK_CATALOG);},2000);
 });
 </script>
