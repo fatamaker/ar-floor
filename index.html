@@ -17,16 +17,9 @@
 }
 html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:var(--font);color:var(--text)}
 
-/* ── CANVAS ── */
 #threeCanvas{position:fixed;inset:0;width:100%;height:100%;z-index:0}
 #videoEl{position:fixed;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;display:none}
 
-/* ── ZONE DRAW OVERLAY ── */
-#drawOverlay{position:fixed;inset:0;z-index:8;pointer-events:none;display:none}
-#drawOverlay.active{pointer-events:auto;cursor:crosshair}
-#drawSvg{width:100%;height:100%}
-
-/* ── TOP BAR ── */
 #topBar{position:fixed;top:0;left:0;right:0;z-index:20;display:none;align-items:center;justify-content:space-between;padding:16px 18px 12px;background:linear-gradient(to bottom,rgba(0,0,0,.7) 0%,transparent 100%)}
 #logoWrap{display:flex;align-items:center;gap:9px}
 #logoIcon{width:32px;height:32px;border-radius:10px;background:linear-gradient(135deg,var(--primary),var(--primary-dark));display:flex;align-items:center;justify-content:center}
@@ -38,19 +31,16 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:var
 #tileBadge{display:none;background:rgba(46,204,143,.15);border:1px solid rgba(46,204,143,.3);color:var(--primary)}
 #tileBadge.on{display:flex}
 
-/* ── STATUS TOAST ── */
 #toast{position:fixed;top:72px;left:50%;transform:translateX(-50%);z-index:19;display:none;align-items:center;gap:7px;padding:7px 16px;border-radius:40px;font-size:11px;font-weight:500;color:rgba(255,255,255,.9);background:rgba(10,14,20,.82);backdrop-filter:blur(16px);border:1px solid var(--border);white-space:nowrap;pointer-events:none;animation:slideIn .3s ease}
 @keyframes slideIn{from{opacity:0;transform:translateX(-50%) translateY(-8px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
-.toastDot{width:6px;height:6px;border-radius:50%;flex-shrink:0;transition:background .3s}
+.toastDot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
 #toast.ok .toastDot{background:var(--primary)}
 #toast.scan .toastDot{background:var(--accent);animation:blink .8s infinite}
 #toast.err .toastDot{background:var(--accent2)}
 
-/* ── RETICLE ── */
 #reticle{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:5;pointer-events:none;opacity:0;transition:opacity .4s}
 #reticle.on{opacity:1}
 
-/* ── BOTTOM SHEET ── */
 #sheet{position:fixed;bottom:0;left:0;right:0;z-index:30;background:rgba(10,14,20,.95);backdrop-filter:blur(24px);border-radius:var(--r-lg) var(--r-lg) 0 0;border-top:1px solid var(--border);box-shadow:var(--shadow);display:none;flex-direction:column;transition:height .35s cubic-bezier(.32,.72,0,1)}
 #sheetPull{width:100%;padding:10px 0 6px;cursor:grab;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 #pullBar{width:36px;height:4px;border-radius:3px;background:rgba(255,255,255,.18)}
@@ -70,17 +60,15 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:var
 .secLabel{font-size:9px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);margin:14px 0 8px;display:flex;align-items:center;gap:8px}
 .secLabel::after{content:'';flex:1;height:1px;background:var(--border)}
 
-/* ── TILE CATALOG ── */
 #tileScroll{display:flex;gap:10px;overflow-x:auto;padding-bottom:6px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
 #tileScroll::-webkit-scrollbar{display:none}
 .tileCard{flex-shrink:0;width:88px;border-radius:var(--r);border:1.5px solid var(--border);background:var(--surface);cursor:pointer;overflow:hidden;transition:all .2s;position:relative}
 .tileCard:active{transform:scale(.94)}
 .tileCard.sel{border-color:var(--primary);box-shadow:0 0 0 3px rgba(46,204,143,.2)}
-.tileCard img{width:100%;height:72px;object-fit:cover;display:block}
+.tileCard img{width:100%;height:72px;object-fit:cover;display:block;background:#2a3a2a}
 .tileCard-name{padding:5px 6px 6px;font-size:8px;font-weight:600;color:var(--muted);overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
 .tileCard.sel .tileCard-name{color:var(--primary)}
 
-/* ── SLIDERS ── */
 #ctrlGrid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:4px}
 .slRow{display:flex;flex-direction:column;gap:5px}
 .slHead{display:flex;justify-content:space-between;align-items:center;font-size:10px;font-weight:600;color:var(--muted)}
@@ -88,18 +76,6 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:var
 input[type=range]{-webkit-appearance:none;width:100%;height:4px;background:var(--border);border-radius:3px;outline:none}
 input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:var(--primary);cursor:pointer;border:2px solid var(--bg)}
 
-/* ── ZONE DRAW UI ── */
-#zoneBar{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:22;display:none;flex-direction:column;align-items:center;gap:12px;pointer-events:none}
-#zoneBar.on{display:flex}
-#zoneInstr{background:rgba(10,14,20,.88);border:1px solid var(--border);border-radius:var(--r);padding:10px 16px;font-size:12px;font-weight:500;color:#fff;text-align:center;backdrop-filter:blur(16px)}
-#zoneActions{display:flex;gap:8px;pointer-events:auto}
-.zAct{padding:9px 18px;border-radius:var(--r);border:none;cursor:pointer;font-family:var(--font);font-size:12px;font-weight:700;transition:all .2s}
-.zAct:active{transform:scale(.96)}
-#zActFill{background:var(--primary);color:#fff;display:none}
-#zActUndo{background:var(--surface2);color:var(--text);border:1px solid var(--border)}
-#zActCancel{background:rgba(224,92,58,.15);color:var(--accent2);border:1px solid rgba(224,92,58,.25)}
-
-/* ── START SCREEN ── */
 #startScreen{position:fixed;inset:0;z-index:100;background:radial-gradient(ellipse at 30% 20%,rgba(46,204,143,.12) 0%,transparent 60%),linear-gradient(160deg,#0A0E14 0%,#0f1820 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px}
 #startScreen.hidden{display:none}
 .sIcon{width:88px;height:88px;border-radius:28px;background:linear-gradient(135deg,rgba(46,204,143,.2),rgba(46,204,143,.05));border:1px solid rgba(46,204,143,.25);display:flex;align-items:center;justify-content:center;margin-bottom:28px}
@@ -114,25 +90,18 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
 #startBtn:disabled{opacity:.5;cursor:not-allowed}
 #noXr{color:rgba(255,100,100,.8);font-size:12px;margin-top:10px;text-align:center;display:none}
 
-/* ── LOADERS & TOASTS ── */
 @keyframes spin{to{transform:rotate(360deg)}}
 #loader{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.72);display:none;align-items:center;justify-content:center;flex-direction:column;gap:14px}
 #loader.on{display:flex}
 .spinner{width:36px;height:36px;border:3px solid rgba(46,204,143,.2);border-top-color:var(--primary);border-radius:50%;animation:spin .7s linear infinite}
 #loader p{color:rgba(255,255,255,.75);font-size:12px;font-weight:500}
-#snapToast{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:200;display:flex;flex-direction:column;align-items:center;gap:8px;padding:22px 32px;background:rgba(10,14,20,.93);backdrop-filter:blur(20px);border-radius:var(--r-lg);border:1px solid var(--border);color:#fff;font-size:13px;font-weight:600;pointer-events:none;opacity:0;transition:opacity .3s;text-align:center}
-#snapToast.on{opacity:1}
 
-/* ── INFO BTN ── */
 #infoBtn{position:fixed;bottom:110px;right:18px;z-index:22;width:46px;height:46px;background:var(--surface2);border:1px solid var(--border);border-radius:50%;color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:var(--font-head);font-weight:800;transition:all .2s}
 #infoBtn:hover{background:var(--surface);transform:scale(1.06)}
 
-/* ── GUIDE ── */
 #guide{position:fixed;inset:0;z-index:101;background:rgba(0,0,0,.94);display:none;align-items:center;justify-content:center;padding:20px}
 #guide.on{display:flex}
 #guideBox{background:rgba(15,24,32,.95);border:1px solid var(--border);border-radius:var(--r-lg);max-width:560px;max-height:82vh;overflow-y:auto;padding:24px;width:100%}
-#guideBox::-webkit-scrollbar{width:4px}
-#guideBox::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
 .gTitle{font-family:var(--font-head);font-size:20px;font-weight:800;margin-bottom:20px;color:var(--primary);border-bottom:1px solid var(--border);padding-bottom:14px}
 .gSec{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);margin:16px 0 8px}
 .gItem{background:var(--surface);border-left:2px solid var(--primary);padding:10px 12px;border-radius:4px;margin-bottom:8px;font-size:12px;line-height:1.65;color:rgba(255,255,255,.8)}
@@ -140,14 +109,8 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
 .gClose{float:right;background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;padding:0;line-height:1}
 .gClose:hover{color:#fff}
 
-/* ── TILE SIZE PREVIEW ── */
 #tileSizeHint{position:fixed;bottom:170px;left:50%;transform:translateX(-50%);z-index:19;padding:6px 14px;border-radius:40px;background:rgba(0,0,0,.65);color:rgba(255,255,255,.8);font-size:10px;font-weight:500;pointer-events:none;opacity:0;transition:opacity .3s;white-space:nowrap}
 #tileSizeHint.on{opacity:1}
-
-/* ── ZONE FILL STATS ── */
-#fillStats{position:fixed;top:72px;right:14px;z-index:19;background:rgba(10,14,20,.82);backdrop-filter:blur(14px);border:1px solid var(--border);border-radius:var(--r);padding:10px 14px;display:none;flex-direction:column;gap:4px}
-#fillStats.on{display:flex}
-.fStat{font-size:10px;color:var(--muted)}.fStat b{color:var(--primary)}
 </style>
 </head>
 <body>
@@ -155,31 +118,6 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
 <video id="videoEl" autoplay playsinline muted></video>
 <canvas id="threeCanvas"></canvas>
 
-<!-- Zone draw overlay -->
-<div id="drawOverlay">
-  <svg id="drawSvg">
-    <defs>
-      <pattern id="tilePreviewPat" x="0" y="0" width="40" height="40" patternUnits="userSpaceOnUse">
-        <rect width="40" height="40" fill="rgba(46,204,143,.08)"/>
-        <rect x="1" y="1" width="38" height="38" fill="rgba(46,204,143,.04)" rx="1"/>
-        <line x1="0" y1="20" x2="40" y2="20" stroke="rgba(46,204,143,.12)" stroke-width="1"/>
-        <line x1="20" y1="0" x2="20" y2="40" stroke="rgba(46,204,143,.12)" stroke-width="1"/>
-      </pattern>
-    </defs>
-    <!-- preview fill -->
-    <polygon id="zoneFillPreview" fill="url(#tilePreviewPat)" stroke="none" points=""/>
-    <!-- zone outline -->
-    <polyline id="zoneLine" fill="none" stroke="rgba(240,192,64,.85)" stroke-width="2" stroke-dasharray="6 3" stroke-linecap="round" stroke-linejoin="round" points=""/>
-    <!-- closing line -->
-    <line id="zoneClose" x1="0" y1="0" x2="0" y2="0" stroke="rgba(240,192,64,.4)" stroke-width="1.5" stroke-dasharray="4 4" display="none"/>
-    <!-- points -->
-    <g id="zonePoints"></g>
-    <!-- cursor line -->
-    <line id="cursorLine" x1="0" y1="0" x2="0" y2="0" stroke="rgba(255,255,255,.35)" stroke-width="1.5" stroke-dasharray="4 3" display="none"/>
-  </svg>
-</div>
-
-<!-- Reticle -->
 <div id="reticle">
   <svg width="66" height="66" viewBox="0 0 66 66" fill="none">
     <ellipse cx="33" cy="33" rx="28" ry="10" stroke="rgba(46,204,143,.85)" stroke-width="1.5" stroke-dasharray="7 4"/>
@@ -192,46 +130,23 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
 </div>
 
 <div id="loader"><div class="spinner"></div><p id="loaderTxt">Chargement…</p></div>
-<div id="snapToast"><span id="snapIcon">📸</span><span id="snapTxt">Capture !</span></div>
 <div id="tileSizeHint">Carreau 30×30 cm</div>
-<div id="fillStats">
-  <div class="fStat">Zone: <b id="fArea">0</b> m²</div>
-  <div class="fStat">Carreaux: <b id="fCount">0</b> pcs</div>
-  <div class="fStat">Format: <b id="fFormat">30×30</b> cm</div>
-</div>
 
-<!-- Zone draw controls -->
-<div id="zoneBar">
-  <div id="zoneInstr">Appuyez pour ajouter des points<br><small style="opacity:.6">Min. 3 points pour délimiter la zone</small></div>
-  <div id="zoneActions">
-    <button class="zAct" id="zActUndo">↩ Annuler point</button>
-    <button class="zAct" id="zActFill">✓ Remplir zone</button>
-    <button class="zAct" id="zActCancel">✕</button>
-  </div>
-</div>
-
-<!-- Guide -->
 <div id="guide">
   <div id="guideBox">
     <button class="gClose" id="guideClose">×</button>
     <div class="gTitle">Guide ARFloor</div>
-    <div class="gSec">Mode Automatique</div>
-    <div class="gItem"><b>Appuyez "Placer ici"</b> → un carreau se place directement sur la surface détectée</div>
-    <div class="gSec">Mode Zone (recommandé)</div>
-    <div class="gItem"><b>Appuyez "Délimiter zone"</b> → tracez votre contour en appuyant sur les coins de la zone. Fonctionne avec n'importe quelle forme : carré, triangle, L, etc.</div>
-    <div class="gItem"><b>✓ Remplir zone</b> → les carreaux se placent automatiquement pour couvrir toute la surface délimitée, taille adaptée</div>
-    <div class="gSec">Gestes sur les carreaux</div>
+    <div class="gSec">Placement</div>
+    <div class="gItem"><b>Appuyez "Placer ici"</b> → un carreau se place sur la surface détectée</div>
+    <div class="gSec">Gestes</div>
     <div class="gItem"><b>Glisser 1 doigt</b> → rotation du carreau sélectionné</div>
     <div class="gItem"><b>Pincer 2 doigts</b> → redimensionner</div>
     <div class="gItem"><b>Double tap</b> → supprimer</div>
-    <div class="gSec">Paramètres</div>
-    <div class="gItem"><b>Format carreau</b> → choisissez 20×20, 30×30, 45×45 ou 60×60 cm<br><b>Opacité</b> → transparence de la prévisualisation</div>
   </div>
 </div>
 
 <button id="infoBtn">?</button>
 
-<!-- START SCREEN -->
 <div id="startScreen">
   <div class="sIcon">
     <svg width="44" height="44" viewBox="0 0 44 44" fill="none">
@@ -245,18 +160,17 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
     </svg>
   </div>
   <div class="sTitle">AR<span>Floor</span></div>
-  <div class="sSub">Visualisez votre carrelage en réalité augmentée, tile par tile ou sur toute une zone</div>
+  <div class="sSub">Visualisez votre carrelage en réalité augmentée</div>
   <div class="sFeats">
     <div class="sFeat"><div class="sFeat-dot"></div>Détection automatique du sol</div>
-    <div class="sFeat"><div class="sFeat-dot"></div>Délimitez n'importe quelle forme</div>
-    <div class="sFeat"><div class="sFeat-dot"></div>Remplissage intelligent (triangle, L…)</div>
+    <div class="sFeat"><div class="sFeat-dot"></div>Placement précis avec hit-test</div>
+    <div class="sFeat"><div class="sFeat-dot"></div>Rotation et redimensionnement</div>
     <div class="sFeat"><div class="sFeat-dot"></div>Formats 20×20 à 60×60 cm</div>
   </div>
   <button id="startBtn">🪴 Lancer ARFloor</button>
   <div id="noXr">WebXR non disponible — mode caméra activé</div>
 </div>
 
-<!-- TOP BAR -->
 <div id="topBar">
   <div id="logoWrap">
     <div id="logoIcon">
@@ -277,7 +191,6 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
 
 <div id="toast" style="display:none"><div class="toastDot"></div><span id="toastTxt">Init…</span></div>
 
-<!-- BOTTOM SHEET -->
 <div id="sheet" class="col" style="height:94px;display:none">
   <div id="sheetPull"><div id="pullBar"></div></div>
   <div id="quickRow">
@@ -286,8 +199,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
         <path d="M1.5 6.5a5 5 0 1 0 1-3"/><polyline points="1.5,2.5 1.5,5 4,5"/>
       </svg>
     </button>
-    <button class="qBtn qBtn-zone" id="zoneBtn">⬡ Délimiter zone</button>
-    <button class="qBtn qBtn-primary" id="placeBtn">＋ Placer ici</button>
+    <button class="qBtn qBtn-primary" id="placeBtn">⊕ Placer ici</button>
     <button class="qBtn qBtn-ghost" id="capBtn" style="max-width:44px">
       <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
         <path d="M1 4Q1 3 2 3L4 3 4.8 1.8 8.2 1.8 9 3 11 3Q12 3 12 4L12 11Q12 12 11 12L2 12Q1 12 1 11Z"/>
@@ -313,107 +225,501 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/environments/RoomEnvironment.js"></script>
 <script>
-let scene, cam, renderer, gltfLoader, xrRef=null, reticleMesh=null;
+const tileFormats = [20, 30, 45, 60];
+let scene, camera, renderer, xrRefSpace = null;
+let reticleMesh = null;
+let hitTestSource = null;
+let tiles = [];
+let selectedTileId = null;
+let currentTileFormat = 30;
+let tileOpacity = 0.88;
+let pendingPlace = false;
+let xrSupported = false;
+let xrSession = null;
+let xrMode = false;
 
-function initThree() {
-  scene = new THREE.Scene();
+// Touch gesture vars
+let touchStartDist = null;
+let touchStartScale = 1;
+let rotationStart = { x: 0, y: 0 };
+let lastTapTime = 0;
+let doubleTapTimeout = null;
 
-  cam = new THREE.PerspectiveCamera(
-    70,
-    innerWidth / innerHeight,
-    0.001,
-    100
-  );
+// DOM refs
+const startScreen = document.getElementById('startScreen');
+const startBtn = document.getElementById('startBtn');
+const noXrMsg = document.getElementById('noXr');
+const topBar = document.getElementById('topBar');
+const sheet = document.getElementById('sheet');
+const toast = document.getElementById('toast');
+const toastTxt = document.getElementById('toastTxt');
+const tileBadge = document.getElementById('tileBadge');
+const tileCountEl = document.getElementById('tileCountEl');
+const tileScroll = document.getElementById('tileScroll');
+const fmtSlider = document.getElementById('fmtSlider');
+const fmtDisp = document.getElementById('fmtDisp');
+const opSlider = document.getElementById('opSlider');
+const opDisp = document.getElementById('opDisp');
+const placeBtn = document.getElementById('placeBtn');
+const resetBtn = document.getElementById('resetBtn');
+const capBtn = document.getElementById('capBtn');
+const reticleDiv = document.getElementById('reticle');
+const infoBtn = document.getElementById('infoBtn');
+const guide = document.getElementById('guide');
+const guideClose = document.getElementById('guideClose');
+const threeCanvas = document.getElementById('threeCanvas');
 
-  renderer = new THREE.WebGLRenderer({
-    canvas: threeCanvas,
-    alpha: true,
-    antialias: true,
-    logarithmicDepthBuffer: true
-  });
+function showToast(msg, type = 'ok') {
+  toastTxt.textContent = msg;
+  toast.className = type;
+  toast.style.display = 'flex';
+  setTimeout(() => { toast.style.display = 'none'; }, 2500);
+}
 
-  renderer.setSize(innerWidth, innerHeight);
-  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+function updateTileBadge() {
+  tileCountEl.textContent = tiles.length;
+  tileBadge.classList.toggle('on', tiles.length > 0);
+}
 
-  renderer.outputEncoding = THREE.sRGBEncoding;
-  renderer.physicallyCorrectLights = true;
-
-  renderer.shadowMap.enabled = true;
-  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-
-  renderer.xr.enabled = true;
-
-  // ENVIRONMENT
-  const pmrem = new THREE.PMREMGenerator(renderer);
-  pmrem.compileEquirectangularShader();
-
-  scene.environment =
-    pmrem.fromScene(new THREE.RoomEnvironment()).texture;
-
-  pmrem.dispose();
-
-  // AMBIENT LIGHT
-  const ambient = new THREE.AmbientLight(0xffffff, 1.3);
-  scene.add(ambient);
-
-  // MAIN SUN LIGHT
-  const sun = new THREE.DirectionalLight(0xffffff, 1.2);
-
-  sun.position.set(4, 8, 5);
-
-  sun.castShadow = true;
-
-  scene.add(sun);
-
-  // SECOND LIGHT (FIXED)
-  const light2 = new THREE.DirectionalLight(
-    0xffffff,
-    0.35
-  );
-
-  light2.position.set(-4, 3, -4);
-
-  scene.add(light2);
-
-  // RETICLE
-  const rg = new THREE.RingGeometry(
-    0.11,
-    0.14,
-    32
-  ).rotateX(-Math.PI / 2);
-
-  const rm = new THREE.MeshBasicMaterial({
-    color: 0x2ECC8F,
-    side: THREE.DoubleSide
-  });
-
-  reticleMesh = new THREE.Mesh(rg, rm);
-
-  reticleMesh.visible = false;
-  reticleMesh.matrixAutoUpdate = false;
-
-  scene.add(reticleMesh);
-
-  // GLTF LOADER
-  gltfLoader = new THREE.GLTFLoader();
-
-  // RESIZE
-  window.addEventListener('resize', () => {
-
-    cam.aspect = innerWidth / innerHeight;
-
-    cam.updateProjectionMatrix();
-
-    renderer.setSize(
-      innerWidth,
-      innerHeight
-    );
-
+function updateOpacity() {
+  tiles.forEach(tile => {
+    if (tile.mesh) {
+      tile.mesh.material.opacity = tileOpacity;
+      tile.mesh.material.transparent = tileOpacity < 1;
+    }
   });
 }
+
+function createTileMesh(color = 0x3a7ca5) {
+  const size = currentTileFormat / 100;
+  const geometry = new THREE.BoxGeometry(size, 0.02, size);
+  const material = new THREE.MeshStandardMaterial({
+    color: color,
+    roughness: 0.4,
+    metalness: 0.1,
+    transparent: true,
+    opacity: tileOpacity
+  });
+  const mesh = new THREE.Mesh(geometry, material);
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
+  mesh.userData = { isTile: true };
+  return mesh;
+}
+
+function placeTileAt(position, quaternion = null) {
+  const mesh = createTileMesh();
+  mesh.position.copy(position);
+  if (quaternion) mesh.quaternion.copy(quaternion);
+  scene.add(mesh);
+  
+  const id = Date.now() + Math.random();
+  tiles.push({ id, mesh, scale: 1, rotY: 0 });
+  updateTileBadge();
+  selectTile(id);
+  showToast('Carreau placé', 'ok');
+  return id;
+}
+
+function selectTile(id) {
+  selectedTileId = id;
+  tiles.forEach(t => {
+    if (t.mesh.material.emissive) t.mesh.material.emissive.setHex(0x000000);
+  });
+  const tile = tiles.find(t => t.id === id);
+  if (tile && tile.mesh.material) {
+    tile.mesh.material.emissive = new THREE.Color(0x2ECC8F);
+    tile.mesh.material.emissiveIntensity = 0.3;
+  }
+}
+
+function deleteTile(id) {
+  const tile = tiles.find(t => t.id === id);
+  if (tile) {
+    scene.remove(tile.mesh);
+    tiles = tiles.filter(t => t.id !== id);
+    if (selectedTileId === id) selectedTileId = null;
+    updateTileBadge();
+    showToast('Carreau supprimé', 'ok');
+  }
+}
+
+function deleteSelected() {
+  if (selectedTileId) deleteTile(selectedTileId);
+}
+
+function resetAll() {
+  tiles.forEach(t => scene.remove(t.mesh));
+  tiles = [];
+  selectedTileId = null;
+  updateTileBadge();
+  showToast('Tout effacé', 'ok');
+}
+
+// GESTURES
+function setupTouchGestures() {
+  threeCanvas.addEventListener('touchstart', (e) => {
+    if (e.touches.length === 1) {
+      const now = Date.now();
+      if (now - lastTapTime < 300) {
+        clearTimeout(doubleTapTimeout);
+        deleteSelected();
+        lastTapTime = 0;
+      } else {
+        lastTapTime = now;
+        doubleTapTimeout = setTimeout(() => { lastTapTime = 0; }, 300);
+        // Check if touching a tile
+        const tileHit = hitTestTile();
+        if (tileHit) selectTile(tileHit.id);
+      }
+    } else if (e.touches.length === 2 && selectedTileId) {
+      const t1 = e.touches[0], t2 = e.touches[1];
+      touchStartDist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+      const tile = tiles.find(t => t.id === selectedTileId);
+      if (tile) touchStartScale = tile.scale;
+    }
+  });
+  
+  threeCanvas.addEventListener('touchmove', (e) => {
+    if (e.touches.length === 1 && selectedTileId) {
+      const deltaX = e.touches[0].clientX - (rotationStart.x || e.touches[0].clientX);
+      const deltaY = e.touches[0].clientY - (rotationStart.y || e.touches[0].clientY);
+      if (rotationStart.x === undefined) {
+        rotationStart.x = e.touches[0].clientX;
+        rotationStart.y = e.touches[0].clientY;
+        const tile = tiles.find(t => t.id === selectedTileId);
+        if (tile) rotationStart.rotY = tile.mesh.rotation.y;
+      } else {
+        const tile = tiles.find(t => t.id === selectedTileId);
+        if (tile) tile.mesh.rotation.y = rotationStart.rotY + deltaX * 0.01;
+      }
+    } else if (e.touches.length === 2 && touchStartDist && selectedTileId) {
+      const t1 = e.touches[0], t2 = e.touches[1];
+      const newDist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+      const scaleFactor = newDist / touchStartDist;
+      const newScale = Math.max(0.3, Math.min(2.5, touchStartScale * scaleFactor));
+      const tile = tiles.find(t => t.id === selectedTileId);
+      if (tile) {
+        tile.mesh.scale.set(newScale, newScale, newScale);
+        tile.scale = newScale;
+      }
+    }
+  });
+  
+  threeCanvas.addEventListener('touchend', () => {
+    touchStartDist = null;
+    rotationStart.x = undefined;
+  });
+}
+
+function hitTestTile() {
+  if (!camera) return null;
+  const raycaster = new THREE.Raycaster();
+  raycaster.setFromCamera({ x: 0, y: 0 }, camera);
+  const meshes = tiles.map(t => t.mesh);
+  const hits = raycaster.intersectObjects(meshes);
+  if (hits.length) {
+    const hitMesh = hits[0].object;
+    return tiles.find(t => t.mesh === hitMesh);
+  }
+  return null;
+}
+
+// WEBXR SETUP
+async function checkXR() {
+  if (!navigator.xr) return false;
+  try { return await navigator.xr.isSessionSupported('immersive-ar'); } catch { return false; }
+}
+
+async function startAR() {
+  try {
+    xrSupported = await checkXR();
+    if (!xrSupported) {
+      noXrMsg.style.display = 'block';
+      startBtn.textContent = '📷 Mode Caméra';
+      startFallback();
+      return;
+    }
+    
+    const session = await navigator.xr.requestSession('immersive-ar', {
+      requiredFeatures: ['hit-test'],
+      optionalFeatures: ['dom-overlay'],
+      domOverlay: { root: document.body }
+    });
+    
+    xrSession = session;
+    xrMode = true;
+    
+    renderer.xr.setReferenceSpaceType('local');
+    await renderer.xr.setSession(session);
+    
+    xrRefSpace = await session.requestReferenceSpace('local');
+    const viewerSpace = await session.requestReferenceSpace('viewer');
+    hitTestSource = await session.requestHitTestSource({ space: viewerSpace, entityTypes: ['plane'] });
+    
+    session.addEventListener('end', () => {
+      xrMode = false;
+      xrSession = null;
+      hitTestSource = null;
+    });
+    
+    renderer.setAnimationLoop(renderXR);
+    
+    startScreen.classList.add('hidden');
+    topBar.style.display = 'flex';
+    sheet.style.display = 'flex';
+    reticleDiv.classList.add('on');
+    showToast('Prêt à placer des carreaux', 'scan');
+    pendingPlace = false;
+    
+    // Select event
+    session.addEventListener('select', () => {
+      if (pendingPlace && reticleMesh && reticleMesh.visible) {
+        const pos = reticleMesh.position.clone();
+        placeTileAt(pos);
+        pendingPlace = false;
+      }
+    });
+    
+  } catch (err) {
+    console.error(err);
+    showToast('Erreur AR: ' + err.message, 'err');
+    startFallback();
+  }
+}
+
+function renderXR(timestamp, frame) {
+  if (!frame) return;
+  
+  if (hitTestSource) {
+    const results = frame.getHitTestResults(hitTestSource);
+    if (results.length > 0 && xrRefSpace) {
+      const pose = results[0].getPose(xrRefSpace);
+      if (pose) {
+        reticleMesh.visible = true;
+        reticleMesh.matrix.fromArray(pose.transform.matrix);
+        reticleDiv.classList.add('on');
+      }
+    } else {
+      reticleMesh.visible = false;
+    }
+  }
+  
+  renderer.render(scene, camera);
+}
+
+function startFallback() {
+  xrMode = false;
+  startScreen.classList.add('hidden');
+  topBar.style.display = 'flex';
+  sheet.style.display = 'flex';
+  
+  // Simple floor plane for fallback
+  const floorPlane = new THREE.Mesh(
+    new THREE.PlaneGeometry(5, 5),
+    new THREE.MeshStandardMaterial({ color: 0x2a3a2a, side: THREE.DoubleSide, transparent: true, opacity: 0.3 })
+  );
+  floorPlane.rotation.x = -Math.PI / 2;
+  floorPlane.position.y = 0;
+  scene.add(floorPlane);
+  
+  camera.position.set(0, 1.5, 3);
+  camera.lookAt(0, 0, -1);
+  
+  renderer.setAnimationLoop(() => renderer.render(scene, camera));
+  
+  // Click placement for fallback
+  threeCanvas.addEventListener('click', (e) => {
+    if (!pendingPlace) return;
+    const raycaster = new THREE.Raycaster();
+    raycaster.setFromCamera({ x: (e.clientX / innerWidth) * 2 - 1, y: -(e.clientY / innerHeight) * 2 + 1 }, camera);
+    const intersects = raycaster.intersectObject(floorPlane);
+    if (intersects.length) {
+      placeTileAt(intersects[0].point);
+      pendingPlace = false;
+    }
+  });
+  
+  showToast('Mode caméra - Appuyez pour placer', 'scan');
+}
+
+// RENDER LOOP (non-XR)
+function animate() {
+  if (!xrMode && renderer) {
+    renderer.render(scene, camera);
+    requestAnimationFrame(animate);
+  }
+}
+
+// INIT THREE
+function initThree() {
+  scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x050810);
+  
+  camera = new THREE.PerspectiveCamera(70, innerWidth / innerHeight, 0.01, 100);
+  
+  renderer = new THREE.WebGLRenderer({ canvas: threeCanvas, alpha: false, antialias: true });
+  renderer.setSize(innerWidth, innerHeight);
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  renderer.shadowMap.enabled = true;
+  renderer.xr.enabled = true;
+  
+  // Lights
+  const ambient = new THREE.AmbientLight(0xffffff, 1.2);
+  scene.add(ambient);
+  const dirLight = new THREE.DirectionalLight(0xffffff, 1.5);
+  dirLight.position.set(3, 5, 2);
+  dirLight.castShadow = true;
+  scene.add(dirLight);
+  const fillLight = new THREE.PointLight(0x4466aa, 0.3);
+  fillLight.position.set(1, 2, 1);
+  scene.add(fillLight);
+  
+  // Reticle mesh
+  const rg = new THREE.RingGeometry(0.12, 0.16, 32).rotateX(-Math.PI / 2);
+  const rm = new THREE.MeshStandardMaterial({ color: 0x2ECC8F, side: THREE.DoubleSide, emissive: 0x2ECC8F, emissiveIntensity: 0.3 });
+  reticleMesh = new THREE.Mesh(rg, rm);
+  reticleMesh.visible = false;
+  reticleMesh.matrixAutoUpdate = false;
+  scene.add(reticleMesh);
+  
+  window.addEventListener('resize', () => {
+    camera.aspect = innerWidth / innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(innerWidth, innerHeight);
+  });
+}
+
+// TILE CATALOG
+const tileCatalog = [
+  { id: 't1', name: 'Marbre Blanc', color: 0xe8e4dc, thumb: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Crect width="100" height="100" fill="%23e8e4dc"/%3E%3Cpath d="M0 0 L100 100 M100 0 L0 100" stroke="%23ccc" stroke-width="0.5"/%3E%3C/svg%3E' },
+  { id: 't2', name: 'Béton Ciré', color: 0x8a9199, thumb: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Crect width="100" height="100" fill="%238a9199"/%3E%3C/svg%3E' },
+  { id: 't3', name: 'Bois Clair', color: 0xc4a27a, thumb: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Crect width="100" height="100" fill="%23c4a27a"/%3E%3Cline x1="10" y1="0" x2="10" y2="100" stroke="%239a7850" stroke-width="2"/%3E%3C/svg%3E' },
+  { id: 't4', name: 'Ardoise', color: 0x4a5568, thumb: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Crect width="100" height="100" fill="%234a5568"/%3E%3C/svg%3E' },
+];
+let selectedTileColor = 0xe8e4dc;
+
+function buildTileCatalog() {
+  tileScroll.innerHTML = '';
+  tileCatalog.forEach(tile => {
+    const card = document.createElement('div');
+    card.className = 'tileCard' + (selectedTileColor === tile.color ? ' sel' : '');
+    card.innerHTML = `
+      <img src="${tile.thumb}" alt="${tile.name}">
+      <div class="tileCard-name">${tile.name}</div>
+    `;
+    card.addEventListener('click', () => {
+      selectedTileColor = tile.color;
+      document.querySelectorAll('.tileCard').forEach(c => c.classList.remove('sel'));
+      card.classList.add('sel');
+      showToast(`${tile.name} sélectionné`, 'ok');
+    });
+    tileScroll.appendChild(card);
+  });
+}
+
+function updateFormat() {
+  const idx = parseInt(fmtSlider.value);
+  currentTileFormat = tileFormats[idx];
+  fmtDisp.textContent = currentTileFormat;
+}
+
+function updateTileMaterialColor(mesh) {
+  if (mesh.material) mesh.material.color.setHex(selectedTileColor);
+}
+
+// Override createTileMesh to use selected color
+const originalCreateTile = createTileMesh;
+window.createTileMesh = function() {
+  const size = currentTileFormat / 100;
+  const geometry = new THREE.BoxGeometry(size, 0.02, size);
+  const material = new THREE.MeshStandardMaterial({
+    color: selectedTileColor,
+    roughness: 0.4,
+    metalness: 0.1,
+    transparent: true,
+    opacity: tileOpacity
+  });
+  const mesh = new THREE.Mesh(geometry, material);
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
+  return mesh;
+};
+
+function placeTileAtCurrentHit() {
+  if (xrMode && reticleMesh && reticleMesh.visible) {
+    const pos = reticleMesh.position.clone();
+    const mesh = (() => {
+      const size = currentTileFormat / 100;
+      const geometry = new THREE.BoxGeometry(size, 0.02, size);
+      const material = new THREE.MeshStandardMaterial({ color: selectedTileColor, roughness: 0.4, metalness: 0.1, transparent: true, opacity: tileOpacity });
+      return new THREE.Mesh(geometry, material);
+    })();
+    mesh.position.copy(pos);
+    scene.add(mesh);
+    const id = Date.now();
+    tiles.push({ id, mesh, scale: 1 });
+    updateTileBadge();
+    selectTile(id);
+    showToast('Carreau placé', 'ok');
+  } else if (!xrMode) {
+    // In fallback mode, place at camera facing position
+    const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+    const pos = camera.position.clone().add(forward.multiplyScalar(1.5));
+    pos.y = 0;
+    const mesh = (() => {
+      const size = currentTileFormat / 100;
+      const geometry = new THREE.BoxGeometry(size, 0.02, size);
+      const material = new THREE.MeshStandardMaterial({ color: selectedTileColor, roughness: 0.4, metalness: 0.1, transparent: true, opacity: tileOpacity });
+      return new THREE.Mesh(geometry, material);
+    })();
+    mesh.position.copy(pos);
+    scene.add(mesh);
+    const id = Date.now();
+    tiles.push({ id, mesh, scale: 1 });
+    updateTileBadge();
+    selectTile(id);
+    showToast('Carreau placé', 'ok');
+  }
+}
+
+// EVENT LISTENERS
+placeBtn.addEventListener('click', () => {
+  if (xrMode) {
+    pendingPlace = true;
+    showToast('Pointez le sol puis appuyez', 'scan');
+  } else {
+    placeTileAtCurrentHit();
+  }
+});
+
+resetBtn.addEventListener('click', resetAll);
+capBtn.addEventListener('click', () => {
+  showToast('Capture d\'écran', 'ok');
+});
+fmtSlider.addEventListener('input', updateFormat);
+opSlider.addEventListener('input', (e) => {
+  tileOpacity = parseInt(e.target.value) / 100;
+  opDisp.textContent = e.target.value;
+  updateOpacity();
+});
+
+infoBtn.addEventListener('click', () => guide.classList.add('on'));
+guideClose.addEventListener('click', () => guide.classList.remove('on'));
+guide.addEventListener('click', (e) => { if (e.target === guide) guide.classList.remove('on'); });
+
+startBtn.addEventListener('click', () => {
+  startBtn.disabled = true;
+  startAR().finally(() => { startBtn.disabled = false; });
+});
+
+// INIT
+initThree();
+buildTileCatalog();
+updateFormat();
+setupTouchGestures();
+animate();
 </script>
 </body>
 </html>
