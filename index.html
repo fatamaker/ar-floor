@@ -343,6 +343,94 @@ const TILE_CATALOG = [
 let selectedCatalogId = 't1';
 
 /* ═══════════════════════════════════════════════════════
+   FLUTTER BRIDGE & URL PARAMS — NOW MATCHES PLACEAR
+═══════════════════════════════════════════════════════ */
+window.loadProductCatalog = function(products) {
+  if (!products || !Array.isArray(products)) {
+    console.warn('Invalid catalog:', products);
+    return;
+  }
+  
+  // Map incoming products to tile catalog format
+  const mapped = products.map((p, idx) => ({
+    id: 't' + idx,
+    name: p.name || p.colorName || 'Carreau',
+    color: parseInt(p.color || '0xCCBBAA', 16),
+    img: p.imageUrl || p.image || p.texture || 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=200',
+  }));
+  
+  // Replace catalog
+  TILE_CATALOG.length = 0;
+  TILE_CATALOG.push(...mapped);
+  selectedCatalogId = mapped.length > 0 ? mapped[0].id : 't1';
+  
+  // Rebuild UI
+  if (typeof buildCatalog === 'function') buildCatalog();
+  setStatus(mapped.length + ' carrelage(s) chargé(s)', 'ok');
+  console.log('Catalog loaded:', mapped);
+};
+
+window.receiveFromFlutter = function(jsonStr) {
+  try {
+    const data = JSON.parse(jsonStr);
+    console.log('Received from Flutter:', data);
+    
+    if (data.type === 'catalog' && data.products) {
+      window.loadProductCatalog(data.products);
+    }
+    if (data.type === 'clear') {
+      S.placedTiles.forEach(t => scene.remove(t.mesh));
+      S.placedTiles = [];
+      S.selectedTileId = null;
+      updateTileBadge();
+      document.getElementById('fillStats').classList.remove('on');
+      if (S.zoneActive) exitZoneMode();
+      setStatus('Tout effacé', 'ok');
+    }
+  } catch (err) {
+    console.error('receiveFromFlutter error:', err);
+  }
+};
+
+function loadFromUrlParams() {
+  const params = new URLSearchParams(window.location.search);
+  const productsParam = params.get('products');
+  if (!productsParam) {
+    console.log('No products in URL params');
+    return;
+  }
+  try {
+    const products = JSON.parse(decodeURIComponent(productsParam));
+    console.log('Loaded from URL:', products);
+    window.loadProductCatalog(products);
+  } catch (err) {
+    console.error('URL params parse error:', err);
+  }
+}
+
+window.onerror = function(msg, url, line, col, error) {
+  console.error('GLOBAL ERROR:', msg, url, line, col, error);
+};
+
+function postToFlutter(obj) {
+  try {
+    if (window.flutter_inappwebview) {
+      window.flutter_inappwebview.callHandler('FlutterBridge', JSON.stringify(obj));
+      return;
+    }
+    if (typeof FlutterBridge !== 'undefined') {
+      FlutterBridge.postMessage(JSON.stringify(obj));
+      return;
+    }
+    if (window.webkit?.messageHandlers?.FlutterBridge) {
+      window.webkit.messageHandlers.FlutterBridge.postMessage(JSON.stringify(obj));
+    }
+  } catch (e) {
+    console.log('[Bridge]', obj);
+  }
+}
+
+/* ═══════════════════════════════════════════════════════
    THREE.JS
 ═══════════════════════════════════════════════════════ */
 let scene, cam, renderer, reticleMesh, xrRefSpace;
@@ -387,7 +475,7 @@ function initThree() {
 }
 
 /* ═══════════════════════════════════════════════════════
-   WEBXR — same approach as working PlaceAR
+   WEBXR
 ═══════════════════════════════════════════════════════ */
 async function checkXR() {
   if (!navigator.xr) return false;
@@ -424,7 +512,6 @@ async function startXR() {
     // XR SELECT — place tile on tap (floor only)
     session.addEventListener('select', () => {
       if (S.zoneActive) {
-        // In zone mode, tapping adds a floor point
         if (S.currentHitPos) addZonePoint3D(S.currentHitPos.clone());
         return;
       }
@@ -464,7 +551,6 @@ function xrLoop(timestamp, frame) {
         reticleMesh.matrix.fromArray(pose.transform.matrix);
         S.currentHitMatrix = pose.transform.matrix;
 
-        // Extract world position of hit
         const m = new THREE.Matrix4().fromArray(pose.transform.matrix);
         const pos = new THREE.Vector3();
         m.decompose(pos, new THREE.Quaternion(), new THREE.Vector3());
@@ -495,7 +581,6 @@ async function startFallback() {
     videoEl.srcObject = stream; videoEl.style.display = 'block'; await videoEl.play();
   } catch (e) { setStatus('Caméra refusée', 'err'); return; }
 
-  // Invisible floor plane for raycasting
   const floor = new THREE.Mesh(
     new THREE.PlaneGeometry(20, 20),
     new THREE.MeshBasicMaterial({ visible: false, side: THREE.DoubleSide })
@@ -519,7 +604,6 @@ async function startFallback() {
   setStatus('Mode caméra (WebXR non disponible)', 'ok');
   setSheetH(MID);
 
-  // Tap on canvas → place tile / add zone point
   threeCanvas.addEventListener('click', (e) => {
     const pos = screenToFloor(e.clientX, e.clientY);
     if (!pos) return;
@@ -552,7 +636,7 @@ function makeTileMaterial(color, opacity) {
 }
 
 function createTileMesh(sizeM, color, opacity) {
-  const gap = 0.002; // grout gap
+  const gap = 0.002;
   const inner = sizeM - gap;
   const geo = new THREE.BoxGeometry(inner, 0.008, inner);
   const mat = makeTileMaterial(color, opacity);
@@ -568,7 +652,7 @@ function placeTileAt(pos, matrix) {
   const mesh = createTileMesh(sizeM, cat.color, S.opacity);
 
   mesh.position.copy(pos);
-  mesh.position.y += 0.004; // sit on floor
+  mesh.position.y += 0.004;
   scene.add(mesh);
 
   const id = ++S.tileIdCounter;
@@ -580,9 +664,7 @@ function placeTileAt(pos, matrix) {
 }
 
 /* ═══════════════════════════════════════════════════════
-   ZONE FILL — fills any polygon with tiles, handles
-   pointy shapes (triangle, L, etc.) using bounding box
-   grid + point-in-polygon test
+   ZONE FILL
 ═══════════════════════════════════════════════════════ */
 function pointInPolygon(px, pz, polygon) {
   let inside = false;
@@ -604,7 +686,6 @@ function fillZoneWithTiles() {
   const sizeM = S.tileSizes[S.tileSizeIdx];
   const cat = TILE_CATALOG.find(t => t.id === selectedCatalogId) || TILE_CATALOG[0];
 
-  // Bounding box in XZ
   let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity;
   const avgY = pts.reduce((s, p) => s + p.y, 0) / pts.length;
   pts.forEach(p => {
@@ -612,7 +693,6 @@ function fillZoneWithTiles() {
     minZ = Math.min(minZ, p.z); maxZ = Math.max(maxZ, p.z);
   });
 
-  // Snap grid to tile size
   minX = Math.floor(minX / sizeM) * sizeM;
   minZ = Math.floor(minZ / sizeM) * sizeM;
 
@@ -637,7 +717,6 @@ function fillZoneWithTiles() {
     }
   }
 
-  // Stats
   const area = polygonArea(pts);
   document.getElementById('fArea').textContent = area.toFixed(2);
   document.getElementById('fCount').textContent = count;
@@ -647,8 +726,6 @@ function fillZoneWithTiles() {
 
   updateTileBadge();
   setStatus(count + ' carreaux posés ✓', 'ok');
-
-  // Reset zone
   exitZoneMode();
 }
 
@@ -662,7 +739,7 @@ function polygonArea(pts) {
 }
 
 /* ═══════════════════════════════════════════════════════
-   ZONE MODE — 2D overlay drawing
+   ZONE MODE
 ═══════════════════════════════════════════════════════ */
 function enterZoneMode() {
   S.zoneActive = true;
@@ -684,7 +761,6 @@ function enterZoneMode() {
   setStatus('Touchez le sol pour délimiter la zone', 'scan');
   setSheetH(PEEK);
 
-  // Touch to add zone points in zone mode on screen overlay
   document.getElementById('drawOverlay').addEventListener('click', onZoneOverlayClick);
   document.getElementById('drawOverlay').addEventListener('mousemove', onZoneOverlayMouseMove);
 }
@@ -706,7 +782,6 @@ function exitZoneMode() {
 function onZoneOverlayClick(e) {
   const sx = e.clientX, sy = e.clientY;
 
-  // Get 3D floor position
   let pos3D;
   if (S.currentHitPos && S.xrMode) {
     pos3D = S.currentHitPos.clone();
@@ -726,7 +801,6 @@ function onZoneOverlayClick(e) {
 }
 
 function addZonePoint3D(pos3D) {
-  // Project 3D world pos to 2D screen for the SVG overlay
   const v = pos3D.clone().project(cam);
   const sx = (v.x + 1) / 2 * innerWidth;
   const sy = (-v.y + 1) / 2 * innerHeight;
@@ -952,7 +1026,6 @@ function buildCatalog() {
     const card = document.createElement('div');
     card.className = 'tileCard' + (t.id === selectedCatalogId ? ' sel' : '');
     card.dataset.id = t.id;
-    // Color swatch instead of slow unsplash load
     const hex = '#' + t.color.toString(16).padStart(6, '0');
     card.innerHTML = `<div style="width:100%;height:72px;background:${hex};display:block;"></div><div class="tileCard-name">${t.name}</div>`;
     card.addEventListener('click', () => {
@@ -1002,6 +1075,9 @@ document.getElementById('guide').addEventListener('click', e => { if (e.target =
 ═══════════════════════════════════════════════════════ */
 initThree();
 buildCatalog();
+
+// Load from URL params on init
+loadFromUrlParams();
 
 document.getElementById('startBtn').addEventListener('click', async () => {
   const btn = document.getElementById('startBtn');
