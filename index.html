@@ -16,10 +16,15 @@
   --shadow:0 12px 48px rgba(0,0,0,.6);
 }
 html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:var(--font);color:var(--text)}
-
 #threeCanvas{position:fixed;inset:0;width:100%;height:100%;z-index:0}
 #videoEl{position:fixed;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;display:none}
 
+/* ── ZONE DRAW OVERLAY ── */
+#drawOverlay{position:fixed;inset:0;z-index:8;pointer-events:none;display:none}
+#drawOverlay.active{pointer-events:auto;cursor:crosshair}
+#drawSvg{width:100%;height:100%}
+
+/* ── TOP BAR ── */
 #topBar{position:fixed;top:0;left:0;right:0;z-index:20;display:none;align-items:center;justify-content:space-between;padding:16px 18px 12px;background:linear-gradient(to bottom,rgba(0,0,0,.7) 0%,transparent 100%)}
 #logoWrap{display:flex;align-items:center;gap:9px}
 #logoIcon{width:32px;height:32px;border-radius:10px;background:linear-gradient(135deg,var(--primary),var(--primary-dark));display:flex;align-items:center;justify-content:center}
@@ -31,16 +36,19 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:var
 #tileBadge{display:none;background:rgba(46,204,143,.15);border:1px solid rgba(46,204,143,.3);color:var(--primary)}
 #tileBadge.on{display:flex}
 
+/* ── STATUS TOAST ── */
 #toast{position:fixed;top:72px;left:50%;transform:translateX(-50%);z-index:19;display:none;align-items:center;gap:7px;padding:7px 16px;border-radius:40px;font-size:11px;font-weight:500;color:rgba(255,255,255,.9);background:rgba(10,14,20,.82);backdrop-filter:blur(16px);border:1px solid var(--border);white-space:nowrap;pointer-events:none;animation:slideIn .3s ease}
 @keyframes slideIn{from{opacity:0;transform:translateX(-50%) translateY(-8px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
-.toastDot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.toastDot{width:6px;height:6px;border-radius:50%;flex-shrink:0;transition:background .3s}
 #toast.ok .toastDot{background:var(--primary)}
 #toast.scan .toastDot{background:var(--accent);animation:blink .8s infinite}
 #toast.err .toastDot{background:var(--accent2)}
 
+/* ── RETICLE ── */
 #reticle{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:5;pointer-events:none;opacity:0;transition:opacity .4s}
 #reticle.on{opacity:1}
 
+/* ── BOTTOM SHEET ── */
 #sheet{position:fixed;bottom:0;left:0;right:0;z-index:30;background:rgba(10,14,20,.95);backdrop-filter:blur(24px);border-radius:var(--r-lg) var(--r-lg) 0 0;border-top:1px solid var(--border);box-shadow:var(--shadow);display:none;flex-direction:column;transition:height .35s cubic-bezier(.32,.72,0,1)}
 #sheetPull{width:100%;padding:10px 0 6px;cursor:grab;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 #pullBar{width:36px;height:4px;border-radius:3px;background:rgba(255,255,255,.18)}
@@ -60,15 +68,17 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:var
 .secLabel{font-size:9px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);margin:14px 0 8px;display:flex;align-items:center;gap:8px}
 .secLabel::after{content:'';flex:1;height:1px;background:var(--border)}
 
+/* ── TILE CATALOG ── */
 #tileScroll{display:flex;gap:10px;overflow-x:auto;padding-bottom:6px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
 #tileScroll::-webkit-scrollbar{display:none}
 .tileCard{flex-shrink:0;width:88px;border-radius:var(--r);border:1.5px solid var(--border);background:var(--surface);cursor:pointer;overflow:hidden;transition:all .2s;position:relative}
 .tileCard:active{transform:scale(.94)}
 .tileCard.sel{border-color:var(--primary);box-shadow:0 0 0 3px rgba(46,204,143,.2)}
-.tileCard img{width:100%;height:72px;object-fit:cover;display:block;background:#2a3a2a}
+.tileCard img{width:100%;height:72px;object-fit:cover;display:block}
 .tileCard-name{padding:5px 6px 6px;font-size:8px;font-weight:600;color:var(--muted);overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
 .tileCard.sel .tileCard-name{color:var(--primary)}
 
+/* ── SLIDERS ── */
 #ctrlGrid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:4px}
 .slRow{display:flex;flex-direction:column;gap:5px}
 .slHead{display:flex;justify-content:space-between;align-items:center;font-size:10px;font-weight:600;color:var(--muted)}
@@ -76,6 +86,20 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:var
 input[type=range]{-webkit-appearance:none;width:100%;height:4px;background:var(--border);border-radius:3px;outline:none}
 input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:var(--primary);cursor:pointer;border:2px solid var(--bg)}
 
+/* ── ZONE DRAW UI ── */
+#drawOverlay{position:fixed;inset:0;z-index:8;pointer-events:none;display:none}
+#drawOverlay.active{pointer-events:auto;cursor:crosshair}
+#zoneBar{position:fixed;bottom:110px;left:50%;transform:translateX(-50%);z-index:22;display:none;flex-direction:column;align-items:center;gap:12px}
+#zoneBar.on{display:flex}
+#zoneInstr{background:rgba(10,14,20,.88);border:1px solid var(--border);border-radius:var(--r);padding:10px 16px;font-size:12px;font-weight:500;color:#fff;text-align:center;backdrop-filter:blur(16px)}
+#zoneActions{display:flex;gap:8px}
+.zAct{padding:9px 18px;border-radius:var(--r);border:none;cursor:pointer;font-family:var(--font);font-size:12px;font-weight:700;transition:all .2s}
+.zAct:active{transform:scale(.96)}
+#zActFill{background:var(--primary);color:#fff;display:none}
+#zActUndo{background:var(--surface2);color:var(--text);border:1px solid var(--border)}
+#zActCancel{background:rgba(224,92,58,.15);color:var(--accent2);border:1px solid rgba(224,92,58,.25)}
+
+/* ── START SCREEN ── */
 #startScreen{position:fixed;inset:0;z-index:100;background:radial-gradient(ellipse at 30% 20%,rgba(46,204,143,.12) 0%,transparent 60%),linear-gradient(160deg,#0A0E14 0%,#0f1820 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px}
 #startScreen.hidden{display:none}
 .sIcon{width:88px;height:88px;border-radius:28px;background:linear-gradient(135deg,rgba(46,204,143,.2),rgba(46,204,143,.05));border:1px solid rgba(46,204,143,.25);display:flex;align-items:center;justify-content:center;margin-bottom:28px}
@@ -90,15 +114,22 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
 #startBtn:disabled{opacity:.5;cursor:not-allowed}
 #noXr{color:rgba(255,100,100,.8);font-size:12px;margin-top:10px;text-align:center;display:none}
 
+/* ── LOADER ── */
 @keyframes spin{to{transform:rotate(360deg)}}
 #loader{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.72);display:none;align-items:center;justify-content:center;flex-direction:column;gap:14px}
 #loader.on{display:flex}
 .spinner{width:36px;height:36px;border:3px solid rgba(46,204,143,.2);border-top-color:var(--primary);border-radius:50%;animation:spin .7s linear infinite}
 #loader p{color:rgba(255,255,255,.75);font-size:12px;font-weight:500}
 
+/* ── SNAP TOAST ── */
+#snapToast{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:200;display:flex;flex-direction:column;align-items:center;gap:8px;padding:22px 32px;background:rgba(10,14,20,.93);backdrop-filter:blur(20px);border-radius:var(--r-lg);border:1px solid var(--border);color:#fff;font-size:13px;font-weight:600;pointer-events:none;opacity:0;transition:opacity .3s;text-align:center}
+#snapToast.on{opacity:1}
+
+/* ── INFO BTN ── */
 #infoBtn{position:fixed;bottom:110px;right:18px;z-index:22;width:46px;height:46px;background:var(--surface2);border:1px solid var(--border);border-radius:50%;color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:var(--font-head);font-weight:800;transition:all .2s}
 #infoBtn:hover{background:var(--surface);transform:scale(1.06)}
 
+/* ── GUIDE ── */
 #guide{position:fixed;inset:0;z-index:101;background:rgba(0,0,0,.94);display:none;align-items:center;justify-content:center;padding:20px}
 #guide.on{display:flex}
 #guideBox{background:rgba(15,24,32,.95);border:1px solid var(--border);border-radius:var(--r-lg);max-width:560px;max-height:82vh;overflow-y:auto;padding:24px;width:100%}
@@ -109,8 +140,10 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
 .gClose{float:right;background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;padding:0;line-height:1}
 .gClose:hover{color:#fff}
 
-#tileSizeHint{position:fixed;bottom:170px;left:50%;transform:translateX(-50%);z-index:19;padding:6px 14px;border-radius:40px;background:rgba(0,0,0,.65);color:rgba(255,255,255,.8);font-size:10px;font-weight:500;pointer-events:none;opacity:0;transition:opacity .3s;white-space:nowrap}
-#tileSizeHint.on{opacity:1}
+/* ── FILL STATS ── */
+#fillStats{position:fixed;top:72px;right:14px;z-index:19;background:rgba(10,14,20,.82);backdrop-filter:blur(14px);border:1px solid var(--border);border-radius:var(--r);padding:10px 14px;display:none;flex-direction:column;gap:4px}
+#fillStats.on{display:flex}
+.fStat{font-size:10px;color:var(--muted)}.fStat b{color:var(--primary)}
 </style>
 </head>
 <body>
@@ -118,6 +151,24 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
 <video id="videoEl" autoplay playsinline muted></video>
 <canvas id="threeCanvas"></canvas>
 
+<!-- Zone draw overlay -->
+<div id="drawOverlay">
+  <svg id="drawSvg">
+    <defs>
+      <pattern id="tilePreviewPat" x="0" y="0" width="40" height="40" patternUnits="userSpaceOnUse">
+        <rect width="40" height="40" fill="rgba(46,204,143,.08)"/>
+        <rect x="1" y="1" width="38" height="38" fill="rgba(46,204,143,.04)" rx="1"/>
+      </pattern>
+    </defs>
+    <polygon id="zoneFillPreview" fill="url(#tilePreviewPat)" stroke="none" points=""/>
+    <polyline id="zoneLine" fill="none" stroke="rgba(240,192,64,.85)" stroke-width="2" stroke-dasharray="6 3" stroke-linecap="round" stroke-linejoin="round" points=""/>
+    <line id="zoneClose" x1="0" y1="0" x2="0" y2="0" stroke="rgba(240,192,64,.4)" stroke-width="1.5" stroke-dasharray="4 4" display="none"/>
+    <g id="zonePoints"></g>
+    <line id="cursorLine" x1="0" y1="0" x2="0" y2="0" stroke="rgba(255,255,255,.35)" stroke-width="1.5" stroke-dasharray="4 3" display="none"/>
+  </svg>
+</div>
+
+<!-- Reticle -->
 <div id="reticle">
   <svg width="66" height="66" viewBox="0 0 66 66" fill="none">
     <ellipse cx="33" cy="33" rx="28" ry="10" stroke="rgba(46,204,143,.85)" stroke-width="1.5" stroke-dasharray="7 4"/>
@@ -130,14 +181,34 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
 </div>
 
 <div id="loader"><div class="spinner"></div><p id="loaderTxt">Chargement…</p></div>
-<div id="tileSizeHint">Carreau 30×30 cm</div>
+<div id="snapToast"><span id="snapIcon">📸</span><span id="snapTxt">Capture !</span></div>
 
+<div id="fillStats">
+  <div class="fStat">Zone: <b id="fArea">0</b> m²</div>
+  <div class="fStat">Carreaux: <b id="fCount">0</b> pcs</div>
+  <div class="fStat">Format: <b id="fFormat">30×30</b> cm</div>
+</div>
+
+<!-- Zone draw controls -->
+<div id="zoneBar">
+  <div id="zoneInstr">Appuyez sur le sol pour ajouter des points<br><small style="opacity:.6">Min. 3 points — toute forme (carré, triangle, L…)</small></div>
+  <div id="zoneActions">
+    <button class="zAct" id="zActUndo">↩ Annuler point</button>
+    <button class="zAct" id="zActFill">✓ Remplir zone</button>
+    <button class="zAct" id="zActCancel">✕</button>
+  </div>
+</div>
+
+<!-- Guide -->
 <div id="guide">
   <div id="guideBox">
     <button class="gClose" id="guideClose">×</button>
     <div class="gTitle">Guide ARFloor</div>
-    <div class="gSec">Placement</div>
-    <div class="gItem"><b>Appuyez "Placer ici"</b> → un carreau se place sur la surface détectée</div>
+    <div class="gSec">Mode Automatique</div>
+    <div class="gItem"><b>Appuyez "Placer ici"</b> → un carreau se place sur la surface du sol détectée</div>
+    <div class="gSec">Mode Zone (recommandé)</div>
+    <div class="gItem"><b>Appuyez "Délimiter zone"</b> puis touchez les coins de la pièce à carrelée. Fonctionne avec n'importe quelle forme: carré, triangle, L, etc.</div>
+    <div class="gItem"><b>✓ Remplir zone</b> → les carreaux se placent automatiquement pour couvrir toute la surface, y compris les formes pointues</div>
     <div class="gSec">Gestes</div>
     <div class="gItem"><b>Glisser 1 doigt</b> → rotation du carreau sélectionné</div>
     <div class="gItem"><b>Pincer 2 doigts</b> → redimensionner</div>
@@ -147,6 +218,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
 
 <button id="infoBtn">?</button>
 
+<!-- START SCREEN -->
 <div id="startScreen">
   <div class="sIcon">
     <svg width="44" height="44" viewBox="0 0 44 44" fill="none">
@@ -160,17 +232,18 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
     </svg>
   </div>
   <div class="sTitle">AR<span>Floor</span></div>
-  <div class="sSub">Visualisez votre carrelage en réalité augmentée</div>
+  <div class="sSub">Visualisez votre carrelage en réalité augmentée, carreau par carreau ou sur toute une zone</div>
   <div class="sFeats">
     <div class="sFeat"><div class="sFeat-dot"></div>Détection automatique du sol</div>
-    <div class="sFeat"><div class="sFeat-dot"></div>Placement précis avec hit-test</div>
-    <div class="sFeat"><div class="sFeat-dot"></div>Rotation et redimensionnement</div>
+    <div class="sFeat"><div class="sFeat-dot"></div>Délimitez n'importe quelle forme</div>
+    <div class="sFeat"><div class="sFeat-dot"></div>Remplissage intelligent (triangle, L…)</div>
     <div class="sFeat"><div class="sFeat-dot"></div>Formats 20×20 à 60×60 cm</div>
   </div>
   <button id="startBtn">🪴 Lancer ARFloor</button>
   <div id="noXr">WebXR non disponible — mode caméra activé</div>
 </div>
 
+<!-- TOP BAR -->
 <div id="topBar">
   <div id="logoWrap">
     <div id="logoIcon">
@@ -191,6 +264,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
 
 <div id="toast" style="display:none"><div class="toastDot"></div><span id="toastTxt">Init…</span></div>
 
+<!-- BOTTOM SHEET -->
 <div id="sheet" class="col" style="height:94px;display:none">
   <div id="sheetPull"><div id="pullBar"></div></div>
   <div id="quickRow">
@@ -199,7 +273,8 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
         <path d="M1.5 6.5a5 5 0 1 0 1-3"/><polyline points="1.5,2.5 1.5,5 4,5"/>
       </svg>
     </button>
-    <button class="qBtn qBtn-primary" id="placeBtn">⊕ Placer ici</button>
+    <button class="qBtn qBtn-zone" id="zoneBtn">⬡ Délimiter zone</button>
+    <button class="qBtn qBtn-primary" id="placeBtn">＋ Placer ici</button>
     <button class="qBtn qBtn-ghost" id="capBtn" style="max-width:44px">
       <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
         <path d="M1 4Q1 3 2 3L4 3 4.8 1.8 8.2 1.8 9 3 11 3Q12 3 12 4L12 11Q12 12 11 12L2 12Q1 12 1 11Z"/>
@@ -225,501 +300,726 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/environments/RoomEnvironment.js"></script>
 <script>
-const tileFormats = [20, 30, 45, 60];
-let scene, camera, renderer, xrRefSpace = null;
-let reticleMesh = null;
-let hitTestSource = null;
-let tiles = [];
-let selectedTileId = null;
-let currentTileFormat = 30;
-let tileOpacity = 0.88;
-let pendingPlace = false;
-let xrSupported = false;
-let xrSession = null;
-let xrMode = false;
+/* ═══════════════════════════════════════════════════════
+   STATE
+═══════════════════════════════════════════════════════ */
+const S = {
+  xrSupported: false, xrSession: null, xrMode: false, fallbackMode: false,
+  pendingPlace: false, pendingZone: false,
+  placedTiles: [], selectedTileId: null,
+  opacity: 0.88, tileIdCounter: 0,
+  hitTestSource: null, hitTestSourceInit: false,
+  reticleVisible: false, currentHitMatrix: null,
+  currentHitPos: null,
+  // tile size in meters: 20cm, 30cm, 45cm, 60cm
+  tileSizes: [0.20, 0.30, 0.45, 0.60],
+  tileSizeIdx: 1,
+  // Zone mode
+  zonePoints3D: [],   // world-space XZ points on the floor
+  zonePoints2D: [],   // screen XY for SVG overlay
+  zoneActive: false,
+  // catalog
+  selectedTileColor: 0xCCBBAA,
+  selectedTileTex: null,
+  // touch
+  lastTapTime: 0,
+  twoTouchStart: null,
+  touchStartY: null,
+  touchStartX: null,
+  touchStartRotY: 0,
+};
 
-// Touch gesture vars
-let touchStartDist = null;
-let touchStartScale = 1;
-let rotationStart = { x: 0, y: 0 };
-let lastTapTime = 0;
-let doubleTapTimeout = null;
+const TILE_CATALOG = [
+  { id:'t1', name:'Marbre Blanc',  color:0xF5F0EB, img:'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=200' },
+  { id:'t2', name:'Béton Gris',    color:0xAAABA5, img:'https://images.unsplash.com/photo-1615971677499-5467cbab01d0?w=200' },
+  { id:'t3', name:'Terracotta',    color:0xC0714F, img:'https://images.unsplash.com/photo-1600607687644-c7171b42498b?w=200' },
+  { id:'t4', name:'Ardoise Noire', color:0x2C2C2C, img:'https://images.unsplash.com/photo-1601598851547-4302969d0614?w=200' },
+  { id:'t5', name:'Calcaire Beige',color:0xDDD0B8, img:'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=200' },
+  { id:'t6', name:'Bois Clair',    color:0xC8A06E, img:'https://images.unsplash.com/photo-1581141849291-1125c7b692b5?w=200' },
+];
+let selectedCatalogId = 't1';
 
-// DOM refs
-const startScreen = document.getElementById('startScreen');
-const startBtn = document.getElementById('startBtn');
-const noXrMsg = document.getElementById('noXr');
-const topBar = document.getElementById('topBar');
-const sheet = document.getElementById('sheet');
-const toast = document.getElementById('toast');
-const toastTxt = document.getElementById('toastTxt');
-const tileBadge = document.getElementById('tileBadge');
-const tileCountEl = document.getElementById('tileCountEl');
-const tileScroll = document.getElementById('tileScroll');
-const fmtSlider = document.getElementById('fmtSlider');
-const fmtDisp = document.getElementById('fmtDisp');
-const opSlider = document.getElementById('opSlider');
-const opDisp = document.getElementById('opDisp');
-const placeBtn = document.getElementById('placeBtn');
-const resetBtn = document.getElementById('resetBtn');
-const capBtn = document.getElementById('capBtn');
-const reticleDiv = document.getElementById('reticle');
-const infoBtn = document.getElementById('infoBtn');
-const guide = document.getElementById('guide');
-const guideClose = document.getElementById('guideClose');
-const threeCanvas = document.getElementById('threeCanvas');
+/* ═══════════════════════════════════════════════════════
+   THREE.JS
+═══════════════════════════════════════════════════════ */
+let scene, cam, renderer, reticleMesh, xrRefSpace;
 
-function showToast(msg, type = 'ok') {
-  toastTxt.textContent = msg;
-  toast.className = type;
-  toast.style.display = 'flex';
-  setTimeout(() => { toast.style.display = 'none'; }, 2500);
-}
+function initThree() {
+  scene = new THREE.Scene();
+  cam = new THREE.PerspectiveCamera(70, innerWidth / innerHeight, 0.001, 100);
 
-function updateTileBadge() {
-  tileCountEl.textContent = tiles.length;
-  tileBadge.classList.toggle('on', tiles.length > 0);
-}
+  renderer = new THREE.WebGLRenderer({ canvas: threeCanvas, alpha: true, antialias: true, logarithmicDepthBuffer: true });
+  renderer.setSize(innerWidth, innerHeight);
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  renderer.outputEncoding = THREE.sRGBEncoding;
+  renderer.physicallyCorrectLights = true;
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.xr.enabled = true;
 
-function updateOpacity() {
-  tiles.forEach(tile => {
-    if (tile.mesh) {
-      tile.mesh.material.opacity = tileOpacity;
-      tile.mesh.material.transparent = tileOpacity < 1;
-    }
+  const pmrem = new THREE.PMREMGenerator(renderer);
+  pmrem.compileEquirectangularShader();
+  scene.environment = pmrem.fromScene(new THREE.RoomEnvironment()).texture;
+  pmrem.dispose();
+
+  scene.add(new THREE.AmbientLight(0xffffff, 1.3));
+  const sun = new THREE.DirectionalLight(0xffffff, 1.2);
+  sun.position.set(4, 8, 5); sun.castShadow = true; scene.add(sun);
+  const fill = new THREE.DirectionalLight(0xffffff, 0.35);
+  fill.position.set(-4, 3, -4); scene.add(fill);
+
+  // Reticle
+  const rg = new THREE.RingGeometry(0.11, 0.14, 32).rotateX(-Math.PI / 2);
+  const rm = new THREE.MeshBasicMaterial({ color: 0x2ECC8F, side: THREE.DoubleSide });
+  reticleMesh = new THREE.Mesh(rg, rm);
+  reticleMesh.visible = false;
+  reticleMesh.matrixAutoUpdate = false;
+  scene.add(reticleMesh);
+
+  window.addEventListener('resize', () => {
+    cam.aspect = innerWidth / innerHeight;
+    cam.updateProjectionMatrix();
+    renderer.setSize(innerWidth, innerHeight);
   });
 }
 
-function createTileMesh(color = 0x3a7ca5) {
-  const size = currentTileFormat / 100;
-  const geometry = new THREE.BoxGeometry(size, 0.02, size);
-  const material = new THREE.MeshStandardMaterial({
-    color: color,
-    roughness: 0.4,
-    metalness: 0.1,
-    transparent: true,
-    opacity: tileOpacity
-  });
-  const mesh = new THREE.Mesh(geometry, material);
-  mesh.castShadow = true;
-  mesh.receiveShadow = true;
-  mesh.userData = { isTile: true };
-  return mesh;
-}
-
-function placeTileAt(position, quaternion = null) {
-  const mesh = createTileMesh();
-  mesh.position.copy(position);
-  if (quaternion) mesh.quaternion.copy(quaternion);
-  scene.add(mesh);
-  
-  const id = Date.now() + Math.random();
-  tiles.push({ id, mesh, scale: 1, rotY: 0 });
-  updateTileBadge();
-  selectTile(id);
-  showToast('Carreau placé', 'ok');
-  return id;
-}
-
-function selectTile(id) {
-  selectedTileId = id;
-  tiles.forEach(t => {
-    if (t.mesh.material.emissive) t.mesh.material.emissive.setHex(0x000000);
-  });
-  const tile = tiles.find(t => t.id === id);
-  if (tile && tile.mesh.material) {
-    tile.mesh.material.emissive = new THREE.Color(0x2ECC8F);
-    tile.mesh.material.emissiveIntensity = 0.3;
-  }
-}
-
-function deleteTile(id) {
-  const tile = tiles.find(t => t.id === id);
-  if (tile) {
-    scene.remove(tile.mesh);
-    tiles = tiles.filter(t => t.id !== id);
-    if (selectedTileId === id) selectedTileId = null;
-    updateTileBadge();
-    showToast('Carreau supprimé', 'ok');
-  }
-}
-
-function deleteSelected() {
-  if (selectedTileId) deleteTile(selectedTileId);
-}
-
-function resetAll() {
-  tiles.forEach(t => scene.remove(t.mesh));
-  tiles = [];
-  selectedTileId = null;
-  updateTileBadge();
-  showToast('Tout effacé', 'ok');
-}
-
-// GESTURES
-function setupTouchGestures() {
-  threeCanvas.addEventListener('touchstart', (e) => {
-    if (e.touches.length === 1) {
-      const now = Date.now();
-      if (now - lastTapTime < 300) {
-        clearTimeout(doubleTapTimeout);
-        deleteSelected();
-        lastTapTime = 0;
-      } else {
-        lastTapTime = now;
-        doubleTapTimeout = setTimeout(() => { lastTapTime = 0; }, 300);
-        // Check if touching a tile
-        const tileHit = hitTestTile();
-        if (tileHit) selectTile(tileHit.id);
-      }
-    } else if (e.touches.length === 2 && selectedTileId) {
-      const t1 = e.touches[0], t2 = e.touches[1];
-      touchStartDist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
-      const tile = tiles.find(t => t.id === selectedTileId);
-      if (tile) touchStartScale = tile.scale;
-    }
-  });
-  
-  threeCanvas.addEventListener('touchmove', (e) => {
-    if (e.touches.length === 1 && selectedTileId) {
-      const deltaX = e.touches[0].clientX - (rotationStart.x || e.touches[0].clientX);
-      const deltaY = e.touches[0].clientY - (rotationStart.y || e.touches[0].clientY);
-      if (rotationStart.x === undefined) {
-        rotationStart.x = e.touches[0].clientX;
-        rotationStart.y = e.touches[0].clientY;
-        const tile = tiles.find(t => t.id === selectedTileId);
-        if (tile) rotationStart.rotY = tile.mesh.rotation.y;
-      } else {
-        const tile = tiles.find(t => t.id === selectedTileId);
-        if (tile) tile.mesh.rotation.y = rotationStart.rotY + deltaX * 0.01;
-      }
-    } else if (e.touches.length === 2 && touchStartDist && selectedTileId) {
-      const t1 = e.touches[0], t2 = e.touches[1];
-      const newDist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
-      const scaleFactor = newDist / touchStartDist;
-      const newScale = Math.max(0.3, Math.min(2.5, touchStartScale * scaleFactor));
-      const tile = tiles.find(t => t.id === selectedTileId);
-      if (tile) {
-        tile.mesh.scale.set(newScale, newScale, newScale);
-        tile.scale = newScale;
-      }
-    }
-  });
-  
-  threeCanvas.addEventListener('touchend', () => {
-    touchStartDist = null;
-    rotationStart.x = undefined;
-  });
-}
-
-function hitTestTile() {
-  if (!camera) return null;
-  const raycaster = new THREE.Raycaster();
-  raycaster.setFromCamera({ x: 0, y: 0 }, camera);
-  const meshes = tiles.map(t => t.mesh);
-  const hits = raycaster.intersectObjects(meshes);
-  if (hits.length) {
-    const hitMesh = hits[0].object;
-    return tiles.find(t => t.mesh === hitMesh);
-  }
-  return null;
-}
-
-// WEBXR SETUP
+/* ═══════════════════════════════════════════════════════
+   WEBXR — same approach as working PlaceAR
+═══════════════════════════════════════════════════════ */
 async function checkXR() {
   if (!navigator.xr) return false;
   try { return await navigator.xr.isSessionSupported('immersive-ar'); } catch { return false; }
 }
 
-async function startAR() {
+async function startXR() {
   try {
-    xrSupported = await checkXR();
-    if (!xrSupported) {
-      noXrMsg.style.display = 'block';
-      startBtn.textContent = '📷 Mode Caméra';
-      startFallback();
-      return;
-    }
-    
     const session = await navigator.xr.requestSession('immersive-ar', {
       requiredFeatures: ['hit-test'],
-      optionalFeatures: ['dom-overlay'],
-      domOverlay: { root: document.body }
+      optionalFeatures: ['dom-overlay', 'plane-detection'],
+      domOverlay: { root: document.body },
     });
-    
-    xrSession = session;
-    xrMode = true;
-    
+    S.xrSession = session;
+    S.xrMode = true;
+
     renderer.xr.setReferenceSpaceType('local');
     await renderer.xr.setSession(session);
-    
     xrRefSpace = await session.requestReferenceSpace('local');
+
     const viewerSpace = await session.requestReferenceSpace('viewer');
-    hitTestSource = await session.requestHitTestSource({ space: viewerSpace, entityTypes: ['plane'] });
-    
+    S.hitTestSource = await session.requestHitTestSource({ space: viewerSpace });
+    S.hitTestSourceInit = true;
+
     session.addEventListener('end', () => {
-      xrMode = false;
-      xrSession = null;
-      hitTestSource = null;
+      S.xrMode = false; S.xrSession = null;
+      S.hitTestSourceInit = false; S.hitTestSource = null;
+      renderer.setAnimationLoop(null);
+      reticleMesh.visible = false;
+      document.getElementById('reticle').classList.remove('on');
+      setStatus('Session AR terminée', 'ok');
     });
-    
-    renderer.setAnimationLoop(renderXR);
-    
-    startScreen.classList.add('hidden');
-    topBar.style.display = 'flex';
-    sheet.style.display = 'flex';
-    reticleDiv.classList.add('on');
-    showToast('Prêt à placer des carreaux', 'scan');
-    pendingPlace = false;
-    
-    // Select event
+
+    // XR SELECT — place tile on tap (floor only)
     session.addEventListener('select', () => {
-      if (pendingPlace && reticleMesh && reticleMesh.visible) {
-        const pos = reticleMesh.position.clone();
-        placeTileAt(pos);
-        pendingPlace = false;
+      if (S.zoneActive) {
+        // In zone mode, tapping adds a floor point
+        if (S.currentHitPos) addZonePoint3D(S.currentHitPos.clone());
+        return;
+      }
+      if (S.pendingPlace && S.reticleVisible && S.currentHitPos) {
+        placeTileAt(S.currentHitPos.clone(), reticleMesh.matrix);
       }
     });
-    
+
+    renderer.setAnimationLoop(xrLoop);
+
+    // Show UI
+    document.getElementById('startScreen').classList.add('hidden');
+    document.getElementById('topBar').style.display = 'flex';
+    document.getElementById('sheet').style.display = 'flex';
+    document.getElementById('toast').style.display = 'flex';
+    document.getElementById('reticle').classList.add('on');
+    setStatus('Pointez le sol pour placer', 'scan');
+    setSheetH(MID);
+
   } catch (err) {
-    console.error(err);
-    showToast('Erreur AR: ' + err.message, 'err');
+    console.error('WebXR error:', err);
+    setStatus('WebXR indisponible: ' + err.message, 'err');
     startFallback();
   }
 }
 
-function renderXR(timestamp, frame) {
+function xrLoop(timestamp, frame) {
   if (!frame) return;
-  
-  if (hitTestSource) {
-    const results = frame.getHitTestResults(hitTestSource);
-    if (results.length > 0 && xrRefSpace) {
+
+  if (S.hitTestSourceInit && S.hitTestSource) {
+    const results = frame.getHitTestResults(S.hitTestSource);
+    if (results.length > 0) {
       const pose = results[0].getPose(xrRefSpace);
       if (pose) {
         reticleMesh.visible = true;
+        document.getElementById('reticle').classList.add('on');
         reticleMesh.matrix.fromArray(pose.transform.matrix);
-        reticleDiv.classList.add('on');
+        S.currentHitMatrix = pose.transform.matrix;
+
+        // Extract world position of hit
+        const m = new THREE.Matrix4().fromArray(pose.transform.matrix);
+        const pos = new THREE.Vector3();
+        m.decompose(pos, new THREE.Quaternion(), new THREE.Vector3());
+        S.currentHitPos = pos;
+        S.reticleVisible = true;
       }
     } else {
       reticleMesh.visible = false;
+      S.reticleVisible = false;
     }
   }
-  
-  renderer.render(scene, camera);
+
+  renderer.render(scene, cam);
 }
 
-function startFallback() {
-  xrMode = false;
-  startScreen.classList.add('hidden');
-  topBar.style.display = 'flex';
-  sheet.style.display = 'flex';
-  
-  // Simple floor plane for fallback
-  const floorPlane = new THREE.Mesh(
-    new THREE.PlaneGeometry(5, 5),
-    new THREE.MeshStandardMaterial({ color: 0x2a3a2a, side: THREE.DoubleSide, transparent: true, opacity: 0.3 })
-  );
-  floorPlane.rotation.x = -Math.PI / 2;
-  floorPlane.position.y = 0;
-  scene.add(floorPlane);
-  
-  camera.position.set(0, 1.5, 3);
-  camera.lookAt(0, 0, -1);
-  
-  renderer.setAnimationLoop(() => renderer.render(scene, camera));
-  
-  // Click placement for fallback
-  threeCanvas.addEventListener('click', (e) => {
-    if (!pendingPlace) return;
-    const raycaster = new THREE.Raycaster();
-    raycaster.setFromCamera({ x: (e.clientX / innerWidth) * 2 - 1, y: -(e.clientY / innerHeight) * 2 + 1 }, camera);
-    const intersects = raycaster.intersectObject(floorPlane);
-    if (intersects.length) {
-      placeTileAt(intersects[0].point);
-      pendingPlace = false;
-    }
-  });
-  
-  showToast('Mode caméra - Appuyez pour placer', 'scan');
-}
+/* ═══════════════════════════════════════════════════════
+   FALLBACK CAMERA MODE
+═══════════════════════════════════════════════════════ */
+const raycaster = new THREE.Raycaster();
 
-// RENDER LOOP (non-XR)
-function animate() {
-  if (!xrMode && renderer) {
-    renderer.render(scene, camera);
-    requestAnimationFrame(animate);
-  }
-}
-
-// INIT THREE
-function initThree() {
-  scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x050810);
-  
-  camera = new THREE.PerspectiveCamera(70, innerWidth / innerHeight, 0.01, 100);
-  
-  renderer = new THREE.WebGLRenderer({ canvas: threeCanvas, alpha: false, antialias: true });
-  renderer.setSize(innerWidth, innerHeight);
-  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
-  renderer.shadowMap.enabled = true;
-  renderer.xr.enabled = true;
-  
-  // Lights
-  const ambient = new THREE.AmbientLight(0xffffff, 1.2);
-  scene.add(ambient);
-  const dirLight = new THREE.DirectionalLight(0xffffff, 1.5);
-  dirLight.position.set(3, 5, 2);
-  dirLight.castShadow = true;
-  scene.add(dirLight);
-  const fillLight = new THREE.PointLight(0x4466aa, 0.3);
-  fillLight.position.set(1, 2, 1);
-  scene.add(fillLight);
-  
-  // Reticle mesh
-  const rg = new THREE.RingGeometry(0.12, 0.16, 32).rotateX(-Math.PI / 2);
-  const rm = new THREE.MeshStandardMaterial({ color: 0x2ECC8F, side: THREE.DoubleSide, emissive: 0x2ECC8F, emissiveIntensity: 0.3 });
-  reticleMesh = new THREE.Mesh(rg, rm);
-  reticleMesh.visible = false;
-  reticleMesh.matrixAutoUpdate = false;
-  scene.add(reticleMesh);
-  
-  window.addEventListener('resize', () => {
-    camera.aspect = innerWidth / innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(innerWidth, innerHeight);
-  });
-}
-
-// TILE CATALOG
-const tileCatalog = [
-  { id: 't1', name: 'Marbre Blanc', color: 0xe8e4dc, thumb: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Crect width="100" height="100" fill="%23e8e4dc"/%3E%3Cpath d="M0 0 L100 100 M100 0 L0 100" stroke="%23ccc" stroke-width="0.5"/%3E%3C/svg%3E' },
-  { id: 't2', name: 'Béton Ciré', color: 0x8a9199, thumb: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Crect width="100" height="100" fill="%238a9199"/%3E%3C/svg%3E' },
-  { id: 't3', name: 'Bois Clair', color: 0xc4a27a, thumb: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Crect width="100" height="100" fill="%23c4a27a"/%3E%3Cline x1="10" y1="0" x2="10" y2="100" stroke="%239a7850" stroke-width="2"/%3E%3C/svg%3E' },
-  { id: 't4', name: 'Ardoise', color: 0x4a5568, thumb: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Crect width="100" height="100" fill="%234a5568"/%3E%3C/svg%3E' },
-];
-let selectedTileColor = 0xe8e4dc;
-
-function buildTileCatalog() {
-  tileScroll.innerHTML = '';
-  tileCatalog.forEach(tile => {
-    const card = document.createElement('div');
-    card.className = 'tileCard' + (selectedTileColor === tile.color ? ' sel' : '');
-    card.innerHTML = `
-      <img src="${tile.thumb}" alt="${tile.name}">
-      <div class="tileCard-name">${tile.name}</div>
-    `;
-    card.addEventListener('click', () => {
-      selectedTileColor = tile.color;
-      document.querySelectorAll('.tileCard').forEach(c => c.classList.remove('sel'));
-      card.classList.add('sel');
-      showToast(`${tile.name} sélectionné`, 'ok');
+async function startFallback() {
+  S.fallbackMode = true;
+  document.getElementById('noXr').style.display = 'block';
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false,
     });
-    tileScroll.appendChild(card);
+    videoEl.srcObject = stream; videoEl.style.display = 'block'; await videoEl.play();
+  } catch (e) { setStatus('Caméra refusée', 'err'); return; }
+
+  // Invisible floor plane for raycasting
+  const floor = new THREE.Mesh(
+    new THREE.PlaneGeometry(20, 20),
+    new THREE.MeshBasicMaterial({ visible: false, side: THREE.DoubleSide })
+  );
+  floor.rotation.x = -Math.PI / 2;
+  floor.name = 'floor';
+  scene.add(floor);
+
+  cam.position.set(0, 1.2, 0);
+  cam.lookAt(0, 0, -1.5);
+
+  renderer.setAnimationLoop(() => renderer.render(scene, cam));
+
+  document.getElementById('startScreen').classList.add('hidden');
+  document.getElementById('topBar').style.display = 'flex';
+  document.getElementById('sheet').style.display = 'flex';
+  document.getElementById('toast').style.display = 'flex';
+  document.getElementById('reticle').classList.add('on');
+  S.reticleVisible = true;
+
+  setStatus('Mode caméra (WebXR non disponible)', 'ok');
+  setSheetH(MID);
+
+  // Tap on canvas → place tile / add zone point
+  threeCanvas.addEventListener('click', (e) => {
+    const pos = screenToFloor(e.clientX, e.clientY);
+    if (!pos) return;
+    if (S.zoneActive) { addZonePoint3D(pos); return; }
+    if (S.pendingPlace) placeTileAt(pos, null);
   });
 }
 
-function updateFormat() {
-  const idx = parseInt(fmtSlider.value);
-  currentTileFormat = tileFormats[idx];
-  fmtDisp.textContent = currentTileFormat;
+function screenToFloor(sx, sy) {
+  const nx = (sx / innerWidth) * 2 - 1;
+  const ny = -(sy / innerHeight) * 2 + 1;
+  raycaster.setFromCamera({ x: nx, y: ny }, cam);
+  const fl = scene.getObjectByName('floor');
+  const hits = fl ? raycaster.intersectObject(fl) : [];
+  return hits.length ? hits[0].point : new THREE.Vector3(nx * 2, 0, -(1.5 + ny));
 }
 
-function updateTileMaterialColor(mesh) {
-  if (mesh.material) mesh.material.color.setHex(selectedTileColor);
-}
-
-// Override createTileMesh to use selected color
-const originalCreateTile = createTileMesh;
-window.createTileMesh = function() {
-  const size = currentTileFormat / 100;
-  const geometry = new THREE.BoxGeometry(size, 0.02, size);
-  const material = new THREE.MeshStandardMaterial({
-    color: selectedTileColor,
-    roughness: 0.4,
-    metalness: 0.1,
+/* ═══════════════════════════════════════════════════════
+   TILE CREATION
+═══════════════════════════════════════════════════════ */
+function makeTileMaterial(color, opacity) {
+  return new THREE.MeshStandardMaterial({
+    color,
+    roughness: 0.35,
+    metalness: 0.05,
     transparent: true,
-    opacity: tileOpacity
+    opacity,
+    side: THREE.DoubleSide,
   });
-  const mesh = new THREE.Mesh(geometry, material);
+}
+
+function createTileMesh(sizeM, color, opacity) {
+  const gap = 0.002; // grout gap
+  const inner = sizeM - gap;
+  const geo = new THREE.BoxGeometry(inner, 0.008, inner);
+  const mat = makeTileMaterial(color, opacity);
+  const mesh = new THREE.Mesh(geo, mat);
   mesh.castShadow = true;
   mesh.receiveShadow = true;
   return mesh;
-};
+}
 
-function placeTileAtCurrentHit() {
-  if (xrMode && reticleMesh && reticleMesh.visible) {
-    const pos = reticleMesh.position.clone();
-    const mesh = (() => {
-      const size = currentTileFormat / 100;
-      const geometry = new THREE.BoxGeometry(size, 0.02, size);
-      const material = new THREE.MeshStandardMaterial({ color: selectedTileColor, roughness: 0.4, metalness: 0.1, transparent: true, opacity: tileOpacity });
-      return new THREE.Mesh(geometry, material);
-    })();
-    mesh.position.copy(pos);
-    scene.add(mesh);
-    const id = Date.now();
-    tiles.push({ id, mesh, scale: 1 });
-    updateTileBadge();
-    selectTile(id);
-    showToast('Carreau placé', 'ok');
-  } else if (!xrMode) {
-    // In fallback mode, place at camera facing position
-    const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
-    const pos = camera.position.clone().add(forward.multiplyScalar(1.5));
-    pos.y = 0;
-    const mesh = (() => {
-      const size = currentTileFormat / 100;
-      const geometry = new THREE.BoxGeometry(size, 0.02, size);
-      const material = new THREE.MeshStandardMaterial({ color: selectedTileColor, roughness: 0.4, metalness: 0.1, transparent: true, opacity: tileOpacity });
-      return new THREE.Mesh(geometry, material);
-    })();
-    mesh.position.copy(pos);
-    scene.add(mesh);
-    const id = Date.now();
-    tiles.push({ id, mesh, scale: 1 });
-    updateTileBadge();
-    selectTile(id);
-    showToast('Carreau placé', 'ok');
+function placeTileAt(pos, matrix) {
+  const sizeM = S.tileSizes[S.tileSizeIdx];
+  const cat = TILE_CATALOG.find(t => t.id === selectedCatalogId) || TILE_CATALOG[0];
+  const mesh = createTileMesh(sizeM, cat.color, S.opacity);
+
+  mesh.position.copy(pos);
+  mesh.position.y += 0.004; // sit on floor
+  scene.add(mesh);
+
+  const id = ++S.tileIdCounter;
+  mesh.userData.tileId = id;
+
+  S.placedTiles.push({ id, mesh, sizeM, color: cat.color });
+  updateTileBadge();
+  setStatus('Carreau posé ! Appuyez pour en poser un autre', 'ok');
+}
+
+/* ═══════════════════════════════════════════════════════
+   ZONE FILL — fills any polygon with tiles, handles
+   pointy shapes (triangle, L, etc.) using bounding box
+   grid + point-in-polygon test
+═══════════════════════════════════════════════════════ */
+function pointInPolygon(px, pz, polygon) {
+  let inside = false;
+  const n = polygon.length;
+  for (let i = 0, j = n - 1; i < n; j = i++) {
+    const xi = polygon[i].x, zi = polygon[i].z;
+    const xj = polygon[j].x, zj = polygon[j].z;
+    if (((zi > pz) !== (zj > pz)) && (px < (xj - xi) * (pz - zi) / (zj - zi) + xi)) {
+      inside = !inside;
+    }
+  }
+  return inside;
+}
+
+function fillZoneWithTiles() {
+  const pts = S.zonePoints3D;
+  if (pts.length < 3) return;
+
+  const sizeM = S.tileSizes[S.tileSizeIdx];
+  const cat = TILE_CATALOG.find(t => t.id === selectedCatalogId) || TILE_CATALOG[0];
+
+  // Bounding box in XZ
+  let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity;
+  const avgY = pts.reduce((s, p) => s + p.y, 0) / pts.length;
+  pts.forEach(p => {
+    minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x);
+    minZ = Math.min(minZ, p.z); maxZ = Math.max(maxZ, p.z);
+  });
+
+  // Snap grid to tile size
+  minX = Math.floor(minX / sizeM) * sizeM;
+  minZ = Math.floor(minZ / sizeM) * sizeM;
+
+  let count = 0;
+  const group = new THREE.Group();
+  scene.add(group);
+
+  for (let x = minX; x < maxX + sizeM; x += sizeM) {
+    for (let z = minZ; z < maxZ + sizeM; z += sizeM) {
+      const cx = x + sizeM / 2;
+      const cz = z + sizeM / 2;
+      if (!pointInPolygon(cx, cz, pts)) continue;
+
+      const mesh = createTileMesh(sizeM, cat.color, S.opacity);
+      mesh.position.set(cx, avgY + 0.004, cz);
+      group.add(mesh);
+
+      const id = ++S.tileIdCounter;
+      mesh.userData.tileId = id;
+      S.placedTiles.push({ id, mesh, sizeM, color: cat.color });
+      count++;
+    }
+  }
+
+  // Stats
+  const area = polygonArea(pts);
+  document.getElementById('fArea').textContent = area.toFixed(2);
+  document.getElementById('fCount').textContent = count;
+  const fmt = Math.round(sizeM * 100);
+  document.getElementById('fFormat').textContent = fmt + '×' + fmt;
+  document.getElementById('fillStats').classList.add('on');
+
+  updateTileBadge();
+  setStatus(count + ' carreaux posés ✓', 'ok');
+
+  // Reset zone
+  exitZoneMode();
+}
+
+function polygonArea(pts) {
+  let area = 0;
+  const n = pts.length;
+  for (let i = 0, j = n - 1; i < n; j = i++) {
+    area += (pts[j].x + pts[i].x) * (pts[j].z - pts[i].z);
+  }
+  return Math.abs(area / 2);
+}
+
+/* ═══════════════════════════════════════════════════════
+   ZONE MODE — 2D overlay drawing
+═══════════════════════════════════════════════════════ */
+function enterZoneMode() {
+  S.zoneActive = true;
+  S.zonePoints3D = [];
+  S.zonePoints2D = [];
+  S.pendingPlace = false;
+
+  document.getElementById('drawOverlay').style.display = 'block';
+  document.getElementById('drawOverlay').classList.add('active');
+  document.getElementById('zoneBar').classList.add('on');
+  document.getElementById('zoneBtn').classList.add('active');
+  document.getElementById('zoneLine').setAttribute('points', '');
+  document.getElementById('zoneFillPreview').setAttribute('points', '');
+  document.getElementById('zonePoints').innerHTML = '';
+  document.getElementById('zActFill').style.display = 'none';
+  document.getElementById('zoneClose').setAttribute('display', 'none');
+  document.getElementById('cursorLine').setAttribute('display', 'none');
+
+  setStatus('Touchez le sol pour délimiter la zone', 'scan');
+  setSheetH(PEEK);
+
+  // Touch to add zone points in zone mode on screen overlay
+  document.getElementById('drawOverlay').addEventListener('click', onZoneOverlayClick);
+  document.getElementById('drawOverlay').addEventListener('mousemove', onZoneOverlayMouseMove);
+}
+
+function exitZoneMode() {
+  S.zoneActive = false;
+  S.zonePoints3D = [];
+  S.zonePoints2D = [];
+
+  document.getElementById('drawOverlay').style.display = 'none';
+  document.getElementById('drawOverlay').classList.remove('active');
+  document.getElementById('drawOverlay').removeEventListener('click', onZoneOverlayClick);
+  document.getElementById('drawOverlay').removeEventListener('mousemove', onZoneOverlayMouseMove);
+  document.getElementById('zoneBar').classList.remove('on');
+  document.getElementById('zoneBtn').classList.remove('active');
+  document.getElementById('zActFill').style.display = 'none';
+}
+
+function onZoneOverlayClick(e) {
+  const sx = e.clientX, sy = e.clientY;
+
+  // Get 3D floor position
+  let pos3D;
+  if (S.currentHitPos && S.xrMode) {
+    pos3D = S.currentHitPos.clone();
+  } else {
+    pos3D = screenToFloor(sx, sy);
+  }
+  if (!pos3D) return;
+
+  S.zonePoints3D.push(pos3D);
+  S.zonePoints2D.push({ x: sx, y: sy });
+
+  renderZoneSVG();
+
+  if (S.zonePoints3D.length >= 3) {
+    document.getElementById('zActFill').style.display = '';
   }
 }
 
-// EVENT LISTENERS
-placeBtn.addEventListener('click', () => {
-  if (xrMode) {
-    pendingPlace = true;
-    showToast('Pointez le sol puis appuyez', 'scan');
+function addZonePoint3D(pos3D) {
+  // Project 3D world pos to 2D screen for the SVG overlay
+  const v = pos3D.clone().project(cam);
+  const sx = (v.x + 1) / 2 * innerWidth;
+  const sy = (-v.y + 1) / 2 * innerHeight;
+
+  S.zonePoints3D.push(pos3D);
+  S.zonePoints2D.push({ x: sx, y: sy });
+  renderZoneSVG();
+
+  if (S.zonePoints3D.length >= 3) {
+    document.getElementById('zActFill').style.display = '';
+  }
+}
+
+function onZoneOverlayMouseMove(e) {
+  if (S.zonePoints2D.length === 0) return;
+  const last = S.zonePoints2D[S.zonePoints2D.length - 1];
+  const cl = document.getElementById('cursorLine');
+  cl.setAttribute('x1', last.x); cl.setAttribute('y1', last.y);
+  cl.setAttribute('x2', e.clientX); cl.setAttribute('y2', e.clientY);
+  cl.setAttribute('display', '');
+
+  if (S.zonePoints2D.length >= 3) {
+    const first = S.zonePoints2D[0];
+    const zc = document.getElementById('zoneClose');
+    zc.setAttribute('x1', last.x); zc.setAttribute('y1', last.y);
+    zc.setAttribute('x2', first.x); zc.setAttribute('y2', first.y);
+    zc.setAttribute('display', '');
+  }
+}
+
+function renderZoneSVG() {
+  const pts2D = S.zonePoints2D;
+  const ptStr = pts2D.map(p => p.x + ',' + p.y).join(' ');
+  document.getElementById('zoneLine').setAttribute('points', ptStr);
+  document.getElementById('zoneFillPreview').setAttribute('points', ptStr);
+
+  const pg = document.getElementById('zonePoints');
+  pg.innerHTML = '';
+  pts2D.forEach((p, i) => {
+    const c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    c.setAttribute('cx', p.x); c.setAttribute('cy', p.y);
+    c.setAttribute('r', i === 0 ? 8 : 5);
+    c.setAttribute('fill', i === 0 ? 'rgba(240,192,64,.9)' : 'rgba(46,204,143,.9)');
+    c.setAttribute('stroke', '#fff'); c.setAttribute('stroke-width', '1.5');
+    pg.appendChild(c);
+  });
+}
+
+/* ═══════════════════════════════════════════════════════
+   TOUCH GESTURES
+═══════════════════════════════════════════════════════ */
+document.addEventListener('touchstart', e => {
+  if (e.touches.length === 1) {
+    const now = Date.now();
+    if (now - S.lastTapTime < 300 && S.selectedTileId) {
+      deleteSelectedTile();
+      return;
+    }
+    S.lastTapTime = now;
+    if (S.selectedTileId) {
+      S.touchStartX = e.touches[0].clientX;
+      S.touchStartY = e.touches[0].clientY;
+      const t = S.placedTiles.find(t => t.id === S.selectedTileId);
+      if (t) S.touchStartRotY = t.mesh.rotation.y;
+    }
+  } else if (e.touches.length === 2) {
+    S.twoTouchStart = {
+      dist: Math.hypot(e.touches[1].clientX - e.touches[0].clientX, e.touches[1].clientY - e.touches[0].clientY),
+    };
+    const t = S.placedTiles.find(t => t.id === S.selectedTileId);
+    if (t) S.touchStartScale = t.mesh.scale.x;
+  }
+}, { passive: true });
+
+document.addEventListener('touchmove', e => {
+  if (e.touches.length === 1 && S.touchStartX != null && S.selectedTileId) {
+    const dx = e.touches[0].clientX - S.touchStartX;
+    const t = S.placedTiles.find(t => t.id === S.selectedTileId);
+    if (t) t.mesh.rotation.y = S.touchStartRotY + dx * 0.01;
+  } else if (e.touches.length === 2 && S.twoTouchStart && S.selectedTileId) {
+    const newDist = Math.hypot(e.touches[1].clientX - e.touches[0].clientX, e.touches[1].clientY - e.touches[0].clientY);
+    const ratio = newDist / S.twoTouchStart.dist;
+    const t = S.placedTiles.find(t => t.id === S.selectedTileId);
+    if (t) {
+      const s = Math.max(0.3, Math.min(3.0, (S.touchStartScale || 1) * ratio));
+      t.mesh.scale.setScalar(s);
+    }
+  }
+}, { passive: true });
+
+document.addEventListener('touchend', () => {
+  S.touchStartX = null; S.touchStartY = null; S.twoTouchStart = null;
+}, { passive: true });
+
+/* ═══════════════════════════════════════════════════════
+   TILE MANAGEMENT
+═══════════════════════════════════════════════════════ */
+function deleteSelectedTile() {
+  const t = S.placedTiles.find(t => t.id === S.selectedTileId);
+  if (!t) return;
+  scene.remove(t.mesh);
+  S.placedTiles = S.placedTiles.filter(x => x.id !== S.selectedTileId);
+  S.selectedTileId = null;
+  updateTileBadge();
+}
+
+function updateTileBadge() {
+  const n = S.placedTiles.length;
+  document.getElementById('tileCountEl').textContent = n;
+  document.getElementById('tileBadge').classList.toggle('on', n > 0);
+}
+
+function updateAllOpacity() {
+  S.placedTiles.forEach(t => {
+    if (t.mesh.material) { t.mesh.material.opacity = S.opacity; t.mesh.material.needsUpdate = true; }
+    if (t.mesh.children) t.mesh.children.forEach(c => {
+      if (c.material) { c.material.opacity = S.opacity; c.material.needsUpdate = true; }
+    });
+  });
+}
+
+/* ═══════════════════════════════════════════════════════
+   STATUS TOAST
+═══════════════════════════════════════════════════════ */
+function setStatus(msg, cls='') {
+  document.getElementById('toastTxt').textContent = msg;
+  document.getElementById('toast').className = cls;
+  document.getElementById('toast').style.display = 'flex';
+}
+
+/* ═══════════════════════════════════════════════════════
+   BOTTOM SHEET DRAG
+═══════════════════════════════════════════════════════ */
+const PEEK = 94, MID = 340, FULL = Math.round(innerHeight * 0.88);
+let shDragY = null, shDragH = 0;
+function setSheetH(h, anim=true) {
+  const sh = document.getElementById('sheet');
+  sh.style.transition = anim ? 'height .35s cubic-bezier(.32,.72,0,1)' : 'none';
+  sh.style.height = h + 'px';
+  sh.classList.toggle('col', h <= PEEK + 10);
+}
+function snapSheet(h) {
+  const m1 = (PEEK+MID)/2, m2 = (MID+FULL)/2;
+  setSheetH(h < m1 ? PEEK : h < m2 ? MID : FULL);
+}
+const pullEl = document.getElementById('sheetPull');
+function startShDrag(y) { shDragY = y; shDragH = document.getElementById('sheet').getBoundingClientRect().height; document.getElementById('sheet').style.transition='none'; }
+function moveShDrag(y) {
+  if (shDragY === null) return;
+  const h = Math.max(PEEK, Math.min(FULL, shDragH + (shDragY - y)));
+  document.getElementById('sheet').style.height = h + 'px';
+  document.getElementById('sheet').classList.toggle('col', h <= PEEK + 10);
+}
+function endShDrag() { if (shDragY === null) return; snapSheet(document.getElementById('sheet').getBoundingClientRect().height); shDragY = null; }
+pullEl.addEventListener('mousedown', e => startShDrag(e.clientY));
+pullEl.addEventListener('touchstart', e => startShDrag(e.touches[0].clientY), {passive:true});
+window.addEventListener('mousemove', e => moveShDrag(e.clientY));
+window.addEventListener('touchmove', e => moveShDrag(e.touches[0].clientY), {passive:true});
+window.addEventListener('mouseup', endShDrag);
+window.addEventListener('touchend', endShDrag);
+pullEl.addEventListener('click', () => {
+  const h = document.getElementById('sheet').getBoundingClientRect().height;
+  setSheetH(h <= PEEK + 10 ? MID : h >= FULL - 20 ? PEEK : FULL);
+});
+
+/* ═══════════════════════════════════════════════════════
+   BUTTON EVENTS
+═══════════════════════════════════════════════════════ */
+document.getElementById('placeBtn').addEventListener('click', () => {
+  if (S.zoneActive) exitZoneMode();
+  S.pendingPlace = true;
+  setStatus('Pointez le sol et appuyez pour placer', 'scan');
+  setSheetH(PEEK);
+});
+
+document.getElementById('zoneBtn').addEventListener('click', () => {
+  if (S.zoneActive) { exitZoneMode(); return; }
+  enterZoneMode();
+});
+
+document.getElementById('zActFill').addEventListener('click', fillZoneWithTiles);
+document.getElementById('zActUndo').addEventListener('click', () => {
+  if (S.zonePoints3D.length === 0) return;
+  S.zonePoints3D.pop();
+  S.zonePoints2D.pop();
+  renderZoneSVG();
+  if (S.zonePoints3D.length < 3) document.getElementById('zActFill').style.display = 'none';
+});
+document.getElementById('zActCancel').addEventListener('click', exitZoneMode);
+
+document.getElementById('resetBtn').addEventListener('click', () => {
+  S.placedTiles.forEach(t => scene.remove(t.mesh));
+  S.placedTiles = []; S.selectedTileId = null;
+  updateTileBadge();
+  document.getElementById('fillStats').classList.remove('on');
+  if (S.zoneActive) exitZoneMode();
+  setStatus('Tout effacé', 'ok');
+});
+
+document.getElementById('capBtn').addEventListener('click', doCapture);
+
+/* ═══════════════════════════════════════════════════════
+   SLIDERS
+═══════════════════════════════════════════════════════ */
+const SIZES_LABEL = ['20','30','45','60'];
+document.getElementById('fmtSlider').addEventListener('input', e => {
+  S.tileSizeIdx = parseInt(e.target.value);
+  document.getElementById('fmtDisp').textContent = SIZES_LABEL[S.tileSizeIdx];
+});
+document.getElementById('opSlider').addEventListener('input', e => {
+  S.opacity = parseInt(e.target.value) / 100;
+  document.getElementById('opDisp').textContent = e.target.value;
+  updateAllOpacity();
+});
+
+/* ═══════════════════════════════════════════════════════
+   TILE CATALOG UI
+═══════════════════════════════════════════════════════ */
+function buildCatalog() {
+  const scroll = document.getElementById('tileScroll');
+  scroll.innerHTML = '';
+  TILE_CATALOG.forEach(t => {
+    const card = document.createElement('div');
+    card.className = 'tileCard' + (t.id === selectedCatalogId ? ' sel' : '');
+    card.dataset.id = t.id;
+    // Color swatch instead of slow unsplash load
+    const hex = '#' + t.color.toString(16).padStart(6, '0');
+    card.innerHTML = `<div style="width:100%;height:72px;background:${hex};display:block;"></div><div class="tileCard-name">${t.name}</div>`;
+    card.addEventListener('click', () => {
+      selectedCatalogId = t.id;
+      document.querySelectorAll('.tileCard').forEach(c => c.classList.remove('sel'));
+      card.classList.add('sel');
+    });
+    scroll.appendChild(card);
+  });
+}
+
+/* ═══════════════════════════════════════════════════════
+   CAPTURE
+═══════════════════════════════════════════════════════ */
+async function doCapture() {
+  try {
+    renderer.render(scene, cam);
+    threeCanvas.toBlob(async blob => {
+      if (!blob) return;
+      const file = new File([blob], 'arfloor.png', { type: 'image/png' });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        try { await navigator.share({ files: [file], title: 'ARFloor' }); showSnap('📸', 'Partagé !'); return; } catch {}
+      }
+      const a = document.createElement('a');
+      a.download = 'arfloor.png'; a.href = URL.createObjectURL(blob); a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 3000);
+      showSnap('💾', 'Image sauvegardée !');
+    }, 'image/png');
+  } catch { showSnap('❌', 'Erreur capture'); }
+}
+function showSnap(icon, txt) {
+  document.getElementById('snapIcon').textContent = icon;
+  document.getElementById('snapTxt').textContent = txt;
+  const t = document.getElementById('snapToast');
+  t.classList.add('on'); setTimeout(() => t.classList.remove('on'), 2000);
+}
+
+/* ═══════════════════════════════════════════════════════
+   GUIDE
+═══════════════════════════════════════════════════════ */
+document.getElementById('infoBtn').addEventListener('click', () => document.getElementById('guide').classList.add('on'));
+document.getElementById('guideClose').addEventListener('click', () => document.getElementById('guide').classList.remove('on'));
+document.getElementById('guide').addEventListener('click', e => { if (e.target === document.getElementById('guide')) document.getElementById('guide').classList.remove('on'); });
+
+/* ═══════════════════════════════════════════════════════
+   INIT + START
+═══════════════════════════════════════════════════════ */
+initThree();
+buildCatalog();
+
+document.getElementById('startBtn').addEventListener('click', async () => {
+  const btn = document.getElementById('startBtn');
+  btn.disabled = true;
+  btn.textContent = 'Vérification…';
+
+  S.xrSupported = await checkXR();
+
+  if (S.xrSupported) {
+    await startXR();
   } else {
-    placeTileAtCurrentHit();
+    document.getElementById('noXr').style.display = 'block';
+    btn.textContent = '📷 Mode Caméra';
+    btn.disabled = false;
+    btn.onclick = startFallback;
+    await startFallback();
   }
 });
-
-resetBtn.addEventListener('click', resetAll);
-capBtn.addEventListener('click', () => {
-  showToast('Capture d\'écran', 'ok');
-});
-fmtSlider.addEventListener('input', updateFormat);
-opSlider.addEventListener('input', (e) => {
-  tileOpacity = parseInt(e.target.value) / 100;
-  opDisp.textContent = e.target.value;
-  updateOpacity();
-});
-
-infoBtn.addEventListener('click', () => guide.classList.add('on'));
-guideClose.addEventListener('click', () => guide.classList.remove('on'));
-guide.addEventListener('click', (e) => { if (e.target === guide) guide.classList.remove('on'); });
-
-startBtn.addEventListener('click', () => {
-  startBtn.disabled = true;
-  startAR().finally(() => { startBtn.disabled = false; });
-});
-
-// INIT
-initThree();
-buildTileCatalog();
-updateFormat();
-setupTouchGestures();
-animate();
 </script>
 </body>
 </html>
