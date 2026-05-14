@@ -185,12 +185,26 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
 #videoEl{position:fixed;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;display:none}
 #saveToast{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:200;display:flex;flex-direction:column;align-items:center;gap:10px;padding:24px 32px;background:rgba(20,30,40,.92);backdrop-filter:blur(20px);border-radius:var(--r-lg);border:1px solid rgba(255,255,255,.15);color:#fff;font-size:13px;font-weight:600;pointer-events:none;opacity:0;transition:opacity .3s;text-align:center}
 #saveToast.show{opacity:1}
-#xrReticle{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:5;pointer-events:none;opacity:0;transition:opacity .4s}
+
+/* ✅ RETICLE ET LABEL : invisibles dans la scène 3D (GUI seulement) */
+#xrReticle{
+  position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
+  z-index:5;pointer-events:none;opacity:0;transition:opacity .4s;
+  /* IMPORTANT : pointer-events:none empêche les collisions 3D */
+}
 #xrReticle.visible{opacity:1}
-#surfaceLabel{position:fixed;top:calc(50% + 46px);left:50%;transform:translateX(-50%);z-index:6;padding:3px 10px;border-radius:12px;font-size:9px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;pointer-events:none;opacity:0;transition:all .3s;white-space:nowrap}
+
+#surfaceLabel{
+  position:fixed;top:calc(50% + 46px);left:50%;transform:translateX(-50%);
+  z-index:6;padding:3px 10px;border-radius:12px;font-size:9px;font-weight:700;
+  letter-spacing:.4px;text-transform:uppercase;pointer-events:none;opacity:0;
+  transition:all .3s;white-space:nowrap;
+  /* IMPORTANT : fond semi-transparent pour bien voir la UI */
+}
 #surfaceLabel.visible{opacity:1}
 #surfaceLabel.floor{background:rgba(82,180,107,.25);color:#52B46B;border:1px solid rgba(82,180,107,.4)}
 #surfaceLabel.wall{background:rgba(40,79,117,.25);color:#6fa3d8;border:1px solid rgba(40,79,117,.4)}
+
 #deleteHint{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:18;padding:12px 24px;border-radius:var(--r-lg);background:rgba(221,80,80,.85);color:#fff;font-size:14px;font-weight:700;pointer-events:none;opacity:0;transition:opacity .2s;text-align:center}
 #deleteHint.show{opacity:1;animation:pulse-delete .6s ease-out}
 @keyframes pulse-delete{0%{opacity:1;transform:translate(-50%,-50%) scale(1)}50%{opacity:.5}100%{opacity:0;transform:translate(-50%,-50%) scale(.8)}}
@@ -244,7 +258,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
   </div>
 </div>
 
-<!-- XR reticle -->
+<!-- XR reticle — INVISIBLE en scène 3D, visible uniquement comme overlay GUI -->
 <div id="xrReticle">
   <svg width="70" height="70" viewBox="0 0 70 70" fill="none">
     <ellipse cx="35" cy="35" rx="30" ry="11" stroke="rgba(82,180,107,.9)" stroke-width="1.5" stroke-dasharray="6 4"/>
@@ -435,10 +449,10 @@ function initThreeJS(){
   scene.add(new THREE.AmbientLight(0xffffff, 1.2));
   const dir = new THREE.DirectionalLight(0xffffff, 1.4);
   dir.position.set(3,8,5); dir.castShadow=true; scene.add(dir);
-  // ✅ This is the correct way
-const fillLight = new THREE.DirectionalLight(0xffffff, 0.4);
-fillLight.position.set(-4, 2, -4);
-scene.add(fillLight);
+  const fillLight = new THREE.DirectionalLight(0xffffff, 0.4);
+  fillLight.position.set(-4, 2, -4);
+  scene.add(fillLight);
+  
   const reticleGeo = new THREE.RingGeometry(0.12,0.15,32).rotateX(-Math.PI/2);
   xrReticleMesh = new THREE.Mesh(reticleGeo, new THREE.MeshBasicMaterial({color:0x52B46B,side:THREE.DoubleSide}));
   xrReticleMesh.visible=false; xrReticleMesh.matrixAutoUpdate=false;
@@ -1125,16 +1139,33 @@ async function placeTilePolygon(poly3D){
     try{
       const gltf = await new Promise((res,rej)=>loader.load(product.modelUrl,res,null,rej));
       baseModel = gltf.scene;
-      /* Normalise GLB au carré TS × TS */
+      
+      /* ✅ CORRECTION : Détecte l'orientation et force horizontale */
       const bb = new THREE.Box3().setFromObject(baseModel);
       const sz = bb.getSize(new THREE.Vector3());
-      const maxDim = Math.max(sz.x, sz.z) || 1;
+      
+      /* Détecte si vertical (hauteur > largeur/profondeur) */
+      const isVertical = sz.y > Math.max(sz.x, sz.z);
+      if(isVertical){
+        /* Rotate -90° autour de l'axe X pour basculer vers l'horizontal */
+        baseModel.rotateX(-Math.PI/2);
+        /* Recalcule les bounds après rotation */
+        bb.setFromObject(baseModel);
+      }
+      
+      const szAfter = bb.getSize(new THREE.Vector3());
+      const maxDim = Math.max(szAfter.x, szAfter.z) || 1;
       const glbScale = TS / maxDim;
       baseModel.scale.setScalar(glbScale);
+      
+      /* Centre horizontalement et place au sol (Y=0) */
+      bb.setFromObject(baseModel);
       const center = bb.getCenter(new THREE.Vector3());
       baseModel.position.x -= center.x*glbScale;
       baseModel.position.z -= center.z*glbScale;
+      /* Force la base à Y=0 (sol) */
       baseModel.position.y -= bb.min.y*glbScale;
+      
       baseModel.traverse(c=>{
         if(!c.isMesh) return;
         const mats=Array.isArray(c.material)?c.material:[c.material];
