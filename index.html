@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no"/>
-<title>PlaceAR · Carrelage v3</title>
+<title>PlaceAR · v4</title>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -16,8 +16,17 @@
   --shadow:0 8px 40px rgba(40,79,117,0.18);
 }
 html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:var(--font)}
-#threeCanvas{position:fixed;inset:0;width:100%;height:100%;z-index:0}
+
+/* VIDEO BACKGROUND */
+#videoEl{position:fixed;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;display:none}
+
+/* THREE.JS overlaid ON TOP of video — alpha background */
+#threeCanvas{position:fixed;inset:0;width:100%;height:100%;z-index:1;pointer-events:none}
+
+/* POLYGON DRAWING CANVAS — above three.js */
 #polyDrawCanvas{position:fixed;inset:0;width:100%;height:100%;z-index:2;pointer-events:none}
+
+/* INTERACTION CANVAS — topmost, captures taps */
 #interactionCanvas{position:fixed;inset:0;width:100%;height:100%;z-index:3;display:none;cursor:crosshair;touch-action:none}
 
 /* TOP BAR */
@@ -31,7 +40,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:var
 #placedBadge.visible{display:flex}
 
 /* STATUS */
-#statusToast{position:fixed;top:68px;left:50%;transform:translateX(-50%);z-index:19;display:flex;align-items:center;gap:7px;padding:7px 16px;border-radius:var(--r-xl);font-size:11px;font-weight:500;color:rgba(255,255,255,.9);background:rgba(17,17,17,.78);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,.1);white-space:nowrap;pointer-events:none;max-width:90vw}
+#statusToast{position:fixed;top:68px;left:50%;transform:translateX(-50%);z-index:21;display:flex;align-items:center;gap:7px;padding:7px 16px;border-radius:var(--r-xl);font-size:11px;font-weight:500;color:rgba(255,255,255,.9);background:rgba(17,17,17,.78);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,.1);white-space:nowrap;pointer-events:none;max-width:90vw}
 #statusDot{width:6px;height:6px;border-radius:50%;background:var(--grey);flex-shrink:0;transition:background .3s}
 #statusToast.ok #statusDot{background:var(--green)}
 #statusToast.scanning #statusDot{background:var(--primary);animation:pulse .8s infinite}
@@ -41,7 +50,6 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:var
 
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
 @keyframes spin{to{transform:rotate(360deg)}}
-@keyframes fadeInDown{from{opacity:0;transform:translateX(-50%) translateY(-10px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
 
 /* GLB LOADER */
 #glbLoader{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center;flex-direction:column;gap:14px}
@@ -50,49 +58,20 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:var
 #glbLoader p{color:rgba(255,255,255,.8);font-size:12px;font-weight:500}
 
 /* POLYGON CONTROLS */
-#polyControls{
-  position:fixed;bottom:96px;left:0;right:0;z-index:22;
-  display:none;flex-direction:column;align-items:center;gap:10px;
-  pointer-events:none
-}
+#polyControls{position:fixed;bottom:96px;left:0;right:0;z-index:22;display:none;flex-direction:column;align-items:center;gap:10px;pointer-events:none}
 #polyControls.visible{display:flex}
 #polyControls>*{pointer-events:auto}
-
-.polyInfoPill{
-  background:rgba(17,17,17,.92);backdrop-filter:blur(16px);
-  border:1px solid rgba(255,59,48,.4);border-radius:var(--r-xl);
-  padding:8px 22px;font-size:11px;font-weight:600;color:#fff;text-align:center;max-width:88vw
-}
+.polyInfoPill{background:rgba(17,17,17,.92);backdrop-filter:blur(16px);border:1px solid rgba(255,59,48,.4);border-radius:var(--r-xl);padding:8px 22px;font-size:11px;font-weight:600;color:#fff;text-align:center;max-width:88vw}
 .polyInfoPill span{color:var(--poly)}
 .polyBtnRow{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
-.polyBtn{
-  padding:10px 18px;border-radius:var(--r-md);border:none;cursor:pointer;
-  font-family:var(--font);font-size:12px;font-weight:700;transition:all .18s;white-space:nowrap
-}
+.polyBtn{padding:10px 18px;border-radius:var(--r-md);border:none;cursor:pointer;font-family:var(--font);font-size:12px;font-weight:700;transition:all .18s;white-space:nowrap}
 .polyBtn:active{transform:scale(.95)}
 #pbUndo{background:rgba(255,255,255,.14);color:#fff;border:1px solid rgba(255,255,255,.25)}
 #pbClose{background:var(--poly);color:#fff;display:none}
 #pbCancel{background:rgba(255,255,255,.07);color:rgba(255,255,255,.55);border:1px solid rgba(255,255,255,.15);font-size:11px}
 
-/* FLOOR CALIBRATION TOAST */
-#floorCalibToast{
-  position:fixed;top:110px;left:50%;transform:translateX(-50%);
-  z-index:21;display:none;align-items:center;gap:8px;
-  padding:9px 18px;border-radius:var(--r-xl);
-  background:rgba(40,79,117,.92);backdrop-filter:blur(14px);
-  border:1px solid rgba(100,180,255,.3);color:#fff;font-size:11px;font-weight:600;
-  white-space:nowrap;pointer-events:none
-}
-#floorCalibToast.visible{display:flex}
-
-/* CARRELAGE PICKER OVERLAY (step 2) */
-#carrelagePicker{
-  position:fixed;bottom:0;left:0;right:0;z-index:35;
-  background:var(--white);border-radius:var(--r-lg) var(--r-lg) 0 0;
-  box-shadow:var(--shadow);padding:0 0 28px;
-  transform:translateY(100%);transition:transform .35s cubic-bezier(.32,.72,0,1);
-  display:none
-}
+/* CARRELAGE PICKER */
+#carrelagePicker{position:fixed;bottom:0;left:0;right:0;z-index:35;background:var(--white);border-radius:var(--r-lg) var(--r-lg) 0 0;box-shadow:var(--shadow);padding:0 0 28px;transform:translateY(100%);transition:transform .35s cubic-bezier(.32,.72,0,1);display:none}
 #carrelagePicker.visible{transform:translateY(0);display:block}
 .cpHeader{display:flex;align-items:center;justify-content:space-between;padding:16px 16px 8px}
 .cpTitle{font-size:13px;font-weight:700;color:var(--secondary)}
@@ -105,8 +84,6 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:var
 .cpCard-img{width:100%;height:64px;object-fit:cover;display:block}
 .cpCard-name{font-size:9px;font-weight:700;color:var(--hint);padding:5px 7px 2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .cpCard-sub{font-size:8px;color:var(--grey);padding:0 7px 6px}
-
-/* PATTERN & SIZE STRIP */
 .cpOptions{padding:12px 14px 0;border-top:1px solid var(--lg);margin-top:10px}
 .cpOptLabel{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--grey);margin-bottom:8px}
 .cpPatterns{display:flex;gap:6px;flex-wrap:wrap}
@@ -141,63 +118,57 @@ input.tileZoneInput::-webkit-slider-thumb{-webkit-appearance:none;width:16px;hei
 #quickRow{display:flex;align-items:center;gap:6px;padding:0 12px 12px;flex-shrink:0}
 .qBtn{flex:1;display:flex;align-items:center;justify-content:center;gap:4px;padding:11px 6px;border-radius:var(--r-md);border:none;cursor:pointer;font-family:var(--font);font-size:10px;font-weight:600;transition:all .18s;white-space:nowrap;min-width:0}
 .qBtn:active{transform:scale(.96)}
-.qBtn-primary{background:var(--secondary);color:#fff}
 .qBtn-ghost{background:var(--lg2);color:var(--hint)}
 .qBtn-poly{background:rgba(255,59,48,.1);color:var(--poly);border:1.5px solid rgba(255,59,48,.3)}
 .qBtn-poly-on{background:rgba(255,59,48,.22);color:var(--poly);border:1.5px solid rgba(255,59,48,.7)}
 .qBtn-danger{background:rgba(221,80,80,.12);color:var(--red)}
 
-/* SLIDERS */
-input[type=range]{-webkit-appearance:none;width:100%;height:4px;background:var(--lg);border-radius:3px;outline:none}
-input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:var(--secondary);cursor:pointer;border:2px solid #fff}
-
 /* START SCREEN */
 #startScreen{position:fixed;inset:0;z-index:100;background:linear-gradient(135deg,#0a0f1a 0%,#1a2a3a 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px}
 #startScreen.hidden{display:none}
-.startIcon{width:80px;height:80px;border-radius:28px;background:rgba(245,144,100,.15);border:1px solid rgba(245,144,100,.3);display:flex;align-items:center;justify-content:center;margin-bottom:24px}
 .startTitle{font-size:32px;font-weight:700;color:#fff;letter-spacing:-1px;margin-bottom:10px;text-align:center}
-.startSub{font-size:13px;color:rgba(255,255,255,.6);line-height:1.7;text-align:center;max-width:280px;margin-bottom:12px}
-.startFeatures{display:flex;flex-direction:column;gap:8px;margin-bottom:32px;width:100%;max-width:280px}
-.startFeature{display:flex;align-items:center;gap:10px;font-size:12px;color:rgba(255,255,255,.7)}
-.startFeature-dot{width:6px;height:6px;border-radius:50%;background:var(--primary);flex-shrink:0}
-.startFeature-dot.tile{background:#D4A96A}
-.startFeature-dot.poly{background:var(--poly)}
+.startSub{font-size:13px;color:rgba(255,255,255,.6);line-height:1.7;text-align:center;max-width:280px;margin-bottom:32px}
 #startArBtn{padding:16px 40px;background:var(--primary);color:#fff;border:none;border-radius:var(--r-xl);font-family:var(--font);font-size:15px;font-weight:700;cursor:pointer;box-shadow:0 6px 24px rgba(245,144,100,.4);width:100%;max-width:280px}
-#noXrMsg{color:rgba(255,100,100,.8);font-size:12px;margin-top:12px;text-align:center;display:none}
 
 /* MISC */
-#videoEl{position:fixed;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;display:none}
 #saveToast{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:200;display:flex;flex-direction:column;align-items:center;gap:10px;padding:24px 32px;background:rgba(20,30,40,.92);backdrop-filter:blur(20px);border-radius:var(--r-lg);border:1px solid rgba(255,255,255,.15);color:#fff;font-size:13px;font-weight:600;pointer-events:none;opacity:0;transition:opacity .3s;text-align:center}
 #saveToast.show{opacity:1}
-#xrReticle{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:5;pointer-events:none;opacity:0;transition:opacity .4s}
-#xrReticle.visible{opacity:1}
-#surfaceLabel{position:fixed;top:calc(50% + 46px);left:50%;transform:translateX(-50%);z-index:6;padding:3px 10px;border-radius:12px;font-size:9px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;pointer-events:none;opacity:0;transition:all .3s;white-space:nowrap}
-#surfaceLabel.visible{opacity:1}
-#surfaceLabel.floor{background:rgba(82,180,107,.25);color:#52B46B;border:1px solid rgba(82,180,107,.4)}
-#surfaceLabel.wall{background:rgba(40,79,117,.25);color:#6fa3d8;border:1px solid rgba(40,79,117,.4)}
 #deleteHint{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:18;padding:12px 24px;border-radius:var(--r-lg);background:rgba(221,80,80,.85);color:#fff;font-size:14px;font-weight:700;pointer-events:none;opacity:0;transition:opacity .2s;text-align:center}
-#deleteHint.show{opacity:1;animation:pulse-delete .6s ease-out}
-@keyframes pulse-delete{0%{opacity:1;transform:translate(-50%,-50%) scale(1)}50%{opacity:.5}100%{opacity:0;transform:translate(-50%,-50%) scale(.8)}}
-
-/* TILING PROGRESS */
+#deleteHint.show{opacity:1;animation:pd .6s ease-out}
+@keyframes pd{0%{opacity:1;transform:translate(-50%,-50%) scale(1)}100%{opacity:0;transform:translate(-50%,-50%) scale(.8)}}
 #tilingProgress{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:60;background:rgba(20,30,40,.95);border:1px solid rgba(212,169,106,.4);border-radius:var(--r-lg);padding:24px 32px;color:#fff;text-align:center;display:none;min-width:220px}
 #tilingProgress.visible{display:block}
 #tilingProgressBar{width:180px;height:6px;background:rgba(255,255,255,.1);border-radius:3px;margin:12px auto 6px;overflow:hidden}
 #tilingProgressFill{height:100%;background:linear-gradient(90deg,#D4A96A,#8B5E3C);border-radius:3px;width:0%;transition:width .15s}
 #tilingProgressText{font-size:11px;color:rgba(255,255,255,.7)}
+
+/* XR RETICLE */
+#xrReticle{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:5;pointer-events:none;opacity:0;transition:opacity .4s}
+#xrReticle.visible{opacity:1}
+#surfaceLabel{position:fixed;top:calc(50% + 46px);left:50%;transform:translateX(-50%);z-index:6;padding:3px 10px;border-radius:12px;font-size:9px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;pointer-events:none;opacity:0;transition:all .3s;white-space:nowrap}
+#surfaceLabel.visible.floor{opacity:1;background:rgba(82,180,107,.25);color:#52B46B;border:1px solid rgba(82,180,107,.4)}
+
+/* DEBUG overlay (hidden in production) */
+#debugOverlay{position:fixed;top:110px;left:10px;z-index:99;background:rgba(0,0,0,.6);color:#0f0;font-size:9px;font-family:monospace;padding:6px 10px;border-radius:8px;pointer-events:none;display:none}
 </style>
 </head>
 <body>
 
+<!-- VIDEO BACKGROUND -->
 <video id="videoEl" autoplay playsinline muted></video>
+
+<!-- THREE.JS with alpha=true so video shows through -->
 <canvas id="threeCanvas"></canvas>
+
+<!-- POLYGON DRAWING -->
 <canvas id="polyDrawCanvas"></canvas>
 <canvas id="interactionCanvas"></canvas>
 
-<!-- FLOOR CALIBRATION TOAST -->
-<div id="floorCalibToast">📐 Sol calibré à Y = <span id="floorYDisplay">0.00</span>m</div>
+<div id="debugOverlay" id="debugOverlay"></div>
 
-<!-- POLYGON CONTROLS (visible during drawing) -->
+<div id="glbLoader"><div class="spin"></div><p id="glbLoaderText">Chargement…</p></div>
+
+<!-- POLYGON CONTROLS -->
 <div id="polyControls">
   <div class="polyInfoPill" id="polyInfo">Tapez les <span>coins de la zone</span> · 0 pt</div>
   <div class="polyBtnRow">
@@ -207,7 +178,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
   </div>
 </div>
 
-<!-- CARRELAGE PICKER (step 2) -->
+<!-- CARRELAGE PICKER -->
 <div id="carrelagePicker">
   <div class="cpHeader">
     <span class="cpTitle">2 · Choisir le carrelage</span>
@@ -219,29 +190,27 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
     <div class="cpPatterns" id="cpPatterns">
       <div class="cpPattern active" data-pattern="straight"><span class="cpPattern-icon">⬛</span>Droit</div>
       <div class="cpPattern" data-pattern="diagonal"><span class="cpPattern-icon">◆</span>Diagonal</div>
-      <div class="cpPattern" data-pattern="chevron"><span class="cpPattern-icon">〰</span>Chevron</div>
+      <div class="cpPattern" data-pattern="herringbone"><span class="cpPattern-icon">〰</span>Chevron</div>
       <div class="cpPattern" data-pattern="opus"><span class="cpPattern-icon">▦</span>Opus</div>
     </div>
     <div class="cpSizeRow">
       <span class="cpSizeLabel">Taille tuile</span>
-      <input type="range" class="tileZoneInput" id="tileSizeSlider" min="10" max="60" step="5" value="30">
+      <input type="range" class="tileZoneInput" id="tileSizeSlider" min="10" max="80" step="5" value="30">
       <span class="cpSizeVal" id="tileSizeVal">30cm</span>
     </div>
     <button id="cpConfirmBtn" disabled>Poser les tuiles dans la zone</button>
   </div>
 </div>
 
-<!-- XR reticle -->
+<!-- XR RETICLE -->
 <div id="xrReticle">
   <svg width="70" height="70" viewBox="0 0 70 70" fill="none">
     <ellipse cx="35" cy="35" rx="30" ry="11" stroke="rgba(82,180,107,.9)" stroke-width="1.5" stroke-dasharray="6 4"/>
     <circle cx="35" cy="35" r="3" fill="#52B46B"/>
-    <line x1="35" y1="20" x2="35" y2="28" stroke="rgba(82,180,107,.9)" stroke-width="2" stroke-linecap="round"/>
-    <line x1="35" y1="42" x2="35" y2="50" stroke="rgba(82,180,107,.9)" stroke-width="2" stroke-linecap="round"/>
   </svg>
 </div>
-<div id="surfaceLabel">Sol</div>
-<div id="glbLoader"><div class="spin"></div><p id="glbLoaderText">Chargement…</p></div>
+<div id="surfaceLabel" class="floor">Sol</div>
+
 <div id="saveToast"><span id="saveToastIcon">📸</span><span id="saveToastText">Capture !</span></div>
 <div id="deleteHint">Supprimé</div>
 <div id="tilingProgress">
@@ -252,49 +221,22 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
 
 <!-- START SCREEN -->
 <div id="startScreen">
-  <div class="startIcon">
-    <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
-      <rect x="4" y="4" width="14" height="14" rx="2" fill="rgba(212,169,106,.7)"/>
-      <rect x="22" y="4" width="14" height="14" rx="2" fill="rgba(139,94,60,.5)"/>
-      <rect x="4" y="22" width="14" height="14" rx="2" fill="rgba(139,94,60,.5)"/>
-      <rect x="22" y="22" width="14" height="14" rx="2" fill="rgba(212,169,106,.7)"/>
-    </svg>
-  </div>
   <div class="startTitle">PlaceAR</div>
-  <div class="startSub">Délimitez une zone, choisissez le carrelage, posez !</div>
-  <div class="startFeatures">
-    <div class="startFeature"><div class="startFeature-dot poly"></div>1 · Tracez le polygone sur le sol</div>
-    <div class="startFeature"><div class="startFeature-dot tile"></div>2 · Sélectionnez le carrelage et le motif</div>
-    <div class="startFeature"><div class="startFeature-dot"></div>3 · Remplissage automatique précis</div>
-    <div class="startFeature"><div class="startFeature-dot"></div>Gestes : rotation, zoom, suppression</div>
-  </div>
+  <div class="startSub">Délimitez une zone au sol · Choisissez le carrelage · Posez !</div>
   <button id="startArBtn">🚀 Lancer la AR</button>
-  <div id="noXrMsg">WebXR non supporté.<br>Mode caméra activé.</div>
 </div>
 
 <!-- TOP BAR -->
 <div id="topBar" style="display:none">
-  <div style="display:flex;align-items:center;gap:8px">
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-      <rect x="2" y="2" width="9" height="9" rx="1.5" fill="rgba(212,169,106,.8)"/>
-      <rect x="13" y="2" width="9" height="9" rx="1.5" fill="rgba(139,94,60,.6)"/>
-      <rect x="2" y="13" width="9" height="9" rx="1.5" fill="rgba(139,94,60,.6)"/>
-      <rect x="13" y="13" width="9" height="9" rx="1.5" fill="rgba(212,169,106,.8)"/>
-    </svg>
-    <span id="appLogoText">PlaceAR</span>
-  </div>
+  <span id="appLogoText">PlaceAR</span>
   <div id="topRight">
-    <div id="placedBadge">
-      <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><rect x="1" y="1" width="3.5" height="3.5" rx=".8" fill="currentColor"/><rect x="5.5" y="1" width="3.5" height="3.5" rx=".8" fill="currentColor" opacity=".5"/><rect x="1" y="5.5" width="3.5" height="3.5" rx=".8" fill="currentColor" opacity=".5"/><rect x="5.5" y="5.5" width="3.5" height="3.5" rx=".8" fill="currentColor" opacity=".3"/></svg>
-      <span id="placedCountEl">0</span> placé(s)
-    </div>
+    <div id="placedBadge"><span id="placedCountEl">0</span> placé(s)</div>
     <div class="topPill"><div class="topPill-dot"></div><span>AR Live</span></div>
   </div>
 </div>
-
 <div id="statusToast" style="display:none"><div id="statusDot"></div><span id="statusText">Init…</span></div>
 
-<!-- ACTION BAR (selected object) -->
+<!-- ACTION BAR -->
 <div id="actionBar">
   <div id="actionBarInner">
     <span id="selectedProductName">—</span>
@@ -333,81 +275,120 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/environments/RoomEnvironment.js"></script>
 <script>
-/* ═══════════════════════════════════════════
-   STATE
-═══════════════════════════════════════════ */
+'use strict';
+
+/* ═══════════════════════════════════════════════════════════════
+   GLOBAL STATE
+═══════════════════════════════════════════════════════════════ */
 const S = {
-  xrSupported:false, xrSession:null, xrMode:false, fallbackMode:false,
-  catalog:[], selectedProductId:null,
-  placedObjects:[], selectedObjectId:null,
-  opacity:0.92,
-  touchStartDist:null, touchStartScale:1,
-  hitTestSource:null, hitTestSourceInitialized:false,
-  reticleVisible:false, currentHitMatrix:null, meshIdCounter:0,
-  currentSurfaceType:'floor',
-  twoTouchStart:null, lastTapTime:0, doubleTapTimeout:null,
-  drawingZone:false,
-  polyPoints2D:[],
-  polyPoints3D:[],
-  polyClosed:false,
-  pendingPolyPts:null,
-  tileZoneGroups:[],
-  selectedPattern:'straight',
-  tileSize:0.30,
-  // ── FIX: explicit floor Y tracked separately ──
-  floorY: 0,
+  /* session */
+  xrSupported: false, xrSession: null, xrMode: false, fallbackMode: false,
+  cameraReady: false,
+  /* catalog */
+  catalog: [], selectedProductId: null,
+  /* placed objects */
+  placedObjects: [], selectedObjectId: null, meshIdCounter: 0,
+  /* tile settings */
+  tileSize: 0.30, selectedPattern: 'straight', opacity: 0.92,
+  /* polygon drawing */
+  drawingZone: false,
+  polyPoints2D: [],   /* [{x,y}] screen pixels */
+  polyPoints3D: [],   /* [THREE.Vector3] world coords on floor plane */
+  polyClosed: false,
+  pendingPolyPts: null,
+  tileZoneGroups: [],
+  /* touch gestures */
+  twoTouchStart: null, touchStartScale: 1,
+  lastTapTime: 0, doubleTapTimeout: null,
+  /* XR */
+  hitTestSource: null, hitTestSourceReady: false,
+  reticleVisible: false,
+  /* ─── FLOOR PLANE CALIBRATION ───
+     The key insight: we don't assume any camera height.
+     Instead, we derive the floor plane equation directly
+     from the screen → floor mapping using the camera's
+     actual frustum and the real video frame geometry.
+     
+     In fallback mode:
+       - Camera is at some unknown height H above floor
+       - Camera is tilted at some unknown angle θ downward
+     
+     We solve for H and θ by fitting a plane through the
+     3D back-projections of the tapped 2D points.
+     
+     Until we have enough points, we use a reasonable prior:
+       H = 1.0m, θ = 55° (phone held forward pointing at floor)
+  */
+  floorY: 0,            /* Y coordinate of the floor in world space */
+  camCalibrated: false, /* whether we've auto-calibrated from taps */
 };
 
-/* DOM */
-const threeCanvas      = document.getElementById('threeCanvas');
-const polyDrawCanvas   = document.getElementById('polyDrawCanvas');
-const interactionCanvas= document.getElementById('interactionCanvas');
-const startScreen      = document.getElementById('startScreen');
-const startArBtn       = document.getElementById('startArBtn');
-const noXrMsg          = document.getElementById('noXrMsg');
-const topBar           = document.getElementById('topBar');
-const sheet            = document.getElementById('sheet');
-const statusToast      = document.getElementById('statusToast');
-const statusText       = document.getElementById('statusText');
-const placedBadge      = document.getElementById('placedBadge');
-const placedCountEl    = document.getElementById('placedCountEl');
-const actionBar        = document.getElementById('actionBar');
-const selProdName      = document.getElementById('selectedProductName');
-const xrReticle        = document.getElementById('xrReticle');
-const surfaceLabel     = document.getElementById('surfaceLabel');
-const glbLoader        = document.getElementById('glbLoader');
-const glbLoaderText    = document.getElementById('glbLoaderText');
-const deleteHint       = document.getElementById('deleteHint');
-const tilingProgress   = document.getElementById('tilingProgress');
-const tilingFill       = document.getElementById('tilingProgressFill');
-const tilingText       = document.getElementById('tilingProgressText');
-const polyControls     = document.getElementById('polyControls');
-const polyInfo         = document.getElementById('polyInfo');
-const pbUndo           = document.getElementById('pbUndo');
-const pbClose          = document.getElementById('pbClose');
-const pbCancel         = document.getElementById('pbCancel');
-const carrelagePicker  = document.getElementById('carrelagePicker');
-const cpScroll         = document.getElementById('cpScroll');
-const cpConfirmBtn     = document.getElementById('cpConfirmBtn');
-const drawZoneBtn      = document.getElementById('drawZoneBtn');
-const floorCalibToast  = document.getElementById('floorCalibToast');
-const floorYDisplay    = document.getElementById('floorYDisplay');
+/* ═══════════════════════════════════════════════════════════════
+   DOM REFERENCES
+═══════════════════════════════════════════════════════════════ */
+const $id = id => document.getElementById(id);
+const videoEl          = $id('videoEl');
+const threeCanvas      = $id('threeCanvas');
+const polyDrawCanvas   = $id('polyDrawCanvas');
+const interactionCanvas= $id('interactionCanvas');
+const startScreen      = $id('startScreen');
+const startArBtn       = $id('startArBtn');
+const topBar           = $id('topBar');
+const sheet            = $id('sheet');
+const statusToast      = $id('statusToast');
+const statusText       = $id('statusText');
+const placedBadge      = $id('placedBadge');
+const placedCountEl    = $id('placedCountEl');
+const actionBar        = $id('actionBar');
+const selProdName      = $id('selectedProductName');
+const xrReticle        = $id('xrReticle');
+const surfaceLabel     = $id('surfaceLabel');
+const glbLoader        = $id('glbLoader');
+const deleteHint       = $id('deleteHint');
+const tilingProgress   = $id('tilingProgress');
+const tilingFill       = $id('tilingProgressFill');
+const tilingText       = $id('tilingProgressText');
+const polyControls     = $id('polyControls');
+const polyInfo         = $id('polyInfo');
+const pbUndo           = $id('pbUndo');
+const pbClose          = $id('pbClose');
+const pbCancel         = $id('pbCancel');
+const carrelagePicker  = $id('carrelagePicker');
+const cpScroll         = $id('cpScroll');
+const cpConfirmBtn     = $id('cpConfirmBtn');
+const drawZoneBtn      = $id('drawZoneBtn');
+const debugEl          = $id('debugOverlay');
 
 let polyCtx;
 const ptDist = (a,b) => Math.hypot(a.x-b.x, a.y-b.y);
-function setStatus(msg,cls=''){statusText.textContent=msg;statusToast.className=cls;statusToast.style.display='flex';}
+function setStatus(msg, cls='') {
+  statusText.textContent = msg;
+  statusToast.className = cls;
+  statusToast.style.display = 'flex';
+}
 
-/* ═══════════════════════════════════════════
-   THREE.JS
-═══════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════════════
+   THREE.JS SETUP
+═══════════════════════════════════════════════════════════════ */
 let scene, camera3, renderer3, loader;
-let xrReferenceSpace=null, xrReticleMesh=null;
-let floorPlane=null;
+let xrReferenceSpace = null, xrReticleMesh = null;
+let floorMesh = null;  /* invisible floor plane for raycasting */
 
-function initThreeJS(){
+function initThreeJS() {
   scene = new THREE.Scene();
-  camera3 = new THREE.PerspectiveCamera(70, window.innerWidth/window.innerHeight, 0.01, 100);
-  renderer3 = new THREE.WebGLRenderer({canvas:threeCanvas, alpha:true, antialias:true, logarithmicDepthBuffer:true});
+
+  /* Camera: will be calibrated properly once we have floor points */
+  camera3 = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.01, 200);
+
+  /* alpha:true so video background shows through */
+  renderer3 = new THREE.WebGLRenderer({
+    canvas: threeCanvas,
+    alpha: true,
+    antialias: true,
+    logarithmicDepthBuffer: true,
+    premultipliedAlpha: false,
+  });
+  renderer3.setClearColor(0x000000, 0); /* fully transparent */
   renderer3.setSize(window.innerWidth, window.innerHeight);
   renderer3.setPixelRatio(Math.min(devicePixelRatio, 2));
   renderer3.outputEncoding = THREE.sRGBEncoding;
@@ -416,35 +397,40 @@ function initThreeJS(){
   renderer3.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer3.xr.enabled = true;
 
+  /* Lighting */
   const pmrem = new THREE.PMREMGenerator(renderer3);
   pmrem.compileEquirectangularShader();
   scene.environment = pmrem.fromScene(new THREE.RoomEnvironment()).texture;
   pmrem.dispose();
 
-  scene.add(new THREE.AmbientLight(0xffffff, 1.2));
-  const dir = new THREE.DirectionalLight(0xffffff, 1.4);
-  dir.position.set(3,8,5); dir.castShadow=true; scene.add(dir);
-  const fillLight = new THREE.DirectionalLight(0xffffff, 0.4);
-  fillLight.position.set(-4, 2, -4);
-  scene.add(fillLight);
+  scene.add(new THREE.AmbientLight(0xffffff, 1.4));
+  const dir = new THREE.DirectionalLight(0xffffff, 1.6);
+  dir.position.set(2, 6, 4);
+  dir.castShadow = true;
+  scene.add(dir);
+  const fill = new THREE.DirectionalLight(0xffffff, 0.5);
+  fill.position.set(-3, 3, -3);
+  scene.add(fill);
 
-  const reticleGeo = new THREE.RingGeometry(0.12,0.15,32).rotateX(-Math.PI/2);
-  xrReticleMesh = new THREE.Mesh(reticleGeo, new THREE.MeshBasicMaterial({color:0x52B46B,side:THREE.DoubleSide}));
-  xrReticleMesh.visible=false; xrReticleMesh.matrixAutoUpdate=false;
+  /* XR reticle */
+  const rGeo = new THREE.RingGeometry(0.12, 0.15, 32).rotateX(-Math.PI/2);
+  xrReticleMesh = new THREE.Mesh(rGeo, new THREE.MeshBasicMaterial({color:0x52B46B, side:THREE.DoubleSide}));
+  xrReticleMesh.visible = false;
+  xrReticleMesh.matrixAutoUpdate = false;
   scene.add(xrReticleMesh);
 
-  /* ── FIX: floor plane at Y=0 initially, updated by calibration ── */
-  floorPlane = new THREE.Mesh(
-    new THREE.PlaneGeometry(200,200),
-    new THREE.MeshBasicMaterial({visible:false, side:THREE.DoubleSide})
+  /* Invisible floor mesh for raycasting — starts at Y=0, updated on calibration */
+  floorMesh = new THREE.Mesh(
+    new THREE.PlaneGeometry(500, 500),
+    new THREE.MeshBasicMaterial({ visible: false, side: THREE.DoubleSide })
   );
-  floorPlane.rotation.x = -Math.PI/2;
-  floorPlane.position.y = S.floorY;
-  floorPlane.name = 'floor';
-  scene.add(floorPlane);
+  floorMesh.rotation.x = -Math.PI / 2;
+  floorMesh.position.y = 0;
+  scene.add(floorMesh);
 
   loader = new THREE.GLTFLoader();
 
+  /* 2D canvas setup */
   polyDrawCanvas.width = window.innerWidth;
   polyDrawCanvas.height = window.innerHeight;
   polyCtx = polyDrawCanvas.getContext('2d');
@@ -454,939 +440,1227 @@ function initThreeJS(){
   window.addEventListener('resize', onResize);
 }
 
-function onResize(){
-  camera3.aspect = window.innerWidth/window.innerHeight;
+function onResize() {
+  camera3.aspect = window.innerWidth / window.innerHeight;
   camera3.updateProjectionMatrix();
   renderer3.setSize(window.innerWidth, window.innerHeight);
-  polyDrawCanvas.width  = window.innerWidth;
+  polyDrawCanvas.width = window.innerWidth;
   polyDrawCanvas.height = window.innerHeight;
-  interactionCanvas.width  = window.innerWidth;
+  interactionCanvas.width = window.innerWidth;
   interactionCanvas.height = window.innerHeight;
-  if(S.drawingZone) redrawPoly();
+  if (S.drawingZone) redrawPoly();
 }
 
-/* ═══════════════════════════════════════════
+/* ═══════════════════════════════════════════════════════════════
    WEBXR
-═══════════════════════════════════════════ */
-async function checkXRSupport(){
-  if(!navigator.xr) return false;
-  try{return await navigator.xr.isSessionSupported('immersive-ar');}catch{return false;}
+═══════════════════════════════════════════════════════════════ */
+async function checkXRSupport() {
+  if (!navigator.xr) return false;
+  try { return await navigator.xr.isSessionSupported('immersive-ar'); } catch { return false; }
 }
 
-async function startXRSession(){
-  try{
-    const session = await navigator.xr.requestSession('immersive-ar',{
-      requiredFeatures:['hit-test'],
-      optionalFeatures:['dom-overlay','plane-detection'],
-      domOverlay:{root:document.body},
+async function startXRSession() {
+  try {
+    const session = await navigator.xr.requestSession('immersive-ar', {
+      requiredFeatures: ['hit-test'],
+      optionalFeatures: ['dom-overlay', 'plane-detection'],
+      domOverlay: { root: document.body },
     });
-    S.xrSession=session; S.xrMode=true;
+    S.xrSession = session;
+    S.xrMode = true;
     renderer3.xr.setReferenceSpaceType('local');
     await renderer3.xr.setSession(session);
     xrReferenceSpace = await session.requestReferenceSpace('local');
     const viewerSpace = await session.requestReferenceSpace('viewer');
-    S.hitTestSource = await session.requestHitTestSource({space:viewerSpace, entityTypes:['plane','point','mesh']});
-    S.hitTestSourceInitialized = true;
+    S.hitTestSource = await session.requestHitTestSource({ space: viewerSpace, entityTypes: ['plane', 'point', 'mesh'] });
+    S.hitTestSourceReady = true;
     session.addEventListener('end', onXRSessionEnd);
     renderer3.setAnimationLoop(xrRenderLoop);
     showARUI();
     setupXRSelect();
-  }catch(err){
-    console.error('WebXR error:',err);
-    setStatus('Erreur WebXR: '+err.message,'error');
+  } catch (err) {
+    console.error('WebXR error:', err);
     startFallbackMode();
   }
 }
 
-function showARUI(){
-  startScreen.classList.add('hidden');
-  topBar.style.display='flex';
-  sheet.style.display='flex';
-  statusToast.style.display='flex';
-  xrReticle.classList.add('visible');
-  setStatus('Tapez "Tracer la zone" pour commencer','scanning');
-}
-
-function onXRSessionEnd(){
-  S.xrMode=false; S.xrSession=null; S.hitTestSourceInitialized=false; S.hitTestSource=null;
-  renderer3.setAnimationLoop(null);
-  xrReticle.classList.remove('visible');
-  surfaceLabel.className=''; xrReticleMesh.visible=false;
-}
-
-function xrRenderLoop(timestamp, frame){
-  if(!frame) return;
-  if(S.hitTestSourceInitialized && S.hitTestSource){
+function xrRenderLoop(timestamp, frame) {
+  if (!frame) return;
+  if (S.hitTestSourceReady && S.hitTestSource) {
     const results = frame.getHitTestResults(S.hitTestSource);
-    if(results.length>0){
+    if (results.length > 0) {
       const pose = results[0].getPose(xrReferenceSpace);
-      if(pose){
-        xrReticleMesh.visible=true; xrReticle.classList.add('visible');
+      if (pose) {
+        xrReticleMesh.visible = true;
+        xrReticle.classList.add('visible');
         xrReticleMesh.matrix.fromArray(pose.transform.matrix);
-        S.currentHitMatrix = pose.transform.matrix; S.reticleVisible=true;
-        const m=pose.transform.matrix; const normalY=m[5];
-        S.currentSurfaceType=Math.abs(normalY)>0.7?(normalY>0?'floor':'ceiling'):'wall';
-        const labels={floor:'Sol',wall:'Mur',ceiling:'Plafond'};
-        surfaceLabel.textContent=labels[S.currentSurfaceType];
-        surfaceLabel.className='visible '+S.currentSurfaceType;
-        /* ── FIX: update floor Y from XR hit test ── */
-        if(S.currentSurfaceType==='floor'){
-          const pos=new THREE.Vector3(), q=new THREE.Quaternion(), sc=new THREE.Vector3();
-          new THREE.Matrix4().fromArray(pose.transform.matrix).decompose(pos,q,sc);
-          S.floorY = pos.y;
-          floorPlane.position.y = S.floorY;
+        S.reticleVisible = true;
+        /* Update floor Y from XR hit */
+        const p = new THREE.Vector3(), q = new THREE.Quaternion(), sc = new THREE.Vector3();
+        new THREE.Matrix4().fromArray(pose.transform.matrix).decompose(p, q, sc);
+        if (Math.abs(p.y - S.floorY) < 0.5) {
+          S.floorY = p.y * 0.1 + S.floorY * 0.9; /* smooth */
+          floorMesh.position.y = S.floorY;
         }
+        surfaceLabel.className = 'visible floor';
       }
-    }else{xrReticle.classList.remove('visible'); S.reticleVisible=false;}
+    } else {
+      xrReticle.classList.remove('visible');
+      S.reticleVisible = false;
+    }
   }
   renderer3.render(scene, camera3);
 }
 
-/* ═══════════════════════════════════════════
+function onXRSessionEnd() {
+  S.xrMode = false; S.xrSession = null;
+  S.hitTestSourceReady = false; S.hitTestSource = null;
+  renderer3.setAnimationLoop(null);
+  xrReticle.classList.remove('visible');
+  xrReticleMesh.visible = false;
+}
+
+function setupXRSelect() {
+  if (!S.xrSession) return;
+  S.xrSession.addEventListener('select', () => {
+    if (!S.drawingZone || S.polyClosed || !S.reticleVisible) return;
+    const pos = new THREE.Vector3(), q = new THREE.Quaternion(), sc = new THREE.Vector3();
+    xrReticleMesh.matrix.decompose(pos, q, sc);
+    pos.y = S.floorY;
+    addPolyPoint(pos, worldToScreen(pos));
+  });
+}
+
+/* ═══════════════════════════════════════════════════════════════
    FALLBACK CAMERA MODE
-═══════════════════════════════════════════ */
-async function startFallbackMode(){
-  S.fallbackMode=true;
-  try{
-    const stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'},audio:false});
-    const videoEl = document.getElementById('videoEl');
-    videoEl.srcObject=stream;
-    videoEl.style.display='block';
+   
+   KEY DESIGN:
+   We set up the Three.js camera to MATCH the real phone camera.
+   Then screenToFloor() gives correct 3D coords because the
+   virtual camera frustum matches the real one.
+   
+   Camera calibration:
+   - We start with a reasonable prior (1.1m height, 60° tilt)
+   - After 3+ polygon taps, we fit the actual floor plane
+     and update the camera pose so future taps are accurate
+═══════════════════════════════════════════════════════════════ */
+async function startFallbackMode() {
+  S.fallbackMode = true;
+
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } },
+      audio: false,
+    });
+    videoEl.srcObject = stream;
+    videoEl.style.display = 'block';
+    await new Promise(res => { videoEl.onloadedmetadata = res; });
     await videoEl.play();
-  }catch(e){setStatus('Caméra refusée','error');return;}
+    S.cameraReady = true;
+  } catch (e) {
+    setStatus('Caméra refusée', 'error');
+    return;
+  }
 
-  renderer3.setAnimationLoop(()=>renderer3.render(scene,camera3));
+  /* Set camera with a prior that matches typical phone-held-toward-floor */
+  setCameraFromPrior();
 
-  /* ── FIX: Camera positioned realistically above floor ──
-     Phone held ~1.2m high, tilted ~55° down toward floor */
-  const CAM_HEIGHT = 1.2;
-  camera3.position.set(0, CAM_HEIGHT, 0.3);
-  camera3.lookAt(0, 0, -0.5);
-
-  /* ── FIX: Floor plane at Y=0 (actual floor level) ── */
-  S.floorY = 0;
-  floorPlane.position.y = S.floorY;
+  /* Render loop */
+  renderer3.setAnimationLoop(() => renderer3.render(scene, camera3));
 
   showARUI();
-  surfaceLabel.className='visible floor'; surfaceLabel.textContent='Sol';
-  S.reticleVisible=true; S.currentSurfaceType='floor';
-  setStatus('Mode caméra · Pointez le sol puis tracez la zone','ok');
-
-  /* Calibrate floor by probing the center of screen */
-  calibrateFloorFromScreen();
+  surfaceLabel.className = 'visible floor';
+  setStatus('Mode caméra · Tapez les coins de la zone sur le SOL', 'ok');
 }
 
-/* ── FIX: Auto-calibrate floorY by raycasting center of screen ──
-   This detects what Y the floor appears at given the current camera pose */
-function calibrateFloorFromScreen(){
-  /* Cast a ray from screen center — wherever it hits the mathematical
-     floor plane (Y=0) is our reference. Then nudge camera height so
-     the floor plane stays at Y=0 (tiles lay flat). */
-  const cx = window.innerWidth / 2;
-  const cy = window.innerHeight * 0.65; /* slightly below center = floor area */
-  const pt = screenToFloorRaw(cx, cy, 0); /* intersect Y=0 */
-  /* If the intersection is too far or invalid, keep default */
-  if(pt && isFinite(pt.x) && Math.abs(pt.z) < 20){
-    console.log('[Calib] Floor reference point:', pt);
-  }
+/* ── Prior camera pose ─────────────────────────────────────── */
+function setCameraFromPrior() {
+  /*
+    Typical phone usage: held ~1.1m high, pointed ~55-65° down
+    Floor is at Y = 0 in world space.
+    Camera is at Y = CAM_H looking toward the floor ahead.
+  */
+  const CAM_H = 1.1;
+  const TILT_DEG = 60; /* degrees down from horizontal */
+
+  S.floorY = 0;
+  floorMesh.position.y = 0;
+
+  camera3.position.set(0, CAM_H, 0);
+  /* Rotate camera to look TILT_DEG degrees below horizontal */
+  camera3.rotation.set(-THREE.MathUtils.degToRad(TILT_DEG), 0, 0);
+  camera3.updateMatrixWorld(true);
+
+  S.camCalibrated = false;
 }
 
-/* ═══════════════════════════════════════════
-   ── FIX: ROBUST screenToFloor ──
+/* ═══════════════════════════════════════════════════════════════
+   SCREEN → FLOOR 3D RAYCASTING
    
-   The original bug: in fallback mode the camera is at Y=1.2 looking down,
-   but floorPlane was at Y=0 and never updated. Ray-plane intersection
-   should work, but only if the plane normal faces the camera correctly.
+   This is the critical function.  It converts a 2D screen tap
+   into a 3D world coordinate on the floor plane.
    
-   Key fix: we use a pure mathematical plane intersection (no mesh needed)
-   and ensure the floor Y is correct before each tap.
-═══════════════════════════════════════════ */
-const raycaster = new THREE.Raycaster();
+   We raycast from the camera through the screen pixel
+   and intersect with the floor plane at Y = S.floorY.
+═══════════════════════════════════════════════════════════════ */
+const _raycaster = new THREE.Raycaster();
 
-function screenToFloor(sx, sy){
-  /* ── FIX: always use the tracked S.floorY for the plane ── */
-  return screenToFloorRaw(sx, sy, S.floorY);
-}
-
-function screenToFloorRaw(sx, sy, planeY){
+function screenToFloor(sx, sy) {
   const nx = (sx / window.innerWidth) * 2 - 1;
   const ny = -(sy / window.innerHeight) * 2 + 1;
-  raycaster.setFromCamera({x: nx, y: ny}, camera3);
+  _raycaster.setFromCamera({ x: nx, y: ny }, camera3);
 
-  /* Method 1: THREE.js mesh intersection */
-  const savedY = floorPlane.position.y;
-  floorPlane.position.y = planeY;
-  floorPlane.updateMatrixWorld(true);
-  const hits = raycaster.intersectObject(floorPlane);
-  floorPlane.position.y = savedY;
-
-  if(hits.length > 0){
-    return hits[0].point.clone();
+  /* Intersect with the invisible floor mesh */
+  floorMesh.updateMatrixWorld(true);
+  const hits = _raycaster.intersectObject(floorMesh);
+  if (hits.length > 0) {
+    const pt = hits[0].point.clone();
+    pt.y = S.floorY; /* clamp exactly to floor Y */
+    return pt;
   }
 
-  /* Method 2: mathematical plane Y=planeY */
-  const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -planeY);
+  /* Fallback: intersect with mathematical plane Y = S.floorY */
+  const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -S.floorY);
   const target = new THREE.Vector3();
-  if(raycaster.ray.intersectPlane(plane, target)){
-    return target.clone();
+  if (_raycaster.ray.intersectPlane(plane, target)) {
+    target.y = S.floorY;
+    return target;
   }
 
-  /* Method 3: fallback — project 1.5m forward */
-  return raycaster.ray.at(1.5, new THREE.Vector3());
+  /* Last resort: project 1.8m along ray */
+  const pt = _raycaster.ray.at(1.8, new THREE.Vector3());
+  pt.y = S.floorY;
+  return pt;
 }
 
-function worldToScreen(v){
+function worldToScreen(v) {
   const vec = v.clone().project(camera3);
-  return { x:(vec.x+1)/2*window.innerWidth, y:(-(vec.y-1)/2)*window.innerHeight };
+  return {
+    x: (vec.x + 1) / 2 * window.innerWidth,
+    y: (-(vec.y - 1) / 2) * window.innerHeight,
+  };
 }
 
-/* ═══════════════════════════════════════════
+/* ═══════════════════════════════════════════════════════════════
+   FLOOR PLANE AUTO-CALIBRATION
+   
+   Called after each new polygon point in fallback mode.
+   
+   Strategy:
+   1. Collect screen-space Y coords of all tapped polygon points
+   2. The lowest point (highest Y on screen) is closest to camera
+      and gives the best estimate of "where the floor is"
+   3. We use a RANSAC-style approach: assume the floor is a
+      horizontal plane, estimate its height from the perspective
+      geometry, then update the camera pose.
+   
+   The key geometric insight (from FloorAR v20):
+   On a perspective image of a horizontal floor, a point at
+   screen Y=sy corresponds to a world distance:
+     depth = (cam_height * f) / (sy - cy)
+   where f = focal_length_px, cy = principal_point_y
+   
+   We use this to estimate cam_height without any external input.
+═══════════════════════════════════════════════════════════════ */
+function calibrateFloorFromPoints() {
+  if (!S.fallbackMode) return;
+  if (S.polyPoints2D.length < 2) return;
+
+  /* Get the point with the highest screen Y (closest to camera = best floor signal) */
+  const pts2D = S.polyPoints2D;
+  const pts3D = S.polyPoints3D;
+
+  /* Estimate camera pitch from the spread of 3D points:
+     If the 3D points are correctly on a flat floor, their Y values should all be equal.
+     If some are higher, the camera pitch estimation was wrong.
+     We adjust by finding the mean Y of all computed 3D points. */
+  if (pts3D.length >= 2) {
+    const ys = pts3D.map(p => p.y);
+    const meanY = ys.reduce((s, v) => s + v, 0) / ys.length;
+    /* The floor should be at the MINIMUM y value among the 3D points
+       (points near camera map to higher screen Y which is geometrically correct) */
+    const minY = Math.min(...ys);
+    const maxY = Math.max(...ys);
+
+    /* If variance is large, points are scattered in Y — floor plane is wrong */
+    const variance = ys.reduce((s, v) => s + (v - meanY) ** 2, 0) / ys.length;
+
+    if (variance > 0.05 && pts3D.length >= 3) {
+      /* Re-fit: adjust camera height to minimise variance */
+      /* The correct camera height makes all floor points have the same Y */
+      /* Try heights from 0.5m to 2.0m and pick the one with minimum variance */
+      let bestH = camera3.position.y;
+      let bestVar = Infinity;
+      let bestTilt = -camera3.rotation.x;
+
+      for (let h = 0.4; h <= 2.0; h += 0.05) {
+        for (let tiltDeg = 30; tiltDeg <= 85; tiltDeg += 2.5) {
+          /* Temporarily set camera */
+          camera3.position.y = h;
+          camera3.rotation.x = -THREE.MathUtils.degToRad(tiltDeg);
+          camera3.updateMatrixWorld(true);
+          floorMesh.position.y = 0;
+          S.floorY = 0;
+
+          /* Re-compute 3D positions of all polygon screen taps */
+          const testPts3D = pts2D.map(p => screenToFloor(p.x, p.y));
+          const testYs = testPts3D.map(p => p.y);
+          const testMean = testYs.reduce((s, v) => s + v, 0) / testYs.length;
+          const testVar = testYs.reduce((s, v) => s + (v - testMean) ** 2, 0) / testYs.length;
+
+          if (testVar < bestVar) {
+            bestVar = testVar;
+            bestH = h;
+            bestTilt = tiltDeg;
+          }
+        }
+      }
+
+      /* Apply best camera calibration */
+      camera3.position.y = bestH;
+      camera3.rotation.x = -THREE.MathUtils.degToRad(bestTilt);
+      camera3.updateMatrixWorld(true);
+      S.camCalibrated = true;
+
+      /* Recompute all 3D polygon points with calibrated camera */
+      for (let i = 0; i < pts2D.length; i++) {
+        pts3D[i] = screenToFloor(pts2D[i].x, pts2D[i].y);
+        pts3D[i].y = S.floorY;
+      }
+
+      debugLog(`Calib: H=${bestH.toFixed(2)}m tilt=${bestTilt.toFixed(1)}° var=${bestVar.toFixed(4)}`);
+    }
+  }
+}
+
+function debugLog(msg) {
+  /* console.log('[AR]', msg); */
+  /* debugEl.style.display = 'block'; debugEl.textContent = msg; */
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SHOW AR UI
+═══════════════════════════════════════════════════════════════ */
+function showARUI() {
+  startScreen.classList.add('hidden');
+  topBar.style.display = 'flex';
+  sheet.style.display = 'flex';
+  statusToast.style.display = 'flex';
+}
+
+/* ═══════════════════════════════════════════════════════════════
    POLYGON DRAWING
-═══════════════════════════════════════════ */
-const CLOSE_SNAP = 34;
+═══════════════════════════════════════════════════════════════ */
+const CLOSE_SNAP = 36;
 const MIN_POINTS = 3;
 
-function startZoneDrawing(){
-  S.drawingZone=true;
-  S.polyPoints2D=[];
-  S.polyPoints3D=[];
-  S.polyClosed=false;
-  S.pendingPolyPts=null;
-  interactionCanvas.style.display='block';
+function startZoneDrawing() {
+  S.drawingZone = true;
+  S.polyPoints2D = [];
+  S.polyPoints3D = [];
+  S.polyClosed = false;
+  S.pendingPolyPts = null;
+  interactionCanvas.style.display = 'block';
   polyControls.classList.add('visible');
-  drawZoneBtn.className='qBtn qBtn-poly-on';
-  polyCtx.clearRect(0,0,polyDrawCanvas.width,polyDrawCanvas.height);
-  setStatus('Étape 1 · Tapez chaque coin de la zone sur le SOL','poly');
+  drawZoneBtn.className = 'qBtn qBtn-poly-on';
+  polyCtx.clearRect(0, 0, polyDrawCanvas.width, polyDrawCanvas.height);
+  setStatus('Tapez chaque COIN DE LA ZONE sur le sol', 'poly');
   updatePolyUI();
 }
 
-function cancelZoneDrawing(){
-  S.drawingZone=false;
-  S.polyPoints2D=[];
-  S.polyPoints3D=[];
-  S.polyClosed=false;
-  interactionCanvas.style.display='none';
+function cancelZoneDrawing() {
+  S.drawingZone = false;
+  S.polyPoints2D = [];
+  S.polyPoints3D = [];
+  S.polyClosed = false;
+  interactionCanvas.style.display = 'none';
   polyControls.classList.remove('visible');
-  drawZoneBtn.className='qBtn qBtn-poly';
-  polyCtx.clearRect(0,0,polyDrawCanvas.width,polyDrawCanvas.height);
-  setStatus('Dessin annulé','ok');
+  drawZoneBtn.className = 'qBtn qBtn-poly';
+  polyCtx.clearRect(0, 0, polyDrawCanvas.width, polyDrawCanvas.height);
+  setStatus('Annulé', 'ok');
 }
 
-function updatePolyUI(){
+function updatePolyUI() {
   const n = S.polyPoints2D.length;
-  polyInfo.innerHTML='<span>'+(S.polyClosed?'Zone fermée':'Tapez les coins')+'</span> · '+n+' pt'+(n>1?'s':'');
-  pbClose.style.display = (n>=MIN_POINTS && !S.polyClosed) ? 'block' : 'none';
+  polyInfo.innerHTML = '<span>' + (S.polyClosed ? 'Zone fermée' : 'Tapez les coins') + '</span> · ' + n + ' pt' + (n > 1 ? 's' : '');
+  pbClose.style.display = (n >= MIN_POINTS && !S.polyClosed) ? 'block' : 'none';
 }
 
-function redrawPoly(mx, my){
-  const W=polyDrawCanvas.width, H=polyDrawCanvas.height;
-  polyCtx.clearRect(0,0,W,H);
+/* Add a new polygon point */
+function addPolyPoint(world3, screen2) {
+  world3.y = S.floorY; /* always clamp to floor */
+  S.polyPoints3D.push(world3);
+  S.polyPoints2D.push({ x: screen2.x, y: screen2.y });
+  updatePolyUI();
+  redrawPoly();
+
+  /* Auto-calibrate after each new point in fallback mode */
+  if (S.fallbackMode && S.polyPoints2D.length >= 3) {
+    calibrateFloorFromPoints();
+  }
+
+  debugLog(`pt${S.polyPoints2D.length}: screen(${screen2.x.toFixed(0)},${screen2.y.toFixed(0)}) world(${world3.x.toFixed(3)},${world3.z.toFixed(3)})`);
+}
+
+function redrawPoly(mx, my) {
+  const W = polyDrawCanvas.width, H = polyDrawCanvas.height;
+  polyCtx.clearRect(0, 0, W, H);
   const pts = S.polyPoints2D;
-  if(!pts.length) return;
+  if (!pts.length) return;
 
-  const nearFirst = pts.length>=MIN_POINTS && mx!==undefined
-    && ptDist({x:mx,y:my}, pts[0]) < CLOSE_SNAP;
+  const nearFirst = pts.length >= MIN_POINTS && mx !== undefined
+    && ptDist({ x: mx, y: my }, pts[0]) < CLOSE_SNAP;
 
-  if(pts.length>=3){
+  /* Filled area */
+  if (pts.length >= 3) {
     polyCtx.beginPath();
     polyCtx.moveTo(pts[0].x, pts[0].y);
-    for(let i=1;i<pts.length;i++) polyCtx.lineTo(pts[i].x, pts[i].y);
+    for (let i = 1; i < pts.length; i++) polyCtx.lineTo(pts[i].x, pts[i].y);
     polyCtx.closePath();
-    polyCtx.fillStyle='rgba(255,59,48,0.10)';
+    polyCtx.fillStyle = 'rgba(255,59,48,0.12)';
     polyCtx.fill();
     drawPolyTilePreview(pts);
   }
 
+  /* Border */
   polyCtx.beginPath();
   polyCtx.moveTo(pts[0].x, pts[0].y);
-  for(let i=1;i<pts.length;i++) polyCtx.lineTo(pts[i].x, pts[i].y);
-  if(S.polyClosed) polyCtx.closePath();
-  polyCtx.strokeStyle='#FF3B30'; polyCtx.lineWidth=2.5; polyCtx.setLineDash([]); polyCtx.stroke();
+  for (let i = 1; i < pts.length; i++) polyCtx.lineTo(pts[i].x, pts[i].y);
+  if (S.polyClosed) polyCtx.closePath();
+  polyCtx.strokeStyle = '#FF3B30';
+  polyCtx.lineWidth = 2.5;
+  polyCtx.setLineDash([]);
+  polyCtx.stroke();
 
-  if(mx!==undefined && !S.polyClosed && pts.length>0){
-    const last=pts[pts.length-1];
-    polyCtx.beginPath(); polyCtx.moveTo(last.x,last.y); polyCtx.lineTo(mx,my);
-    polyCtx.strokeStyle='rgba(255,255,255,.35)'; polyCtx.lineWidth=1.5; polyCtx.setLineDash([5,4]); polyCtx.stroke(); polyCtx.setLineDash([]);
-    if(pts.length>=MIN_POINTS){
-      polyCtx.beginPath(); polyCtx.moveTo(mx,my); polyCtx.lineTo(pts[0].x,pts[0].y);
-      polyCtx.strokeStyle=nearFirst?'#FF3B30':'rgba(255,255,255,.18)';
-      polyCtx.lineWidth=nearFirst?2.5:1; polyCtx.setLineDash(nearFirst?[]:[6,4]);
-      polyCtx.stroke(); polyCtx.setLineDash([]);
+  /* Rubber-band line */
+  if (mx !== undefined && !S.polyClosed && pts.length > 0) {
+    const last = pts[pts.length - 1];
+    polyCtx.beginPath();
+    polyCtx.moveTo(last.x, last.y);
+    polyCtx.lineTo(mx, my);
+    polyCtx.strokeStyle = 'rgba(255,255,255,.35)';
+    polyCtx.lineWidth = 1.5;
+    polyCtx.setLineDash([5, 4]);
+    polyCtx.stroke();
+    polyCtx.setLineDash([]);
+    if (pts.length >= MIN_POINTS) {
+      polyCtx.beginPath();
+      polyCtx.moveTo(mx, my);
+      polyCtx.lineTo(pts[0].x, pts[0].y);
+      polyCtx.strokeStyle = nearFirst ? '#FF3B30' : 'rgba(255,255,255,.18)';
+      polyCtx.lineWidth = nearFirst ? 2.5 : 1;
+      polyCtx.setLineDash(nearFirst ? [] : [6, 4]);
+      polyCtx.stroke();
+      polyCtx.setLineDash([]);
     }
   }
 
-  pts.forEach((p,i)=>{
-    const isFirst = i===0;
-    const r = isFirst ? 9 : 6;
-
-    if(isFirst && pts.length>=MIN_POINTS){
-      polyCtx.beginPath(); polyCtx.arc(p.x,p.y,CLOSE_SNAP,0,Math.PI*2);
-      polyCtx.strokeStyle=nearFirst?'rgba(255,59,48,.5)':'rgba(255,59,48,.18)';
-      polyCtx.lineWidth=1; polyCtx.setLineDash([4,3]); polyCtx.stroke(); polyCtx.setLineDash([]);
-    }
-
-    polyCtx.beginPath(); polyCtx.arc(p.x,p.y,r+8,0,Math.PI*2);
-    polyCtx.fillStyle=isFirst?'rgba(255,59,48,.15)':'rgba(255,255,255,.06)'; polyCtx.fill();
-
-    const g=polyCtx.createRadialGradient(p.x,p.y,0,p.x,p.y,r);
-    g.addColorStop(0,isFirst?'#fff':'#ffe');
-    g.addColorStop(1,isFirst?'#FF3B30':'rgba(255,140,100,.7)');
-    polyCtx.beginPath(); polyCtx.arc(p.x,p.y,r,0,Math.PI*2);
-    polyCtx.fillStyle=g; polyCtx.fill();
-    polyCtx.strokeStyle=isFirst?'#fff':'rgba(255,59,48,.85)'; polyCtx.lineWidth=2; polyCtx.stroke();
-
-    polyCtx.font='bold 9px Montserrat,sans-serif';
-    polyCtx.fillStyle=isFirst?'rgba(255,59,48,1)':'rgba(212,169,106,1)';
-    polyCtx.textAlign='center'; polyCtx.textBaseline='middle';
-    polyCtx.fillText(i+1, p.x, p.y-22);
-
-    if(isFirst && nearFirst){
-      const bx=p.x+14, by=p.y-36;
-      polyCtx.fillStyle='#FF3B30';
+  /* Points */
+  pts.forEach((p, i) => {
+    const isFirst = i === 0, r = isFirst ? 9 : 6;
+    if (isFirst && pts.length >= MIN_POINTS) {
       polyCtx.beginPath();
-      if(polyCtx.roundRect) polyCtx.roundRect(bx,by,68,20,6); else polyCtx.rect(bx,by,68,20);
+      polyCtx.arc(p.x, p.y, CLOSE_SNAP, 0, Math.PI * 2);
+      polyCtx.strokeStyle = nearFirst ? 'rgba(255,59,48,.5)' : 'rgba(255,59,48,.18)';
+      polyCtx.lineWidth = 1;
+      polyCtx.setLineDash([4, 3]);
+      polyCtx.stroke();
+      polyCtx.setLineDash([]);
+    }
+    polyCtx.beginPath();
+    polyCtx.arc(p.x, p.y, r + 8, 0, Math.PI * 2);
+    polyCtx.fillStyle = isFirst ? 'rgba(255,59,48,.15)' : 'rgba(255,255,255,.06)';
+    polyCtx.fill();
+    const g = polyCtx.createRadialGradient(p.x, p.y, 0, p.x, p.y, r);
+    g.addColorStop(0, isFirst ? '#fff' : '#ffe');
+    g.addColorStop(1, isFirst ? '#FF3B30' : 'rgba(255,140,100,.7)');
+    polyCtx.beginPath();
+    polyCtx.arc(p.x, p.y, r, 0, Math.PI * 2);
+    polyCtx.fillStyle = g;
+    polyCtx.fill();
+    polyCtx.strokeStyle = isFirst ? '#fff' : 'rgba(255,59,48,.85)';
+    polyCtx.lineWidth = 2;
+    polyCtx.stroke();
+    polyCtx.font = 'bold 9px Montserrat,sans-serif';
+    polyCtx.fillStyle = isFirst ? '#FF3B30' : 'rgba(212,169,106,1)';
+    polyCtx.textAlign = 'center';
+    polyCtx.textBaseline = 'middle';
+    polyCtx.fillText(i + 1, p.x, p.y - 22);
+    if (isFirst && nearFirst) {
+      const bx = p.x + 14, by = p.y - 36;
+      polyCtx.fillStyle = '#FF3B30';
+      polyCtx.beginPath();
+      if (polyCtx.roundRect) polyCtx.roundRect(bx, by, 68, 20, 6);
+      else polyCtx.rect(bx, by, 68, 20);
       polyCtx.fill();
-      polyCtx.font='bold 10px Montserrat,sans-serif'; polyCtx.fillStyle='#fff';
-      polyCtx.textAlign='left'; polyCtx.textBaseline='middle';
-      polyCtx.fillText('⬡ Fermer',bx+8,by+10);
+      polyCtx.font = 'bold 10px Montserrat,sans-serif';
+      polyCtx.fillStyle = '#fff';
+      polyCtx.textAlign = 'left';
+      polyCtx.textBaseline = 'middle';
+      polyCtx.fillText('⬡ Fermer', bx + 8, by + 10);
     }
   });
 
-  if(mx!==undefined && !nearFirst && !S.polyClosed){
-    polyCtx.beginPath(); polyCtx.arc(mx,my,4,0,Math.PI*2);
-    polyCtx.fillStyle='rgba(255,255,255,.4)'; polyCtx.fill();
+  if (mx !== undefined && !nearFirst && !S.polyClosed) {
+    polyCtx.beginPath();
+    polyCtx.arc(mx, my, 4, 0, Math.PI * 2);
+    polyCtx.fillStyle = 'rgba(255,255,255,.4)';
+    polyCtx.fill();
   }
 }
 
-function drawPolyTilePreview(pts){
-  const ts=24;
-  const xs=pts.map(p=>p.x), ys=pts.map(p=>p.y);
-  const minX=Math.min(...xs), maxX=Math.max(...xs);
-  const minY=Math.min(...ys), maxY=Math.max(...ys);
-
+function drawPolyTilePreview(pts) {
+  const ts = 22;
+  const xs = pts.map(p => p.x), ys = pts.map(p => p.y);
+  const minX = Math.min(...xs), maxX = Math.max(...xs);
+  const minY = Math.min(...ys), maxY = Math.max(...ys);
   polyCtx.save();
-  polyCtx.beginPath(); polyCtx.moveTo(pts[0].x,pts[0].y);
-  for(let i=1;i<pts.length;i++) polyCtx.lineTo(pts[i].x,pts[i].y);
-  polyCtx.closePath(); polyCtx.clip();
-
-  const colors=['rgba(212,169,106,0.20)','rgba(139,94,60,0.14)','rgba(212,169,106,0.14)','rgba(139,94,60,0.10)'];
-  const cols=Math.ceil((maxX-minX)/ts)+2, rows=Math.ceil((maxY-minY)/ts)+2;
-  const cx=(minX+maxX)/2, cy=(minY+maxY)/2;
-  const offX=((cx%ts)+ts)%ts, offY=((cy%ts)+ts)%ts;
-  for(let r=0;r<rows;r++){
-    for(let c=0;c<cols;c++){
-      const tx=minX-offX+c*ts, ty=minY-offY+r*ts;
-      polyCtx.fillStyle=colors[(r+c)%4];
-      polyCtx.fillRect(tx+1,ty+1,ts-2,ts-2);
+  polyCtx.beginPath();
+  polyCtx.moveTo(pts[0].x, pts[0].y);
+  for (let i = 1; i < pts.length; i++) polyCtx.lineTo(pts[i].x, pts[i].y);
+  polyCtx.closePath();
+  polyCtx.clip();
+  const colors = ['rgba(212,169,106,0.22)', 'rgba(139,94,60,0.15)', 'rgba(212,169,106,0.15)', 'rgba(139,94,60,0.10)'];
+  const cx = (minX + maxX) / 2, cy2 = (minY + maxY) / 2;
+  const offX = ((cx % ts) + ts) % ts, offY = ((cy2 % ts) + ts) % ts;
+  const cols = Math.ceil((maxX - minX) / ts) + 2, rows = Math.ceil((maxY - minY) / ts) + 2;
+  for (let r = 0; r < rows; r++)
+    for (let c = 0; c < cols; c++) {
+      polyCtx.fillStyle = colors[(r + c) % 4];
+      polyCtx.fillRect(minX - offX + c * ts + 1, minY - offY + r * ts + 1, ts - 2, ts - 2);
     }
-  }
   polyCtx.restore();
 }
 
-/* ── Interaction canvas ── */
-interactionCanvas.addEventListener('click', e=>{
-  if(!S.drawingZone || isOverSheet(e.clientY)) return;
+/* ── Interaction events ── */
+interactionCanvas.addEventListener('click', e => {
+  if (!S.drawingZone || isOverSheet(e.clientY)) return;
   handlePolyTap(e.clientX, e.clientY);
 });
-interactionCanvas.addEventListener('touchend', e=>{
-  if(!S.drawingZone) return;
+interactionCanvas.addEventListener('touchend', e => {
+  if (!S.drawingZone) return;
   e.preventDefault();
-  const t=e.changedTouches[0];
-  if(isOverSheet(t.clientY)) return;
+  const t = e.changedTouches[0];
+  if (isOverSheet(t.clientY)) return;
   handlePolyTap(t.clientX, t.clientY);
-},{passive:false});
-interactionCanvas.addEventListener('mousemove', e=>{
-  if(!S.drawingZone || S.polyClosed) return;
+}, { passive: false });
+interactionCanvas.addEventListener('mousemove', e => {
+  if (!S.drawingZone || S.polyClosed) return;
   redrawPoly(e.clientX, e.clientY);
 });
-interactionCanvas.addEventListener('touchmove', e=>{
-  if(!S.drawingZone || S.polyClosed) return;
-  const t=e.touches[0]; redrawPoly(t.clientX, t.clientY);
-},{passive:true});
+interactionCanvas.addEventListener('touchmove', e => {
+  if (!S.drawingZone || S.polyClosed) return;
+  const t = e.touches[0];
+  redrawPoly(t.clientX, t.clientY);
+}, { passive: true });
 
-function isOverSheet(y){
-  const sr=sheet.getBoundingClientRect();
-  const pr=carrelagePicker.getBoundingClientRect();
-  return y > sr.top || (carrelagePicker.classList.contains('visible') && y>pr.top);
+function isOverSheet(y) {
+  const sr = sheet.getBoundingClientRect();
+  return y > sr.top || (carrelagePicker.classList.contains('visible') &&
+    y > carrelagePicker.getBoundingClientRect().top);
 }
 
-function handlePolyTap(ex, ey){
-  if(S.polyClosed) return;
-  const pts=S.polyPoints2D;
+function handlePolyTap(ex, ey) {
+  if (S.polyClosed) return;
+  const pts = S.polyPoints2D;
 
-  if(pts.length>=MIN_POINTS && ptDist({x:ex,y:ey}, pts[0]) < CLOSE_SNAP){
-    closePolygon(); return;
+  /* Snap-to-close */
+  if (pts.length >= MIN_POINTS && ptDist({ x: ex, y: ey }, pts[0]) < CLOSE_SNAP) {
+    closePolygon();
+    return;
   }
 
-  /* ── FIX: get 3D floor point using current S.floorY ── */
   const world = screenToFloor(ex, ey);
-
-  /* ── FIX: clamp Y to floorY so all points are coplanar on the floor ── */
-  world.y = S.floorY;
-
-  /* For 2D display: project back or use screen coords directly */
-  const screen2D = S.xrMode ? worldToScreen(world) : {x:ex, y:ey};
-
-  S.polyPoints2D.push(screen2D);
-  S.polyPoints3D.push(world);
-  updatePolyUI();
-  redrawPoly(ex, ey);
-
-  /* Debug: log the 3D point */
-  console.log(`[Poly tap ${pts.length}] screen(${ex.toFixed(0)},${ey.toFixed(0)}) → world(${world.x.toFixed(3)}, ${world.y.toFixed(3)}, ${world.z.toFixed(3)})`);
+  const screen2D = S.xrMode ? worldToScreen(world) : { x: ex, y: ey };
+  addPolyPoint(world, screen2D);
 }
 
-function closePolygon(){
-  if(S.polyPoints2D.length<MIN_POINTS) return;
-  S.polyClosed=true;
+function closePolygon() {
+  if (S.polyPoints2D.length < MIN_POINTS) return;
+  S.polyClosed = true;
   redrawPoly();
   updatePolyUI();
-  interactionCanvas.style.display='none';
+  interactionCanvas.style.display = 'none';
   polyControls.classList.remove('visible');
   showCarrelagePicker();
 }
 
-function undoLastPoint(){
-  if(S.polyClosed){ S.polyClosed=false; interactionCanvas.style.display='block'; polyControls.classList.add('visible'); updatePolyUI(); redrawPoly(); return; }
-  if(!S.polyPoints2D.length) return;
-  S.polyPoints2D.pop(); S.polyPoints3D.pop();
-  updatePolyUI(); redrawPoly();
+function undoLastPoint() {
+  if (S.polyClosed) {
+    S.polyClosed = false;
+    interactionCanvas.style.display = 'block';
+    polyControls.classList.add('visible');
+    updatePolyUI();
+    redrawPoly();
+    return;
+  }
+  if (!S.polyPoints2D.length) return;
+  S.polyPoints2D.pop();
+  S.polyPoints3D.pop();
+  updatePolyUI();
+  redrawPoly();
 }
 
 pbUndo.addEventListener('click', undoLastPoint);
 pbClose.addEventListener('click', closePolygon);
 pbCancel.addEventListener('click', cancelZoneDrawing);
 
-/* ═══════════════════════════════════════════
-   CARRELAGE PICKER (ÉTAPE 2)
-═══════════════════════════════════════════ */
-function showCarrelagePicker(){
+/* ═══════════════════════════════════════════════════════════════
+   CARRELAGE PICKER
+═══════════════════════════════════════════════════════════════ */
+function showCarrelagePicker() {
   S.pendingPolyPts = S.polyPoints3D.slice();
-  drawZoneBtn.className='qBtn qBtn-poly-on';
+  drawZoneBtn.className = 'qBtn qBtn-poly-on';
   carrelagePicker.classList.add('visible');
-  setStatus('Étape 2 · Choisir le carrelage','tiling');
+  setStatus('Étape 2 · Choisir le carrelage', 'tiling');
   renderCpCards();
 }
 
-function hidePicker(){
+function hidePicker() {
   carrelagePicker.classList.remove('visible');
-  drawZoneBtn.className='qBtn qBtn-poly';
+  drawZoneBtn.className = 'qBtn qBtn-poly';
 }
 
-function renderCpCards(){
-  cpScroll.innerHTML='';
-  const tiles = S.catalog.filter(p=> !p.category || /carrelage|tile|sol/i.test(p.category) || S.catalog.every(x=>!x.category));
-  const list = tiles.length ? tiles : S.catalog;
-  list.forEach(p=>{
-    const card=document.createElement('div');
-    card.className='cpCard'+(S.selectedProductId===p.id?' active':'');
-    card.dataset.id=p.id;
-    const img=p.imageUrl||p.thumbnail||'';
-    card.innerHTML='<img class="cpCard-img" src="'+escapeHtml(img)+'" onerror="this.style.background=\'#c8d0d8\'" loading="lazy"><div class="cpCard-name">'+escapeHtml(p.name||'Carrelage')+'</div><div class="cpCard-sub">'+escapeHtml(p.category||'')+'</div>';
-    card.addEventListener('click',()=>{
-      S.selectedProductId=p.id;
-      cpScroll.querySelectorAll('.cpCard').forEach(c=>c.classList.remove('active'));
+function renderCpCards() {
+  cpScroll.innerHTML = '';
+  const list = S.catalog.length ? S.catalog : [];
+  if (!list.length) {
+    cpScroll.innerHTML = '<div style="padding:16px;color:#aaa;font-size:11px">Aucun produit</div>';
+    return;
+  }
+  list.forEach(p => {
+    const card = document.createElement('div');
+    card.className = 'cpCard' + (S.selectedProductId === p.id ? ' active' : '');
+    card.dataset.id = p.id;
+    const img = p.imageUrl || p.thumbnail || '';
+    card.innerHTML = '<img class="cpCard-img" src="' + esc(img) + '" onerror="this.style.background=\'#c8d0d8\'" loading="lazy"><div class="cpCard-name">' + esc(p.name || 'Carrelage') + '</div><div class="cpCard-sub">' + esc(p.category || '') + '</div>';
+    card.addEventListener('click', () => {
+      S.selectedProductId = p.id;
+      cpScroll.querySelectorAll('.cpCard').forEach(c => c.classList.remove('active'));
       card.classList.add('active');
-      cpConfirmBtn.disabled=false;
+      cpConfirmBtn.disabled = false;
     });
     cpScroll.appendChild(card);
   });
 }
 
-document.getElementById('cpCloseBtn').addEventListener('click',()=>{
-  hidePicker();
-  cancelZoneDrawing();
-});
+$id('cpCloseBtn').addEventListener('click', () => { hidePicker(); cancelZoneDrawing(); });
 
-document.querySelectorAll('.cpPattern').forEach(btn=>{
-  btn.addEventListener('click',()=>{
-    document.querySelectorAll('.cpPattern').forEach(b=>b.classList.remove('active'));
+document.querySelectorAll('.cpPattern').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.cpPattern').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
-    S.selectedPattern=btn.dataset.pattern;
+    S.selectedPattern = btn.dataset.pattern;
   });
 });
 
-document.getElementById('tileSizeSlider').addEventListener('input',e=>{
-  S.tileSize=parseInt(e.target.value)/100;
-  document.getElementById('tileSizeVal').textContent=e.target.value+'cm';
+$id('tileSizeSlider').addEventListener('input', e => {
+  S.tileSize = parseInt(e.target.value) / 100;
+  $id('tileSizeVal').textContent = e.target.value + 'cm';
 });
 
-cpConfirmBtn.addEventListener('click', async ()=>{
-  if(!S.selectedProductId || !S.pendingPolyPts) return;
+cpConfirmBtn.addEventListener('click', async () => {
+  if (!S.selectedProductId || !S.pendingPolyPts) return;
   hidePicker();
-  polyCtx.clearRect(0,0,polyDrawCanvas.width,polyDrawCanvas.height);
+  polyCtx.clearRect(0, 0, polyDrawCanvas.width, polyDrawCanvas.height);
   cancelZoneDrawing();
   await placeTilePolygon(S.pendingPolyPts);
-  S.pendingPolyPts=null;
+  S.pendingPolyPts = null;
 });
 
-/* ═══════════════════════════════════════════
-   XR SELECT
-═══════════════════════════════════════════ */
-function setupXRSelect(){
-  if(!S.xrSession) return;
-  S.xrSession.addEventListener('select',()=>{
-    if(S.drawingZone && S.reticleVisible && !S.polyClosed){
-      const mat=xrReticleMesh.matrix;
-      const pos=new THREE.Vector3(), q=new THREE.Quaternion(), sc=new THREE.Vector3();
-      mat.decompose(pos,q,sc);
-      /* ── FIX: clamp to floor Y ── */
-      pos.y = S.floorY;
-      const s2=worldToScreen(pos);
-      S.polyPoints2D.push(s2);
-      S.polyPoints3D.push(pos.clone());
-      updatePolyUI(); redrawPoly();
-    }
-  });
-}
+/* ═══════════════════════════════════════════════════════════════
+   TOUCH GESTURES (rotate / scale placed objects)
+═══════════════════════════════════════════════════════════════ */
+const GESTURE = { start: null, rotX: 0, rotY: 0 };
 
-/* ═══════════════════════════════════════════
-   TOUCH GESTURES
-═══════════════════════════════════════════ */
-const TS_GESTURE={touchStart:null,rotX:0,rotY:0};
-
-document.addEventListener('touchstart',e=>{
-  if(S.drawingZone || carrelagePicker.classList.contains('visible')) return;
-  if(e.touches.length===1){
-    const now=Date.now();
-    if(now-S.lastTapTime<300){
+document.addEventListener('touchstart', e => {
+  if (S.drawingZone || carrelagePicker.classList.contains('visible')) return;
+  if (e.touches.length === 1) {
+    const now = Date.now();
+    if (now - S.lastTapTime < 280) {
       clearTimeout(S.doubleTapTimeout);
-      if(S.selectedObjectId) deleteSelected();
-      TS_GESTURE.touchStart=null;
-    }else{
-      S.lastTapTime=now;
-      S.doubleTapTimeout=setTimeout(()=>{S.lastTapTime=0;},300);
-      if(S.selectedObjectId){const t=e.touches[0];TS_GESTURE.touchStart={x:t.clientX,y:t.clientY};const o=S.placedObjects.find(o=>o.id===S.selectedObjectId);if(o){TS_GESTURE.rotX=o.group.rotation.x;TS_GESTURE.rotY=o.group.rotation.y;}}
+      if (S.selectedObjectId) deleteSelected();
+      GESTURE.start = null;
+    } else {
+      S.lastTapTime = now;
+      S.doubleTapTimeout = setTimeout(() => { S.lastTapTime = 0; }, 280);
+      if (S.selectedObjectId) {
+        const t = e.touches[0];
+        GESTURE.start = { x: t.clientX, y: t.clientY };
+        const o = S.placedObjects.find(o => o.id === S.selectedObjectId);
+        if (o) { GESTURE.rotX = o.group.rotation.x; GESTURE.rotY = o.group.rotation.y; }
+      }
     }
-  }else if(e.touches.length===2){
-    TS_GESTURE.touchStart=null;
-    const t1=e.touches[0],t2=e.touches[1];
-    S.twoTouchStart={dist:Math.hypot(t2.clientX-t1.clientX,t2.clientY-t1.clientY)};
-    const o=S.placedObjects.find(o=>o.id===S.selectedObjectId);
-    if(o) S.touchStartScale=o.scaleVal;
+  } else if (e.touches.length === 2) {
+    GESTURE.start = null;
+    const t1 = e.touches[0], t2 = e.touches[1];
+    S.twoTouchStart = { dist: Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY) };
+    const o = S.placedObjects.find(o => o.id === S.selectedObjectId);
+    if (o) S.touchStartScale = o.scaleVal;
   }
-},{passive:true});
+}, { passive: true });
 
-document.addEventListener('touchmove',e=>{
-  if(S.drawingZone || carrelagePicker.classList.contains('visible')) return;
-  if(e.touches.length===1&&TS_GESTURE.touchStart&&S.selectedObjectId){
-    const t=e.touches[0], dx=t.clientX-TS_GESTURE.touchStart.x, dy=t.clientY-TS_GESTURE.touchStart.y;
-    const o=S.placedObjects.find(o=>o.id===S.selectedObjectId);
-    if(o){o.group.rotation.y=TS_GESTURE.rotY+dx*0.01; o.group.rotation.x=TS_GESTURE.rotX+dy*0.01;}
-  }else if(e.touches.length===2&&S.twoTouchStart&&S.selectedObjectId){
-    const t1=e.touches[0],t2=e.touches[1];
-    const nd=Math.hypot(t2.clientX-t1.clientX,t2.clientY-t1.clientY);
-    const o=S.placedObjects.find(o=>o.id===S.selectedObjectId);
-    if(o) scaleObject(o,S.touchStartScale*(nd/S.twoTouchStart.dist));
+document.addEventListener('touchmove', e => {
+  if (S.drawingZone || carrelagePicker.classList.contains('visible')) return;
+  if (e.touches.length === 1 && GESTURE.start && S.selectedObjectId) {
+    const t = e.touches[0];
+    const dx = t.clientX - GESTURE.start.x, dy = t.clientY - GESTURE.start.y;
+    const o = S.placedObjects.find(o => o.id === S.selectedObjectId);
+    if (o) { o.group.rotation.y = GESTURE.rotY + dx * 0.01; }
+  } else if (e.touches.length === 2 && S.twoTouchStart && S.selectedObjectId) {
+    const t1 = e.touches[0], t2 = e.touches[1];
+    const nd = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+    const o = S.placedObjects.find(o => o.id === S.selectedObjectId);
+    if (o) scaleObject(o, S.touchStartScale * (nd / S.twoTouchStart.dist));
   }
-},{passive:true});
+}, { passive: true });
 
-document.addEventListener('touchend',()=>{TS_GESTURE.touchStart=null; S.twoTouchStart=null;},{passive:true});
+document.addEventListener('touchend', () => { GESTURE.start = null; S.twoTouchStart = null; }, { passive: true });
 
-/* ═══════════════════════════════════════════
-   ██  3D TILE POLYGON PLACEMENT  ██
-═══════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════════════
+   ████  3D TILE PLACEMENT  ████
+   
+   Core algorithm:
+   1. flatPoly = all polygon points forced to Y = S.floorY
+   2. Generate tile grid positions in XZ plane (horizontal!)
+   3. Create BoxGeometry tiles, each at Y = S.floorY + TILE_H/2
+      → tiles lie FLAT on the floor, not vertical
+   4. Texture mapped from the product image
+═══════════════════════════════════════════════════════════════ */
 
-function pointInPoly(px, pz, poly){
-  let inside=false;
-  const n=poly.length;
-  for(let i=0,j=n-1;i<n;j=i++){
-    const xi=poly[i].x, zi=poly[i].z;
-    const xj=poly[j].x, zj=poly[j].z;
-    if(((zi>pz)!==(zj>pz)) && (px < (xj-xi)*(pz-zi)/(zj-zi)+xi))
-      inside=!inside;
+/* Point-in-polygon test (XZ plane) */
+function pointInPoly(px, pz, poly) {
+  let inside = false;
+  const n = poly.length;
+  for (let i = 0, j = n - 1; i < n; j = i++) {
+    const xi = poly[i].x, zi = poly[i].z;
+    const xj = poly[j].x, zj = poly[j].z;
+    if (((zi > pz) !== (zj > pz)) && (px < (xj - xi) * (pz - zi) / (zj - zi) + xi))
+      inside = !inside;
   }
   return inside;
 }
 
-function polyBounds(poly){
-  let minX=Infinity,maxX=-Infinity,minZ=Infinity,maxZ=-Infinity;
-  poly.forEach(p=>{
-    if(p.x<minX)minX=p.x; if(p.x>maxX)maxX=p.x;
-    if(p.z<minZ)minZ=p.z; if(p.z>maxZ)maxZ=p.z;
+function polyBounds(poly) {
+  let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity;
+  poly.forEach(p => {
+    if (p.x < minX) minX = p.x; if (p.x > maxX) maxX = p.x;
+    if (p.z < minZ) minZ = p.z; if (p.z > maxZ) maxZ = p.z;
   });
-  return{minX,maxX,minZ,maxZ};
+  return { minX, maxX, minZ, maxZ };
 }
 
-function polyCentroid(poly){
-  let cx=0,cz=0;
-  poly.forEach(p=>{cx+=p.x;cz+=p.z;});
-  return{x:cx/poly.length,z:cz/poly.length};
+function polyCentroid(poly) {
+  let cx = 0, cz = 0;
+  poly.forEach(p => { cx += p.x; cz += p.z; });
+  return { x: cx / poly.length, z: cz / poly.length };
 }
 
-function generateTilesInPolygon(poly3D, tileS, pattern){
-  const {minX,maxX,minZ,maxZ} = polyBounds(poly3D);
+/* ── Generate tile grid positions in XZ plane ── */
+function generateTilesInPolygon(poly3D, tileS, pattern) {
+  const { minX, maxX, minZ, maxZ } = polyBounds(poly3D);
   const cent = polyCentroid(poly3D);
-  const positions=[];
-  const PAD = tileS;
+  const positions = [];
+  const PAD = tileS * 1.5;
 
-  if(pattern==='diagonal'){
-    for(let gz=minZ-PAD; gz<=maxZ+PAD; gz+=tileS){
-      for(let gx=minX-PAD; gx<=maxX+PAD; gx+=tileS){
-        const dx=gx-cent.x, dz=gz-cent.z;
-        const rx=cent.x + (dx-dz)*Math.SQRT1_2;
-        const rz=cent.z + (dx+dz)*Math.SQRT1_2;
-        if(pointInPoly(rx, rz, poly3D))
-          positions.push({x:rx, z:rz, rot:Math.PI/4, w:tileS*0.94, h:tileS*0.94});
-      }
-    }
-  } else if(pattern==='chevron'){
-    const tw=tileS, th=tileS*0.5;
-    const offX=((cent.x%(tw))+tw)%tw;
-    const offZ=((cent.z%(th))+th)%th;
-    let row=0;
-    for(let gz=minZ-PAD-offZ; gz<=maxZ+PAD; gz+=th, row++){
-      const shift = (row%2===0) ? 0 : tw*0.5;
-      for(let gx=minX-PAD-offX+shift; gx<=maxX+PAD; gx+=tw){
-        const cx2=gx+tw/2, cz2=gz+th/2;
-        if(pointInPoly(cx2, cz2, poly3D)){
-          const rot=(row%2===0)? Math.PI/6 : -Math.PI/6;
-          positions.push({x:cx2, z:cz2, rot, w:tw, h:th});
+  switch (pattern) {
+    case 'diagonal': {
+      const cos45 = Math.SQRT1_2, sin45 = Math.SQRT1_2;
+      for (let gz = minZ - PAD; gz <= maxZ + PAD; gz += tileS) {
+        for (let gx = minX - PAD; gx <= maxX + PAD; gx += tileS) {
+          const dx = gx - cent.x, dz = gz - cent.z;
+          const rx = cent.x + dx * cos45 - dz * sin45;
+          const rz = cent.z + dx * sin45 + dz * cos45;
+          if (pointInPoly(rx, rz, poly3D))
+            positions.push({ x: rx, z: rz, rot: Math.PI / 4, w: tileS * 0.94, h: tileS * 0.94 });
         }
       }
+      break;
     }
-  } else if(pattern==='opus'){
-    const big=tileS, sm=tileS*0.6;
-    const stride=big+sm;
-    const offX=((cent.x%stride)+stride)%stride;
-    const offZ=((cent.z%stride)+stride)%stride;
-    for(let gz=minZ-PAD-offZ; gz<=maxZ+PAD; gz+=stride){
-      for(let gx=minX-PAD-offX; gx<=maxX+PAD; gx+=stride){
-        const bx=gx+big/2, bz=gz+big/2;
-        if(pointInPoly(bx,bz,poly3D)) positions.push({x:bx,z:bz,rot:0,w:big,h:big});
-        const sx=gx+big+sm/2, sz=gz+big/2;
-        if(pointInPoly(sx,sz,poly3D)) positions.push({x:sx,z:sz,rot:0,w:sm,h:sm});
-        const sx2=gx+big/2, sz2=gz+big+sm/2;
-        if(pointInPoly(sx2,sz2,poly3D)) positions.push({x:sx2,z:sz2,rot:0,w:sm,h:sm});
-        const sx3=gx+big+sm/2, sz3=gz+big+sm/2;
-        if(pointInPoly(sx3,sz3,poly3D)) positions.push({x:sx3,z:sz3,rot:0,w:sm,h:sm});
+    case 'herringbone': {
+      const tw = tileS, th = tileS * 0.5;
+      const offX = ((cent.x % tw) + tw) % tw;
+      const offZ = ((cent.z % th) + th) % th;
+      let row = 0;
+      for (let gz = minZ - PAD - offZ; gz <= maxZ + PAD; gz += th, row++) {
+        const shift = (row % 2 === 0) ? 0 : tw * 0.5;
+        for (let gx = minX - PAD - offX + shift; gx <= maxX + PAD; gx += tw) {
+          const cx2 = gx + tw / 2, cz2 = gz + th / 2;
+          if (pointInPoly(cx2, cz2, poly3D))
+            positions.push({ x: cx2, z: cz2, rot: (row % 2 === 0) ? 0 : Math.PI / 2, w: tw, h: th });
+        }
       }
+      break;
     }
-  } else {
-    const offX=((cent.x%tileS)+tileS)%tileS;
-    const offZ=((cent.z%tileS)+tileS)%tileS;
-    for(let gz=minZ-PAD-offZ; gz<=maxZ+PAD; gz+=tileS){
-      for(let gx=minX-PAD-offX; gx<=maxX+PAD; gx+=tileS){
-        const cx2=gx+tileS/2, cz2=gz+tileS/2;
-        if(pointInPoly(cx2, cz2, poly3D))
-          positions.push({x:cx2, z:cz2, rot:0, w:tileS, h:tileS});
+    case 'opus': {
+      const big = tileS, sm = tileS * 0.6;
+      const stride = big + sm;
+      const offX = ((cent.x % stride) + stride) % stride;
+      const offZ = ((cent.z % stride) + stride) % stride;
+      for (let gz = minZ - PAD - offZ; gz <= maxZ + PAD; gz += stride) {
+        for (let gx = minX - PAD - offX; gx <= maxX + PAD; gx += stride) {
+          const pts = [
+            { x: gx + big / 2, z: gz + big / 2, w: big, h: big },
+            { x: gx + big + sm / 2, z: gz + big / 2, w: sm, h: sm },
+            { x: gx + big / 2, z: gz + big + sm / 2, w: sm, h: sm },
+            { x: gx + big + sm / 2, z: gz + big + sm / 2, w: sm, h: sm },
+          ];
+          pts.forEach(p => {
+            if (pointInPoly(p.x, p.z, poly3D))
+              positions.push({ x: p.x, z: p.z, rot: 0, w: p.w, h: p.h });
+          });
+        }
+      }
+      break;
+    }
+    default: { /* straight */
+      const offX = ((cent.x % tileS) + tileS) % tileS;
+      const offZ = ((cent.z % tileS) + tileS) % tileS;
+      for (let gz = minZ - PAD - offZ; gz <= maxZ + PAD; gz += tileS) {
+        for (let gx = minX - PAD - offX; gx <= maxX + PAD; gx += tileS) {
+          const cx2 = gx + tileS / 2, cz2 = gz + tileS / 2;
+          if (pointInPoly(cx2, cz2, poly3D))
+            positions.push({ x: cx2, z: cz2, rot: 0, w: tileS, h: tileS });
+        }
       }
     }
   }
   return positions;
 }
 
-/* ── ── FIX: grout base uses S.floorY ── */
-function buildGroutBase(poly3D, floorY){
-  const shape=new THREE.Shape();
+/* ── Build grout base plane (the mortar underneath) ── */
+function buildGroutBase(poly3D) {
+  const shape = new THREE.Shape();
   shape.moveTo(poly3D[0].x, poly3D[0].z);
-  for(let i=1;i<poly3D.length;i++) shape.lineTo(poly3D[i].x, poly3D[i].z);
+  for (let i = 1; i < poly3D.length; i++) shape.lineTo(poly3D[i].x, poly3D[i].z);
   shape.closePath();
-  const geo=new THREE.ShapeGeometry(shape);
-  /* ── FIX: ShapeGeometry is on XY plane — rotate to lay flat on XZ ── */
-  geo.rotateX(-Math.PI/2);
-  const mat=new THREE.MeshStandardMaterial({
-    color:0x9A8878, roughness:0.95, transparent:true,
-    opacity:S.opacity*0.85, side:THREE.DoubleSide, depthWrite:false
+  const geo = new THREE.ShapeGeometry(shape);
+  /*
+    ShapeGeometry is built in XY plane.
+    Rotate -90° around X to lay it FLAT on the XZ (floor) plane.
+    Then translate to S.floorY.
+  */
+  geo.rotateX(-Math.PI / 2);
+  const mat = new THREE.MeshStandardMaterial({
+    color: 0x9A8878, roughness: 0.95, transparent: true,
+    opacity: S.opacity * 0.85, side: THREE.DoubleSide, depthWrite: false,
   });
-  const mesh=new THREE.Mesh(geo,mat);
-  /* ── FIX: place at floorY + tiny offset so it's visible above floor ── */
-  mesh.position.y = floorY + 0.001;
-  mesh.receiveShadow=true;
+  const mesh = new THREE.Mesh(geo, mat);
+  /* Position the grout base exactly on the floor */
+  mesh.position.y = S.floorY + 0.0005;
+  mesh.receiveShadow = true;
   return mesh;
 }
 
 /* ── Texture cache ── */
-let _cachedTex=null, _cachedTexUrl='';
-function loadOrGetTexture(url){
-  return new Promise(res=>{
-    if(!url){res(null);return;}
-    if(url===_cachedTexUrl && _cachedTex){res(_cachedTex);return;}
-    new THREE.TextureLoader().load(url,t=>{
-      t.wrapS=t.wrapT=THREE.RepeatWrapping;
-      _cachedTex=t; _cachedTexUrl=url; res(t);
-    },null,()=>res(null));
+let _cachedTex = null, _cachedTexUrl = '';
+function loadOrGetTexture(url) {
+  return new Promise(res => {
+    if (!url) { res(null); return; }
+    if (url === _cachedTexUrl && _cachedTex) { res(_cachedTex); return; }
+    new THREE.TextureLoader().load(url, t => {
+      t.wrapS = t.wrapT = THREE.RepeatWrapping;
+      _cachedTex = t; _cachedTexUrl = url; res(t);
+    }, null, () => res(null));
   });
 }
 
-/* ── Main tile placement ── */
-async function placeTilePolygon(poly3D){
-  const product = S.catalog.find(p=>p.id===S.selectedProductId);
-  if(!product){setStatus('Sélectionnez un carrelage d\'abord','error');return;}
+/* ── MAIN PLACEMENT FUNCTION ── */
+async function placeTilePolygon(poly3D) {
+  const product = S.catalog.find(p => p.id === S.selectedProductId);
+  if (!product) { setStatus('Sélectionnez un carrelage d\'abord', 'error'); return; }
 
-  /* ── FIX: ensure all polygon points are coplanar at S.floorY ── */
+  /*
+    CRITICAL FIX:
+    Force ALL polygon points to the same Y = S.floorY.
+    This makes the polygon horizontal (coplanar with the floor).
+    Without this, points at different depths get different Y values
+    from the raycaster, causing the polygon to be tilted in 3D.
+  */
   const flatPoly = poly3D.map(p => new THREE.Vector3(p.x, S.floorY, p.z));
 
-  const TS_SIZE = S.tileSize;
-  const positions = generateTilesInPolygon(flatPoly, TS_SIZE, S.selectedPattern);
+  /* Debug: check that points are actually on the floor */
+  const yValues = flatPoly.map(p => p.y.toFixed(3)).join(', ');
+  debugLog(`Floor Y values: [${yValues}]`);
+
+  const TS = S.tileSize;
+  const positions = generateTilesInPolygon(flatPoly, TS, S.selectedPattern);
   const total = positions.length;
 
-  if(total===0){setStatus('Aucune tuile dans cette zone (zone trop petite ?)','error');return;}
+  if (total === 0) {
+    setStatus('Zone trop petite ou aucune tuile ? Agrandissez la zone', 'error');
+    return;
+  }
 
+  /* Show progress */
   tilingProgress.classList.add('visible');
-  tilingFill.style.width='0%';
-  tilingText.textContent='0 / '+total+' tuiles';
+  tilingFill.style.width = '0%';
+  tilingText.textContent = '0 / ' + total + ' tuiles';
 
   const zoneGroup = new THREE.Group();
   scene.add(zoneGroup);
-  zoneGroup.userData.isTileZone=true;
+  zoneGroup.userData.isTileZone = true;
 
-  /* Grout base */
-  zoneGroup.add(buildGroutBase(flatPoly, S.floorY));
+  /* Add grout base */
+  zoneGroup.add(buildGroutBase(flatPoly));
 
-  /* Texture */
-  const tex = await loadOrGetTexture(product.imageUrl||'');
+  /* Load texture */
+  const tex = await loadOrGetTexture(product.imageUrl || '');
+  if (tex) {
+    tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+    tex.repeat.set(1, 1);
+  }
 
-  const useGlb = product.modelUrl && product.modelUrl.length>4;
-  let baseModel=null;
-
-  if(useGlb){
-    setStatus('Chargement GLB…','scanning');
-    try{
-      const gltf = await new Promise((res,rej)=>loader.load(product.modelUrl,res,null,rej));
+  /* GLB model loading */
+  const useGlb = product.modelUrl && product.modelUrl.length > 4;
+  let baseModel = null;
+  if (useGlb) {
+    try {
+      const gltf = await new Promise((res, rej) => loader.load(product.modelUrl, res, null, rej));
       baseModel = gltf.scene;
       const bb = new THREE.Box3().setFromObject(baseModel);
       const sz = bb.getSize(new THREE.Vector3());
       const maxDim = Math.max(sz.x, sz.z) || 1;
-      const glbScale = TS_SIZE / maxDim;
+      const glbScale = TS / maxDim;
       baseModel.scale.setScalar(glbScale);
       const center = bb.getCenter(new THREE.Vector3());
-      baseModel.position.x -= center.x*glbScale;
-      baseModel.position.z -= center.z*glbScale;
-      baseModel.position.y -= bb.min.y*glbScale;
-      baseModel.traverse(c=>{
-        if(!c.isMesh) return;
-        const mats=Array.isArray(c.material)?c.material:[c.material];
-        mats.forEach(m=>{m.side=THREE.DoubleSide;m.transparent=true;m.opacity=S.opacity;if(tex&&!m.map){m.map=tex;m.color.set(0xffffff);}m.needsUpdate=true;});
-        c.castShadow=true; c.receiveShadow=true;
+      baseModel.position.x -= center.x * glbScale;
+      baseModel.position.z -= center.z * glbScale;
+      baseModel.position.y -= bb.min.y * glbScale; /* sit on floor */
+      baseModel.traverse(c => {
+        if (!c.isMesh) return;
+        const mats = Array.isArray(c.material) ? c.material : [c.material];
+        mats.forEach(m => {
+          m.side = THREE.DoubleSide;
+          m.transparent = true;
+          m.opacity = S.opacity;
+          if (tex && !m.map) { m.map = tex; m.color.set(0xffffff); }
+          m.needsUpdate = true;
+        });
+        c.castShadow = true;
+        c.receiveShadow = true;
       });
-    }catch(e){console.warn('GLB load failed, using box tiles');baseModel=null;}
+    } catch (e) {
+      console.warn('GLB load failed, using box tiles'); baseModel = null;
+    }
   }
 
-  /* ── FIX: shared material — tiles are flat boxes, Y centered at floorY + TILE_H/2 ── */
-  const TILE_H = 0.012; /* 12mm tile thickness */
-  const fallbackMat = new THREE.MeshStandardMaterial({
-    roughness:0.28, metalness:0.08, transparent:true, opacity:S.opacity,
-    ...(tex ? {map:tex, color:new THREE.Color(0xffffff)} : {color:new THREE.Color(0xD4A96A)})
-  });
-  const tileColors = [0xD4A96A,0xC09050,0xE0B878,0xB88040];
+  /*
+    TILE GEOMETRY:
+    BoxGeometry(width, height, depth)
+    - width  = tile width  (X axis)
+    - height = tile THICKNESS (Y axis) — keep small (12mm)
+    - depth  = tile depth  (Z axis)
+    
+    The box is centered at its origin.
+    To place it FLAT on the floor:
+      position.y = S.floorY + TILE_THICKNESS / 2
+    
+    This puts the BOTTOM face of the box exactly at S.floorY.
+  */
+  const TILE_THICKNESS = 0.012; /* 12mm */
+  const tileColors = [0xD4A96A, 0xC09050, 0xE0B878, 0xB88040];
 
-  for(let i=0;i<positions.length;i++){
-    const p=positions[i];
+  /* Shared material for all box tiles — much faster than cloning per tile */
+  const sharedMat = new THREE.MeshStandardMaterial({
+    roughness: 0.30,
+    metalness: 0.06,
+    transparent: true,
+    opacity: S.opacity,
+    ...(tex ? { map: tex, color: new THREE.Color(0xffffff) } : { color: new THREE.Color(0xD4A96A) }),
+  });
+
+  for (let i = 0; i < positions.length; i++) {
+    const p = positions[i];
     let tile;
 
-    if(baseModel){
+    if (baseModel) {
       tile = baseModel.clone(true);
       tile.rotation.y = p.rot;
-      /* ── FIX: position at S.floorY ── */
       tile.position.set(p.x, S.floorY, p.z);
-    }else{
-      /* ── FIX: BoxGeometry is centered at its own origin.
-         Place so its BOTTOM face is at floorY → center at floorY + TILE_H/2 ── */
-      const geo = new THREE.BoxGeometry(p.w - 0.004, TILE_H, p.h - 0.004);
-      const mat = fallbackMat.clone();
-      if(!tex) mat.color.set(tileColors[i % tileColors.length]);
+    } else {
+      /*
+        Create a FLAT box:
+        - width  = p.w - small gap (gap between tiles for grout)
+        - height = TILE_THICKNESS (12mm, stays thin and horizontal)
+        - depth  = p.h - small gap
+        
+        Place it so BOTTOM = S.floorY:
+          center.y = S.floorY + TILE_THICKNESS / 2
+      */
+      const geo = new THREE.BoxGeometry(
+        p.w - 0.004,       /* X: tile width */
+        TILE_THICKNESS,    /* Y: tile thickness (12mm) — HORIZONTAL! */
+        p.h - 0.004        /* Z: tile depth */
+      );
+
+      let mat;
+      if (tex) {
+        mat = sharedMat; /* reuse shared material */
+      } else {
+        mat = sharedMat.clone();
+        mat.color.set(tileColors[i % tileColors.length]);
+      }
+
       tile = new THREE.Mesh(geo, mat);
       tile.castShadow = true;
       tile.receiveShadow = true;
       tile.rotation.y = p.rot;
-      /* ── FIX: Y = floorY + half tile height so tile sits ON the floor ── */
-      tile.position.set(p.x, S.floorY + TILE_H / 2, p.z);
+
+      /*
+        KEY PLACEMENT:
+        Y position = floor + half thickness
+        = tiles sit ON the floor, not going through it
+        = tiles are HORIZONTAL (lying flat)
+      */
+      tile.position.set(p.x, S.floorY + TILE_THICKNESS / 2, p.z);
     }
 
     zoneGroup.add(tile);
 
-    if(i % 10 === 0){
-      const pct = Math.round((i+1) / total * 100);
+    /* Yield every 15 tiles to avoid blocking the UI */
+    if (i % 15 === 0) {
+      const pct = Math.round((i + 1) / total * 100);
       tilingFill.style.width = pct + '%';
-      tilingText.textContent = (i+1) + ' / ' + total + ' tuiles';
-      await new Promise(r=>requestAnimationFrame(r));
+      tilingText.textContent = (i + 1) + ' / ' + total + ' tuiles';
+      await new Promise(r => requestAnimationFrame(r));
     }
   }
 
   tilingProgress.classList.remove('visible');
   S.tileZoneGroups.push(zoneGroup);
 
-  const id=++S.meshIdCounter;
+  const id = ++S.meshIdCounter;
   S.placedObjects.push({
-    id, group:zoneGroup,
-    name:product.name+' (zone)',
-    productId:product.id,
-    scaleVal:1, baseScale:1, isTileZone:true
+    id, group: zoneGroup,
+    name: product.name + ' (zone)',
+    productId: product.id,
+    scaleVal: 1, baseScale: 1, isTileZone: true,
   });
   selectObject(id);
   updatePlacedBadge();
-  setStatus('✓ '+total+' tuiles posées · motif '+S.selectedPattern,'ok');
-  postToFlutter({type:'tile_zone',count:total});
-  drawZoneBtn.className='qBtn qBtn-poly';
+  setStatus('✓ ' + total + ' tuiles posées · ' + S.selectedPattern, 'ok');
+  postToFlutter({ type: 'tile_zone', count: total });
+  drawZoneBtn.className = 'qBtn qBtn-poly';
 }
 
-/* ═══════════════════════════════════════════
+/* ═══════════════════════════════════════════════════════════════
    OBJECT MANAGEMENT
-═══════════════════════════════════════════ */
-function selectObject(id){
-  S.selectedObjectId=id;
-  const obj=S.placedObjects.find(o=>o.id===id); if(!obj)return;
-  selProdName.textContent=obj.name||'Objet';
+═══════════════════════════════════════════════════════════════ */
+function selectObject(id) {
+  S.selectedObjectId = id;
+  const obj = S.placedObjects.find(o => o.id === id);
+  if (!obj) return;
+  selProdName.textContent = obj.name || 'Objet';
   actionBar.classList.add('visible');
 }
-function deselectObject(){S.selectedObjectId=null;actionBar.classList.remove('visible');}
-function scaleObject(obj,val){
-  const c=Math.max(0.05,Math.min(8,val)); obj.scaleVal=c;
-  if(obj.model) obj.model.scale.setScalar((obj.baseScale||1)*c);
-  if(obj.isTileZone) obj.group.scale.setScalar(c);
+function deselectObject() { S.selectedObjectId = null; actionBar.classList.remove('visible'); }
+function scaleObject(obj, val) {
+  const c = Math.max(0.05, Math.min(8, val));
+  obj.scaleVal = c;
+  if (obj.isTileZone) obj.group.scale.setScalar(c);
 }
-function deleteSelected(){
-  const obj=S.placedObjects.find(o=>o.id===S.selectedObjectId); if(!obj)return;
+function deleteSelected() {
+  const obj = S.placedObjects.find(o => o.id === S.selectedObjectId);
+  if (!obj) return;
   scene.remove(obj.group);
-  S.placedObjects=S.placedObjects.filter(o=>o.id!==S.selectedObjectId);
-  S.tileZoneGroups=S.tileZoneGroups.filter(g=>g!==obj.group);
-  deselectObject(); updatePlacedBadge();
+  S.placedObjects = S.placedObjects.filter(o => o.id !== S.selectedObjectId);
+  S.tileZoneGroups = S.tileZoneGroups.filter(g => g !== obj.group);
+  deselectObject();
+  updatePlacedBadge();
   deleteHint.classList.add('show');
-  setTimeout(()=>deleteHint.classList.remove('show'),600);
-  postToFlutter({type:'removed',count:S.placedObjects.length});
+  setTimeout(() => deleteHint.classList.remove('show'), 600);
+  postToFlutter({ type: 'removed', count: S.placedObjects.length });
 }
-function updatePlacedBadge(){
-  const n=S.placedObjects.length;
-  placedCountEl.textContent=n;
-  placedBadge.classList.toggle('visible',n>0);
+function updatePlacedBadge() {
+  const n = S.placedObjects.length;
+  placedCountEl.textContent = n;
+  placedBadge.classList.toggle('visible', n > 0);
 }
 
-document.getElementById('aBtnConfirm').addEventListener('click', deselectObject);
-document.getElementById('aBtnDelete').addEventListener('click', deleteSelected);
+$id('aBtnConfirm').addEventListener('click', deselectObject);
+$id('aBtnDelete').addEventListener('click', deleteSelected);
 
-/* ═══════════════════════════════════════════
+/* ═══════════════════════════════════════════════════════════════
    SHEET DRAG
-═══════════════════════════════════════════ */
-const PEEK=82, MID=260, FULL=Math.round(window.innerHeight*0.6);
-let shDragStartY=null, shDragStartH=0;
-function setSheetH(h,anim=true){sheet.style.transition=anim?'height .35s cubic-bezier(.32,.72,0,1)':'none';sheet.style.height=h+'px';}
-function snapSheet(h){const m1=(PEEK+MID)/2,m2=(MID+FULL)/2;setSheetH(h<m1?PEEK:h<m2?MID:FULL);}
-const handleEl=document.getElementById('sheetHandle');
-handleEl.addEventListener('mousedown',e=>{shDragStartY=e.clientY;shDragStartH=sheet.getBoundingClientRect().height;sheet.style.transition='none';});
-handleEl.addEventListener('touchstart',e=>{shDragStartY=e.touches[0].clientY;shDragStartH=sheet.getBoundingClientRect().height;sheet.style.transition='none';},{passive:true});
-window.addEventListener('mousemove',e=>{if(shDragStartY===null)return;const h=Math.max(PEEK,Math.min(FULL,shDragStartH+(shDragStartY-e.clientY)));sheet.style.height=h+'px';});
-window.addEventListener('touchmove',e=>{if(shDragStartY===null)return;const h=Math.max(PEEK,Math.min(FULL,shDragStartH+(shDragStartY-e.touches[0].clientY)));sheet.style.height=h+'px';},{passive:true});
-function onSheetDragEnd(){if(shDragStartY===null)return;const h=sheet.getBoundingClientRect().height;shDragStartY=null;snapSheet(h);}
-window.addEventListener('mouseup',onSheetDragEnd);window.addEventListener('touchend',onSheetDragEnd);
-handleEl.addEventListener('click',()=>{const h=sheet.getBoundingClientRect().height;setSheetH(h<=PEEK+10?MID:h>=FULL-20?PEEK:FULL);});
+═══════════════════════════════════════════════════════════════ */
+const PEEK = 82, MID = 260, FULL = Math.round(window.innerHeight * 0.6);
+let shDragStartY = null, shDragStartH = 0;
+function setSheetH(h, anim = true) {
+  sheet.style.transition = anim ? 'height .35s cubic-bezier(.32,.72,0,1)' : 'none';
+  sheet.style.height = h + 'px';
+}
+function snapSheet(h) {
+  const m1 = (PEEK + MID) / 2, m2 = (MID + FULL) / 2;
+  setSheetH(h < m1 ? PEEK : h < m2 ? MID : FULL);
+}
+const handleEl = $id('sheetHandle');
+handleEl.addEventListener('mousedown', e => { shDragStartY = e.clientY; shDragStartH = sheet.getBoundingClientRect().height; sheet.style.transition = 'none'; });
+handleEl.addEventListener('touchstart', e => { shDragStartY = e.touches[0].clientY; shDragStartH = sheet.getBoundingClientRect().height; sheet.style.transition = 'none'; }, { passive: true });
+window.addEventListener('mousemove', e => { if (shDragStartY === null) return; sheet.style.height = Math.max(PEEK, Math.min(FULL, shDragStartH + (shDragStartY - e.clientY))) + 'px'; });
+window.addEventListener('touchmove', e => { if (shDragStartY === null) return; sheet.style.height = Math.max(PEEK, Math.min(FULL, shDragStartH + (shDragStartY - e.touches[0].clientY))) + 'px'; }, { passive: true });
+function onSheetEnd() { if (shDragStartY === null) return; const h = sheet.getBoundingClientRect().height; shDragStartY = null; snapSheet(h); }
+window.addEventListener('mouseup', onSheetEnd);
+window.addEventListener('touchend', onSheetEnd);
+handleEl.addEventListener('click', () => { const h = sheet.getBoundingClientRect().height; setSheetH(h <= PEEK + 10 ? MID : h >= FULL - 20 ? PEEK : FULL); });
 
-/* ═══════════════════════════════════════════
+/* ═══════════════════════════════════════════════════════════════
    BUTTONS
-═══════════════════════════════════════════ */
-drawZoneBtn.addEventListener('click',()=>{
-  if(S.drawingZone){cancelZoneDrawing();return;}
+═══════════════════════════════════════════════════════════════ */
+drawZoneBtn.addEventListener('click', () => {
+  if (S.drawingZone) { cancelZoneDrawing(); return; }
+  if (!S.cameraReady) return;
   startZoneDrawing();
 });
 
-document.getElementById('resetBtn').addEventListener('click',()=>{
-  S.placedObjects.forEach(o=>scene.remove(o.group));
-  S.placedObjects=[]; S.tileZoneGroups=[]; deselectObject(); updatePlacedBadge();
-  S.selectedProductId=null; S.pendingPolyPts=null;
-  polyCtx.clearRect(0,0,polyDrawCanvas.width,polyDrawCanvas.height);
+$id('resetBtn').addEventListener('click', () => {
+  S.placedObjects.forEach(o => scene.remove(o.group));
+  S.placedObjects = []; S.tileZoneGroups = [];
+  deselectObject(); updatePlacedBadge();
+  S.selectedProductId = null; S.pendingPolyPts = null;
+  if (polyCtx) polyCtx.clearRect(0, 0, polyDrawCanvas.width, polyDrawCanvas.height);
   hidePicker(); cancelZoneDrawing();
-  setStatus('Réinitialisé','ok');
-  postToFlutter({type:'removed',count:0});
+  /* Reset camera calibration */
+  if (S.fallbackMode) setCameraFromPrior();
+  setStatus('Réinitialisé', 'ok');
+  postToFlutter({ type: 'removed', count: 0 });
 });
 
-document.getElementById('captureBtn').addEventListener('click', doCapture);
+$id('captureBtn').addEventListener('click', doCapture);
 
-/* ═══════════════════════════════════════════
+/* ═══════════════════════════════════════════════════════════════
    CAPTURE
-═══════════════════════════════════════════ */
-async function doCapture(){
-  const showSaveToast=(icon,txt)=>{document.getElementById('saveToastIcon').textContent=icon;document.getElementById('saveToastText').textContent=txt;const t=document.getElementById('saveToast');t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200);};
-  try{
-    renderer3.render(scene,camera3);
-    threeCanvas.toBlob(async blob=>{
-      if(!blob)return;
-      const file=new File([blob],'placeAR.png',{type:'image/png'});
-      if(navigator.canShare&&navigator.canShare({files:[file]})){try{await navigator.share({files:[file],title:'PlaceAR'});showSaveToast('📸','Partagé !');return;}catch{}}
-      const a=document.createElement('a');a.download='placeAR.png';a.href=URL.createObjectURL(blob);a.click();
-      setTimeout(()=>URL.revokeObjectURL(a.href),3000);showSaveToast('💾','Image sauvegardée !');
-    },'image/png');
-  }catch(e){showSaveToast('❌','Erreur capture');}
-  postToFlutter({type:'capture'});
-}
-
-/* ═══════════════════════════════════════════
-   CATALOG
-═══════════════════════════════════════════ */
-window.loadProductCatalog=function(products){
-  S.catalog=products;
-  setStatus(products.length+' produit(s) chargé(s)','ok');
-};
-
-/* ═══════════════════════════════════════════
-   FLUTTER BRIDGE
-═══════════════════════════════════════════ */
-function postToFlutter(obj){
-  try{
-    if(window.flutter_inappwebview){window.flutter_inappwebview.callHandler('FlutterBridge',JSON.stringify(obj));return;}
-    if(typeof FlutterBridge!=='undefined'){FlutterBridge.postMessage(JSON.stringify(obj));return;}
-    if(window.webkit?.messageHandlers?.FlutterBridge){window.webkit.messageHandlers.FlutterBridge.postMessage(JSON.stringify(obj));}
-  }catch(e){console.log('[Bridge]',obj);}
-}
-
-window.receiveFromFlutter=function(jsonStr){
-  try{
-    const data=JSON.parse(jsonStr);
-    if(data.type==='catalog'&&data.products) window.loadProductCatalog(data.products);
-    if(data.type==='clear'){S.placedObjects.forEach(o=>scene&&scene.remove(o.group));S.placedObjects=[];S.tileZoneGroups=[];deselectObject();updatePlacedBadge();}
-    /* ── Allow Flutter to override floor Y (e.g. from ARCore plane detection) ── */
-    if(data.type==='setFloorY' && typeof data.y === 'number'){
-      S.floorY = data.y;
-      floorPlane.position.y = data.y;
-      floorYDisplay.textContent = data.y.toFixed(2);
-      floorCalibToast.classList.add('visible');
-      setTimeout(()=>floorCalibToast.classList.remove('visible'), 2000);
+═══════════════════════════════════════════════════════════════ */
+async function doCapture() {
+  const showToast = (icon, txt) => {
+    $id('saveToastIcon').textContent = icon;
+    $id('saveToastText').textContent = txt;
+    const t = $id('saveToast');
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2200);
+  };
+  try {
+    /* Composite: video + three.js canvas */
+    const cap = document.createElement('canvas');
+    cap.width = window.innerWidth;
+    cap.height = window.innerHeight;
+    const cc = cap.getContext('2d');
+    try { cc.drawImage(videoEl, 0, 0, cap.width, cap.height); } catch {}
+    renderer3.render(scene, camera3);
+    cc.drawImage(threeCanvas, 0, 0);
+    cc.drawImage(polyDrawCanvas, 0, 0);
+    const blob = await new Promise(res => cap.toBlob(res, 'image/png'));
+    if (!blob) { showToast('❌', 'Erreur'); return; }
+    const file = new File([blob], 'placeAR.png', { type: 'image/png' });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      try { await navigator.share({ files: [file], title: 'PlaceAR' }); showToast('📸', 'Partagé !'); return; } catch {}
     }
-  }catch(e){console.error('receiveFromFlutter',e);}
-};
-
-function loadFromUrlParams(){
-  const params=new URLSearchParams(window.location.search);
-  const pp=params.get('products'); if(!pp)return;
-  try{
-    const products=JSON.parse(decodeURIComponent(pp));
-    const mapped=products.map(p=>({id:p.id||p._id,name:p.name,modelUrl:p.modelUrl||p.model3D||'',imageUrl:p.imageUrl||p.image||p.thumbnail||'',category:p.category||'Carrelage'}));
-    setTimeout(()=>window.loadProductCatalog(mapped),500);
-  }catch(e){console.error('URL params parse error',e);}
+    const a = document.createElement('a');
+    a.download = 'placeAR.png';
+    a.href = URL.createObjectURL(blob);
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 3000);
+    showToast('💾', 'Sauvegardée !');
+  } catch (e) { showToast('❌', 'Erreur capture'); }
+  postToFlutter({ type: 'capture' });
 }
 
-function escapeHtml(s){if(!s)return'';return s.toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+/* ═══════════════════════════════════════════════════════════════
+   CATALOG
+═══════════════════════════════════════════════════════════════ */
+window.loadProductCatalog = function(products) {
+  S.catalog = products;
+  setStatus(products.length + ' produit(s) chargé(s)', 'ok');
+};
 
-/* ═══════════════════════════════════════════
+/* ═══════════════════════════════════════════════════════════════
+   FLUTTER BRIDGE
+═══════════════════════════════════════════════════════════════ */
+function postToFlutter(obj) {
+  try {
+    if (window.flutter_inappwebview) { window.flutter_inappwebview.callHandler('FlutterBridge', JSON.stringify(obj)); return; }
+    if (typeof FlutterBridge !== 'undefined') { FlutterBridge.postMessage(JSON.stringify(obj)); return; }
+    if (window.webkit?.messageHandlers?.FlutterBridge) { window.webkit.messageHandlers.FlutterBridge.postMessage(JSON.stringify(obj)); }
+  } catch (e) { console.log('[Bridge]', obj); }
+}
+
+window.receiveFromFlutter = function(jsonStr) {
+  try {
+    const data = JSON.parse(jsonStr);
+    if (data.type === 'catalog' && data.products) window.loadProductCatalog(data.products);
+    if (data.type === 'clear') {
+      S.placedObjects.forEach(o => scene && scene.remove(o.group));
+      S.placedObjects = []; S.tileZoneGroups = [];
+      deselectObject(); updatePlacedBadge();
+    }
+    /* Override floor Y from Flutter (e.g. ARCore depth sensor) */
+    if (data.type === 'setFloorY' && typeof data.y === 'number') {
+      S.floorY = data.y;
+      floorMesh.position.y = data.y;
+      setStatus('Sol calibré à Y=' + data.y.toFixed(2) + 'm', 'ok');
+    }
+    /* Override camera pose from Flutter */
+    if (data.type === 'setCamPose') {
+      if (data.height) camera3.position.y = data.height;
+      if (data.tiltDeg) camera3.rotation.x = -THREE.MathUtils.degToRad(data.tiltDeg);
+      camera3.updateMatrixWorld(true);
+    }
+  } catch (e) { console.error('receiveFromFlutter', e); }
+};
+
+function loadFromUrlParams() {
+  const params = new URLSearchParams(window.location.search);
+  const pp = params.get('products');
+  if (!pp) return;
+  try {
+    const products = JSON.parse(decodeURIComponent(pp));
+    const mapped = products.map(p => ({
+      id: p.id || p._id,
+      name: p.name,
+      modelUrl: p.modelUrl || p.model3D || '',
+      imageUrl: p.imageUrl || p.image || p.thumbnail || '',
+      category: p.category || 'Carrelage',
+    }));
+    setTimeout(() => window.loadProductCatalog(mapped), 500);
+  } catch (e) { console.error('URL params parse error', e); }
+}
+
+function esc(s) {
+  if (!s) return '';
+  return s.toString().replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+/* ═══════════════════════════════════════════════════════════════
    MOCK CATALOG
-═══════════════════════════════════════════ */
-const MOCK_CATALOG=[
-  {id:'t1',name:'Zellige Vert',         category:'Carrelage',modelUrl:'',imageUrl:'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=200'},
-  {id:'t2',name:'Marbre Blanc',         category:'Carrelage',modelUrl:'',imageUrl:'https://images.unsplash.com/photo-1615873968403-89e068629265?w=200'},
-  {id:'t3',name:'Carreaux Ciment',      category:'Carrelage',modelUrl:'',imageUrl:'https://images.unsplash.com/photo-1565193566173-7a0ee3dbe261?w=200'},
-  {id:'t4',name:'Tomettes Terre Cuite', category:'Carrelage',modelUrl:'',imageUrl:'https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?w=200'},
-  {id:'t5',name:'Mosaïque Bleue',       category:'Carrelage',modelUrl:'',imageUrl:'https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?w=200'},
-  {id:'t6',name:'Béton Ciré',           category:'Carrelage',modelUrl:'',imageUrl:'https://images.unsplash.com/photo-1567538096630-e0c55bd6374c?w=200'},
+═══════════════════════════════════════════════════════════════ */
+const MOCK_CATALOG = [
+  { id: 't1', name: 'Zellige Vert',         category: 'Carrelage', modelUrl: '', imageUrl: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=200' },
+  { id: 't2', name: 'Marbre Blanc',         category: 'Carrelage', modelUrl: '', imageUrl: 'https://images.unsplash.com/photo-1615873968403-89e068629265?w=200' },
+  { id: 't3', name: 'Carreaux Ciment',      category: 'Carrelage', modelUrl: '', imageUrl: 'https://images.unsplash.com/photo-1565193566173-7a0ee3dbe261?w=200' },
+  { id: 't4', name: 'Tomettes Terre Cuite', category: 'Carrelage', modelUrl: '', imageUrl: 'https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?w=200' },
+  { id: 't5', name: 'Mosaïque Bleue',       category: 'Carrelage', modelUrl: '', imageUrl: 'https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?w=200' },
+  { id: 't6', name: 'Béton Ciré',           category: 'Carrelage', modelUrl: '', imageUrl: 'https://images.unsplash.com/photo-1567538096630-e0c55bd6374c?w=200' },
 ];
 
-/* ═══════════════════════════════════════════
+/* ═══════════════════════════════════════════════════════════════
    INIT
-═══════════════════════════════════════════ */
+═══════════════════════════════════════════════════════════════ */
 initThreeJS();
 loadFromUrlParams();
 
-startArBtn.addEventListener('click', async()=>{
-  startArBtn.disabled=true; startArBtn.textContent='Vérification…';
+startArBtn.addEventListener('click', async () => {
+  startArBtn.disabled = true;
+  startArBtn.textContent = 'Vérification…';
   S.xrSupported = await checkXRSupport();
-  if(S.xrSupported){
-    await startXRSession(); setupXRSelect();
-  }else{
-    noXrMsg.style.display='block';
-    startArBtn.textContent='📷 Mode Caméra';
-    startArBtn.disabled=false;
-    startArBtn.onclick=startFallbackMode;
+  if (S.xrSupported) {
+    await startXRSession();
+    setupXRSelect();
+  } else {
     await startFallbackMode();
   }
-  setTimeout(()=>{if(S.catalog.length===0) window.loadProductCatalog(MOCK_CATALOG);},1500);
+  setTimeout(() => {
+    if (S.catalog.length === 0) window.loadProductCatalog(MOCK_CATALOG);
+  }, 1500);
 });
 </script>
 </body>
