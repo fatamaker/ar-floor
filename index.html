@@ -45,7 +45,6 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:var
 @keyframes spin{to{transform:rotate(360deg)}}
 @keyframes tapRipple{0%{transform:scale(0);opacity:.9}100%{transform:scale(1);opacity:0}}
 @keyframes slideUp{from{transform:translateY(24px);opacity:0}to{transform:translateY(0);opacity:1}}
-@keyframes snapPulse{0%{transform:scale(1)}50%{transform:scale(1.25)}100%{transform:scale(1)}}
 
 /* GLB LOADER */
 #glbLoader{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;flex-direction:column;gap:14px}
@@ -90,8 +89,8 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:var
 .cpCard{flex-shrink:0;width:100px;border-radius:var(--r-md);border:2px solid var(--lg);background:var(--lg2);cursor:pointer;overflow:hidden;transition:all .2s}
 .cpCard:active{transform:scale(.95)}
 .cpCard.active{border-color:var(--tile);box-shadow:0 0 0 3px rgba(201,169,110,.2)}
-.cpCard-preview{width:100%;height:70px;display:block;position:relative;overflow:hidden}
-.cpCard-preview canvas{width:100%;height:100%;display:block}
+.cpCard-preview{width:100%;height:70px;display:block;position:relative;overflow:hidden;background:var(--lg)}
+.cpCard-preview canvas,.cpCard-preview img{width:100%;height:100%;display:block;object-fit:cover}
 .cpCard-name{font-size:9px;font-weight:600;color:var(--hint);padding:5px 7px 2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .cpCard-sub{font-size:8px;color:var(--grey);padding:0 7px 6px}
 .cpOptions{padding:12px 14px 0;border-top:1px solid var(--lg);margin-top:10px}
@@ -298,69 +297,56 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/environments/RoomEnvironment.js"></script>
 <script>
-/* ═══════════════════════════ TILE TEXTURES ═══════════════════════════ */
+/* ═══════════════════════════ TILE TEXTURES (procedural fallback) ═══════════════════════════ */
 function makeTileTexture(type, size=256){
   const c=document.createElement('canvas'); c.width=c.height=size;
   const ctx=c.getContext('2d');
   const s=size;
   switch(type){
     case 'zellige':{
-      // iridescent zellige effect
       const grd=ctx.createLinearGradient(0,0,s,s);
-      grd.addColorStop(0,'#3D7A6A'); grd.addColorStop(.3,'#4E9B7A');
-      grd.addColorStop(.6,'#2E6060'); grd.addColorStop(1,'#1A4040');
-      ctx.fillStyle=grd; ctx.fillRect(0,0,s,s);
-      // surface texture noise
+      grd.addColorStop(0,'#3D7A6A');grd.addColorStop(.3,'#4E9B7A');
+      grd.addColorStop(.6,'#2E6060');grd.addColorStop(1,'#1A4040');
+      ctx.fillStyle=grd;ctx.fillRect(0,0,s,s);
       for(let i=0;i<600;i++){
         const x=Math.random()*s,y=Math.random()*s;
         ctx.fillStyle=`rgba(${Math.random()>0.5?'255,255,255':'0,50,50'},${Math.random()*.12})`;
         ctx.fillRect(x,y,Math.random()*4+1,Math.random()*4+1);
       }
-      // crackle lines
-      ctx.strokeStyle='rgba(0,0,0,.15)'; ctx.lineWidth=1;
+      ctx.strokeStyle='rgba(0,0,0,.15)';ctx.lineWidth=1;
       for(let i=0;i<8;i++){
-        ctx.beginPath(); ctx.moveTo(Math.random()*s,Math.random()*s);
-        ctx.lineTo(Math.random()*s,Math.random()*s); ctx.stroke();
+        ctx.beginPath();ctx.moveTo(Math.random()*s,Math.random()*s);
+        ctx.lineTo(Math.random()*s,Math.random()*s);ctx.stroke();
       }
       break;
     }
     case 'marbre':{
-      ctx.fillStyle='#F0EDE8'; ctx.fillRect(0,0,s,s);
-      // veins
+      ctx.fillStyle='#F0EDE8';ctx.fillRect(0,0,s,s);
       for(let v=0;v<6;v++){
-        const x0=Math.random()*s, y0=-20;
-        ctx.beginPath(); ctx.moveTo(x0,y0);
+        const x0=Math.random()*s,y0=-20;
+        ctx.beginPath();ctx.moveTo(x0,y0);
         let cx=x0,cy=y0;
-        for(let i=0;i<8;i++){
-          cx+=(-40+Math.random()*80); cy+=s/8;
-          ctx.lineTo(cx,cy);
-        }
+        for(let i=0;i<8;i++){cx+=(-40+Math.random()*80);cy+=s/8;ctx.lineTo(cx,cy);}
         ctx.strokeStyle=`rgba(160,140,120,${0.1+Math.random()*.25})`;
-        ctx.lineWidth=0.5+Math.random()*2.5;
-        ctx.stroke();
+        ctx.lineWidth=0.5+Math.random()*2.5;ctx.stroke();
       }
-      // subtle sheen
       const sg=ctx.createLinearGradient(0,0,s,s);
-      sg.addColorStop(0,'rgba(255,255,255,.18)'); sg.addColorStop(.5,'rgba(255,255,255,0)'); sg.addColorStop(1,'rgba(200,190,180,.1)');
-      ctx.fillStyle=sg; ctx.fillRect(0,0,s,s);
+      sg.addColorStop(0,'rgba(255,255,255,.18)');sg.addColorStop(.5,'rgba(255,255,255,0)');sg.addColorStop(1,'rgba(200,190,180,.1)');
+      ctx.fillStyle=sg;ctx.fillRect(0,0,s,s);
       break;
     }
     case 'ciment':{
-      ctx.fillStyle='#7A7678'; ctx.fillRect(0,0,s,s);
-      // geometric pattern
-      ctx.strokeStyle='rgba(255,255,255,.18)'; ctx.lineWidth=1.5;
-      const motifs=['geo1'];
-      // octagon-like motif
-      const c2=s/2, r=s*0.36;
+      ctx.fillStyle='#7A7678';ctx.fillRect(0,0,s,s);
+      ctx.strokeStyle='rgba(255,255,255,.18)';ctx.lineWidth=1.5;
+      const c2=s/2,r=s*0.36;
       ctx.beginPath();
       for(let i=0;i<8;i++){
         const a=Math.PI/4*i-Math.PI/8;
         i===0?ctx.moveTo(c2+r*Math.cos(a),c2+r*Math.sin(a)):ctx.lineTo(c2+r*Math.cos(a),c2+r*Math.sin(a));
       }
-      ctx.closePath(); ctx.stroke();
-      ctx.strokeStyle='rgba(255,255,255,.1)'; ctx.lineWidth=1;
-      ctx.beginPath(); ctx.arc(c2,c2,r*0.5,0,Math.PI*2); ctx.stroke();
-      // noise texture
+      ctx.closePath();ctx.stroke();
+      ctx.strokeStyle='rgba(255,255,255,.1)';ctx.lineWidth=1;
+      ctx.beginPath();ctx.arc(c2,c2,r*0.5,0,Math.PI*2);ctx.stroke();
       for(let i=0;i<400;i++){
         const x=Math.random()*s,y=Math.random()*s,v=Math.random();
         ctx.fillStyle=`rgba(${v>.5?'255,255,255':'0,0,0'},${Math.random()*.06})`;
@@ -369,20 +355,17 @@ function makeTileTexture(type, size=256){
       break;
     }
     case 'tomette':{
-      // terracotta hexagon
       const g=ctx.createRadialGradient(s*.4,s*.35,0,s/2,s/2,s*.7);
-      g.addColorStop(0,'#D4784A'); g.addColorStop(.6,'#B85E38'); g.addColorStop(1,'#8C4020');
-      ctx.fillStyle=g; ctx.fillRect(0,0,s,s);
-      // hex border
-      ctx.strokeStyle='rgba(80,30,10,.3)'; ctx.lineWidth=3;
+      g.addColorStop(0,'#D4784A');g.addColorStop(.6,'#B85E38');g.addColorStop(1,'#8C4020');
+      ctx.fillStyle=g;ctx.fillRect(0,0,s,s);
+      ctx.strokeStyle='rgba(80,30,10,.3)';ctx.lineWidth=3;
       ctx.beginPath();
       for(let i=0;i<6;i++){
         const a=Math.PI/3*i-Math.PI/6;
-        const px=s/2+s*.43*Math.cos(a), py=s/2+s*.43*Math.sin(a);
+        const px=s/2+s*.43*Math.cos(a),py=s/2+s*.43*Math.sin(a);
         i===0?ctx.moveTo(px,py):ctx.lineTo(px,py);
       }
-      ctx.closePath(); ctx.stroke();
-      // clay texture
+      ctx.closePath();ctx.stroke();
       for(let i=0;i<300;i++){
         const x=Math.random()*s,y=Math.random()*s;
         ctx.fillStyle=`rgba(${Math.random()>.5?'255,200,160':'80,20,0'},${Math.random()*.08})`;
@@ -391,48 +374,58 @@ function makeTileTexture(type, size=256){
       break;
     }
     case 'mosaique':{
-      // small mosaic pieces
       const colors=['#1A6BA8','#1E8FCC','#0F4A7A','#2AAEE0','#0E3A5C'];
       const gs=s/8;
       for(let r=0;r<8;r++) for(let cc=0;cc<8;cc++){
         ctx.fillStyle=colors[Math.floor(Math.random()*colors.length)];
         ctx.fillRect(cc*gs+1,r*gs+1,gs-2,gs-2);
-        // highlight
         ctx.fillStyle='rgba(255,255,255,.15)';
         ctx.fillRect(cc*gs+2,r*gs+2,gs/2,gs/3);
       }
       break;
     }
     case 'beton':{
-      ctx.fillStyle='#B2B0AE'; ctx.fillRect(0,0,s,s);
+      ctx.fillStyle='#B2B0AE';ctx.fillRect(0,0,s,s);
       const g2=ctx.createLinearGradient(0,0,0,s);
-      g2.addColorStop(0,'rgba(255,255,255,.08)'); g2.addColorStop(1,'rgba(0,0,0,.08)');
-      ctx.fillStyle=g2; ctx.fillRect(0,0,s,s);
+      g2.addColorStop(0,'rgba(255,255,255,.08)');g2.addColorStop(1,'rgba(0,0,0,.08)');
+      ctx.fillStyle=g2;ctx.fillRect(0,0,s,s);
       for(let i=0;i<800;i++){
         const x=Math.random()*s,y=Math.random()*s;
         ctx.fillStyle=`rgba(${Math.random()>.5?'255':'0'},255,255,${Math.random()*.04})`;
         ctx.fillRect(x,y,Math.random()*2+1,Math.random()*2+1);
       }
-      // form marks
-      ctx.strokeStyle='rgba(0,0,0,.06)'; ctx.lineWidth=1;
+      ctx.strokeStyle='rgba(0,0,0,.06)';ctx.lineWidth=1;
       for(let i=0;i<3;i++){
         const y=s*(0.25+i*.25);
-        ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(s,y); ctx.stroke();
+        ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(s,y);ctx.stroke();
       }
       break;
+    }
+    default:{
+      ctx.fillStyle='#C9A96E';ctx.fillRect(0,0,s,s);
     }
   }
   return c;
 }
 
-/* Generate texture Three objects from canvas */
-const TEX_CACHE = {};
+/* Three.js texture cache (procedural) */
+const TEX_CACHE={};
 function getTileTexture(type){
   if(TEX_CACHE[type]) return TEX_CACHE[type];
-  const c = makeTileTexture(type);
-  const tex = new THREE.CanvasTexture(c);
-  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
-  TEX_CACHE[type] = tex;
+  const c=makeTileTexture(type);
+  const tex=new THREE.CanvasTexture(c);
+  tex.wrapS=tex.wrapT=THREE.RepeatWrapping;
+  TEX_CACHE[type]=tex;
+  return tex;
+}
+
+/* Remote image texture cache */
+const IMG_TEX_CACHE={};
+function getImageTexture(url){
+  if(IMG_TEX_CACHE[url]) return IMG_TEX_CACHE[url];
+  const tex=new THREE.TextureLoader().load(url);
+  tex.wrapS=tex.wrapT=THREE.RepeatWrapping;
+  IMG_TEX_CACHE[url]=tex;
   return tex;
 }
 
@@ -440,12 +433,12 @@ function getTileTexture(type){
    CATALOG
 ═══════════════════════════════════════════ */
 const MOCK_CATALOG=[
-  {id:'t1',name:'Zellige Vert',   category:'Carrelage',modelUrl:'',texType:'zellige',  color:0x3A7A65},
-  {id:'t2',name:'Marbre Blanc',   category:'Carrelage',modelUrl:'',texType:'marbre',   color:0xEDEAE4},
-  {id:'t3',name:'Carreaux Ciment',category:'Carrelage',modelUrl:'',texType:'ciment',   color:0x7A7678},
-  {id:'t4',name:'Tomette',        category:'Carrelage',modelUrl:'',texType:'tomette',  color:0xC06030},
-  {id:'t5',name:'Mosaïque Bleue', category:'Carrelage',modelUrl:'',texType:'mosaique', color:0x1A6BA8},
-  {id:'t6',name:'Béton Ciré',     category:'Carrelage',modelUrl:'',texType:'beton',    color:0xB0AEAC},
+  {id:'t1',name:'Zellige Vert',    category:'Carrelage',modelUrl:'',imageUrl:'',texType:'zellige',  color:0x3A7A65},
+  {id:'t2',name:'Marbre Blanc',    category:'Carrelage',modelUrl:'',imageUrl:'',texType:'marbre',   color:0xEDEAE4},
+  {id:'t3',name:'Carreaux Ciment', category:'Carrelage',modelUrl:'',imageUrl:'',texType:'ciment',   color:0x7A7678},
+  {id:'t4',name:'Tomette',         category:'Carrelage',modelUrl:'',imageUrl:'',texType:'tomette',  color:0xC06030},
+  {id:'t5',name:'Mosaïque Bleue',  category:'Carrelage',modelUrl:'',imageUrl:'',texType:'mosaique', color:0x1A6BA8},
+  {id:'t6',name:'Béton Ciré',      category:'Carrelage',modelUrl:'',imageUrl:'',texType:'beton',    color:0xB0AEAC},
 ];
 
 /* ═══════════════════════════════════════════
@@ -454,10 +447,10 @@ const MOCK_CATALOG=[
 function renderStartGrid(){
   const grid=document.getElementById('startTileGrid');
   MOCK_CATALOG.forEach(p=>{
-    const d=document.createElement('div'); d.className='startTile';
+    const d=document.createElement('div');d.className='startTile';
     const c=makeTileTexture(p.texType,120);
-    c.style.width='100%'; c.style.height='100%'; c.style.display='block';
-    d.appendChild(c); grid.appendChild(d);
+    c.style.width='100%';c.style.height='100%';c.style.display='block';
+    d.appendChild(c);grid.appendChild(d);
   });
 }
 renderStartGrid();
@@ -465,37 +458,37 @@ renderStartGrid();
 /* ═══════════════════════════════════════════
    STATE
 ═══════════════════════════════════════════ */
-const S = {
-  xrSupported:false, xrSession:null, xrMode:false, fallbackMode:false,
-  catalog:[], selectedProductId:null,
-  placedObjects:[], selectedObjectId:null,
+const S={
+  xrSupported:false,xrSession:null,xrMode:false,fallbackMode:false,
+  catalog:[],selectedProductId:null,
+  placedObjects:[],selectedObjectId:null,
   opacity:0.93,
-  touchStartDist:null, touchStartScale:1,
-  hitTestSource:null, hitTestSourceInitialized:false,
-  reticleVisible:false, currentHitMatrix:null, meshIdCounter:0,
+  touchStartDist:null,touchStartScale:1,
+  hitTestSource:null,hitTestSourceInitialized:false,
+  reticleVisible:false,currentHitMatrix:null,meshIdCounter:0,
   currentSurfaceType:'floor',
-  twoTouchStart:null, lastTapTime:0, doubleTapTimeout:null,
+  twoTouchStart:null,lastTapTime:0,doubleTapTimeout:null,
   drawingZone:false,
-  polyPoints2D:[], polyPoints3D:[],
-  polyClosed:false, pendingPolyPts:null,
+  polyPoints2D:[],polyPoints3D:[],
+  polyClosed:false,pendingPolyPts:null,
   tileZoneGroups:[],
   selectedPattern:'straight',
-  tileSize:0.30, groutWidth:0.004,
+  tileSize:0.30,groutWidth:0.004,
   floorY:0,
 };
 
-const $ = id => document.getElementById(id);
-const threeCanvas=$('threeCanvas'), polyDrawCanvas=$('polyDrawCanvas'), interactionCanvas=$('interactionCanvas');
-const startScreen=$('startScreen'), startArBtn=$('startArBtn'), noXrMsg=$('noXrMsg');
-const topBar=$('topBar'), sheet=$('sheet'), statusToast=$('statusToast'), statusText=$('statusText');
-const placedBadge=$('placedBadge'), placedCountEl=$('placedCountEl'), actionBar=$('actionBar'), selProdName=$('selectedProductName');
-const glbLoader=$('glbLoader'), deleteHint=$('deleteHint'), tilingProgress=$('tilingProgress');
-const tilingFill=$('tilingProgressFill'), tilingText=$('tilingProgressText');
-const polyControls=$('polyControls'), polyGuidePill=$('polyGuidePill'), polyGuideText=$('polyGuideText');
-const pbUndo=$('pbUndo'), pbClose=$('pbClose'), pbCancel=$('pbCancel'), polyCloseCta=$('polyCloseCta');
-const carrelagePicker=$('carrelagePicker'), cpScroll=$('cpScroll'), cpConfirmBtn=$('cpConfirmBtn');
-const drawZoneBtn=$('drawZoneBtn'), polyCountLabel=$('polyCountLabel'), polyPointsBubbles=$('polyPointsBubbles');
-const areaBadge=$('areaBadge'), areaText=$('areaText');
+const $=id=>document.getElementById(id);
+const threeCanvas=$('threeCanvas'),polyDrawCanvas=$('polyDrawCanvas'),interactionCanvas=$('interactionCanvas');
+const startScreen=$('startScreen'),startArBtn=$('startArBtn'),noXrMsg=$('noXrMsg');
+const topBar=$('topBar'),sheet=$('sheet'),statusToast=$('statusToast'),statusText=$('statusText');
+const placedBadge=$('placedBadge'),placedCountEl=$('placedCountEl'),actionBar=$('actionBar'),selProdName=$('selectedProductName');
+const glbLoader=$('glbLoader'),deleteHint=$('deleteHint'),tilingProgress=$('tilingProgress');
+const tilingFill=$('tilingProgressFill'),tilingText=$('tilingProgressText');
+const polyControls=$('polyControls'),polyGuidePill=$('polyGuidePill'),polyGuideText=$('polyGuideText');
+const pbUndo=$('pbUndo'),pbClose=$('pbClose'),pbCancel=$('pbCancel'),polyCloseCta=$('polyCloseCta');
+const carrelagePicker=$('carrelagePicker'),cpScroll=$('cpScroll'),cpConfirmBtn=$('cpConfirmBtn');
+const drawZoneBtn=$('drawZoneBtn'),polyCountLabel=$('polyCountLabel'),polyPointsBubbles=$('polyPointsBubbles');
+const areaBadge=$('areaBadge'),areaText=$('areaText');
 const patternPreviewCanvas=$('patternPreviewCanvas');
 
 let polyCtx;
@@ -505,7 +498,7 @@ function setStatus(msg,cls=''){statusText.textContent=msg;statusToast.className=
 /* ═══════════════════════════════════════════
    THREE.JS INIT
 ═══════════════════════════════════════════ */
-let scene, camera3, renderer3, loader, xrReferenceSpace=null, floorPlane=null;
+let scene,camera3,renderer3,loader,xrReferenceSpace=null,floorPlane=null;
 
 function initThreeJS(){
   scene=new THREE.Scene();
@@ -526,22 +519,23 @@ function initThreeJS(){
 
   scene.add(new THREE.AmbientLight(0xffffff,1.4));
   const dir=new THREE.DirectionalLight(0xffffff,1.6);
-  dir.position.set(3,8,5); dir.castShadow=true;
-  dir.shadow.mapSize.width=2048; dir.shadow.mapSize.height=2048;
+  dir.position.set(3,8,5);dir.castShadow=true;
+  dir.shadow.mapSize.width=2048;dir.shadow.mapSize.height=2048;
   scene.add(dir);
-  const fill = new THREE.DirectionalLight(0xffffff, 0.5);
-fill.position.set(-4, 2, -4);
-scene.add(fill);
+  const fill=new THREE.DirectionalLight(0xffffff,0.5);
+  fill.position.set(-4,2,-4);
+  scene.add(fill);
+
   floorPlane=new THREE.Mesh(
     new THREE.PlaneGeometry(300,300),
     new THREE.MeshBasicMaterial({visible:false,side:THREE.DoubleSide})
   );
-  floorPlane.rotation.x=-Math.PI/2; floorPlane.name='floor'; scene.add(floorPlane);
+  floorPlane.rotation.x=-Math.PI/2;floorPlane.name='floor';scene.add(floorPlane);
   loader=new THREE.GLTFLoader();
 
-  polyDrawCanvas.width=window.innerWidth; polyDrawCanvas.height=window.innerHeight;
+  polyDrawCanvas.width=window.innerWidth;polyDrawCanvas.height=window.innerHeight;
   polyCtx=polyDrawCanvas.getContext('2d');
-  interactionCanvas.width=window.innerWidth; interactionCanvas.height=window.innerHeight;
+  interactionCanvas.width=window.innerWidth;interactionCanvas.height=window.innerHeight;
   window.addEventListener('resize',onResize);
 }
 
@@ -549,8 +543,8 @@ function onResize(){
   camera3.aspect=window.innerWidth/window.innerHeight;
   camera3.updateProjectionMatrix();
   renderer3.setSize(window.innerWidth,window.innerHeight);
-  polyDrawCanvas.width=window.innerWidth; polyDrawCanvas.height=window.innerHeight;
-  interactionCanvas.width=window.innerWidth; interactionCanvas.height=window.innerHeight;
+  polyDrawCanvas.width=window.innerWidth;polyDrawCanvas.height=window.innerHeight;
+  interactionCanvas.width=window.innerWidth;interactionCanvas.height=window.innerHeight;
   if(S.drawingZone) redrawPoly();
 }
 
@@ -562,7 +556,7 @@ async function startXRSession(){
     const session=await navigator.xr.requestSession('immersive-ar',{
       requiredFeatures:['hit-test'],optionalFeatures:['dom-overlay','plane-detection'],domOverlay:{root:document.body},
     });
-    S.xrSession=session; S.xrMode=true;
+    S.xrSession=session;S.xrMode=true;
     renderer3.xr.setReferenceSpaceType('local');
     await renderer3.xr.setSession(session);
     xrReferenceSpace=await session.requestReferenceSpace('local');
@@ -571,13 +565,13 @@ async function startXRSession(){
     S.hitTestSourceInitialized=true;
     session.addEventListener('end',()=>{S.xrMode=false;S.xrSession=null;S.hitTestSourceInitialized=false;S.hitTestSource=null;renderer3.setAnimationLoop(null);});
     renderer3.setAnimationLoop(xrRenderLoop);
-    showARUI(); setupXRSelect();
+    showARUI();setupXRSelect();
   }catch(err){console.error('WebXR',err);startFallbackMode();}
 }
 
 function showARUI(){
   startScreen.classList.add('hidden');
-  topBar.style.display='flex'; sheet.style.display='flex';
+  topBar.style.display='flex';sheet.style.display='flex';
   statusToast.style.display='flex';
   setStatus('Tapez "Tracer la zone" pour commencer','scanning');
 }
@@ -589,13 +583,13 @@ function xrRenderLoop(ts,frame){
     if(results.length>0){
       const pose=results[0].getPose(xrReferenceSpace);
       if(pose){
-        S.currentHitMatrix=pose.transform.matrix; S.reticleVisible=true;
-        const m=pose.transform.matrix, normalY=m[5];
+        S.currentHitMatrix=pose.transform.matrix;S.reticleVisible=true;
+        const m=pose.transform.matrix,normalY=m[5];
         S.currentSurfaceType=Math.abs(normalY)>0.7?(normalY>0?'floor':'ceiling'):'wall';
         if(S.currentSurfaceType==='floor'){
           const pos=new THREE.Vector3();
           new THREE.Matrix4().fromArray(pose.transform.matrix).decompose(pos,new THREE.Quaternion(),new THREE.Vector3());
-          S.floorY=pos.y; floorPlane.position.y=S.floorY;
+          S.floorY=pos.y;floorPlane.position.y=S.floorY;
         }
       }
     } else S.reticleVisible=false;
@@ -608,25 +602,25 @@ async function startFallbackMode(){
   S.fallbackMode=true;
   try{
     const stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'},audio:false});
-    const vid=$('videoEl'); vid.srcObject=stream; vid.style.display='block'; await vid.play();
+    const vid=$('videoEl');vid.srcObject=stream;vid.style.display='block';await vid.play();
   }catch(e){setStatus('Caméra refusée','error');return;}
   renderer3.setAnimationLoop(()=>renderer3.render(scene,camera3));
-  camera3.position.set(0,1.5,0); camera3.lookAt(0,0,-2);
+  camera3.position.set(0,1.5,0);camera3.lookAt(0,0,-2);
   camera3.rotation.x-=THREE.MathUtils.degToRad(35);
   camera3.updateProjectionMatrix();
-  S.floorY=0; floorPlane.position.y=0;
-  showARUI(); S.reticleVisible=true; S.currentSurfaceType='floor';
+  S.floorY=0;floorPlane.position.y=0;
+  showARUI();S.reticleVisible=true;S.currentSurfaceType='floor';
   setStatus('Mode caméra · Tracez la zone sur le sol','ok');
 }
 
 /* ═══ RAYCASTING ═══ */
 const raycaster=new THREE.Raycaster();
 function screenToFloor(sx,sy){
-  const nx=(sx/window.innerWidth)*2-1, ny=-(sy/window.innerHeight)*2+1;
+  const nx=(sx/window.innerWidth)*2-1,ny=-(sy/window.innerHeight)*2+1;
   raycaster.setFromCamera({x:nx,y:ny},camera3);
   const hits=raycaster.intersectObject(floorPlane);
   if(hits.length>0) return hits[0].point.clone();
-  const plane=new THREE.Plane(new THREE.Vector3(0,1,0),-S.floorY), target=new THREE.Vector3();
+  const plane=new THREE.Plane(new THREE.Vector3(0,1,0),-S.floorY),target=new THREE.Vector3();
   if(raycaster.ray.intersectPlane(plane,target)) return target.clone();
   return raycaster.ray.at(2,new THREE.Vector3());
 }
@@ -639,11 +633,10 @@ function worldToScreen(v){
    POLYGON AREA COMPUTATION
 ═══════════════════════════════════════════ */
 function computePoly3DArea(pts){
-  // Shoelace on XZ plane
   let a=0;
   for(let i=0,n=pts.length;i<n;i++){
     const j=(i+1)%n;
-    a+=pts[i].x*pts[j].z - pts[j].x*pts[i].z;
+    a+=pts[i].x*pts[j].z-pts[j].x*pts[i].z;
   }
   return Math.abs(a)/2;
 }
@@ -651,28 +644,28 @@ function computePoly3DArea(pts){
 /* ═══════════════════════════════════════════
    POLYGON DRAWING
 ═══════════════════════════════════════════ */
-const CLOSE_SNAP=54, MIN_POINTS=3;
+const CLOSE_SNAP=54,MIN_POINTS=3;
 
 function spawnRipple(x,y,color='rgba(232,64,26,.8)'){
-  const el=document.createElement('div'); el.className='tapRippleEl';
-  el.style.left=x+'px'; el.style.top=y+'px'; el.style.borderColor=color;
-  document.body.appendChild(el); el.addEventListener('animationend',()=>el.remove());
+  const el=document.createElement('div');el.className='tapRippleEl';
+  el.style.left=x+'px';el.style.top=y+'px';el.style.borderColor=color;
+  document.body.appendChild(el);el.addEventListener('animationend',()=>el.remove());
 }
 
 function startZoneDrawing(){
-  S.drawingZone=true; S.polyPoints2D=[]; S.polyPoints3D=[]; S.polyClosed=false; S.pendingPolyPts=null;
+  S.drawingZone=true;S.polyPoints2D=[];S.polyPoints3D=[];S.polyClosed=false;S.pendingPolyPts=null;
   interactionCanvas.style.display='block';
-  polyControls.classList.add('visible'); polyGuidePill.classList.add('visible');
-  sheet.style.display='none'; drawZoneBtn.className='qBtn qBtn-poly-on';
+  polyControls.classList.add('visible');polyGuidePill.classList.add('visible');
+  sheet.style.display='none';drawZoneBtn.className='qBtn qBtn-poly-on';
   polyCtx.clearRect(0,0,polyDrawCanvas.width,polyDrawCanvas.height);
-  updatePolyUI(); setGuideText('Tapez chaque coin de la zone');
+  updatePolyUI();setGuideText('Tapez chaque coin de la zone');
 }
 
 function cancelZoneDrawing(){
-  S.drawingZone=false; S.polyPoints2D=[]; S.polyPoints3D=[]; S.polyClosed=false;
-  interactionCanvas.style.display='none'; polyControls.classList.remove('visible');
-  polyGuidePill.classList.remove('visible'); areaBadge.classList.remove('visible');
-  sheet.style.display='flex'; drawZoneBtn.className='qBtn qBtn-poly';
+  S.drawingZone=false;S.polyPoints2D=[];S.polyPoints3D=[];S.polyClosed=false;
+  interactionCanvas.style.display='none';polyControls.classList.remove('visible');
+  polyGuidePill.classList.remove('visible');areaBadge.classList.remove('visible');
+  sheet.style.display='flex';drawZoneBtn.className='qBtn qBtn-poly';
   polyCtx.clearRect(0,0,polyDrawCanvas.width,polyDrawCanvas.height);
   setStatus('Dessin annulé','ok');
 }
@@ -685,155 +678,125 @@ function updatePolyUI(){
   polyPointsBubbles.innerHTML='';
   const shown=Math.min(n,8);
   for(let i=0;i<shown;i++){
-    const b=document.createElement('div'); b.className='ptBubble active'; polyPointsBubbles.appendChild(b);
+    const b=document.createElement('div');b.className='ptBubble active';polyPointsBubbles.appendChild(b);
   }
   const canClose=n>=MIN_POINTS&&!S.polyClosed;
   pbClose.style.display=canClose?'block':'none';
   polyCloseCta.classList.toggle('visible',canClose);
-
-  // area display
   if(S.polyPoints3D.length>=3){
     const area=computePoly3DArea(S.polyPoints3D);
     areaText.textContent=area.toFixed(2)+' m²';
     areaBadge.classList.add('visible');
   } else areaBadge.classList.remove('visible');
-
   if(n===0) setGuideText('Tapez chaque coin de la zone');
   else if(n===1) setGuideText('Continuez · encore 2 points min.');
   else if(n===2) setGuideText('Encore 1 point minimum…');
   else setGuideText('Approchez du 1er point pour fermer');
 }
 
-/* ─── Poly draw ─── */
 function redrawPoly(mx,my){
-  const W=polyDrawCanvas.width, H=polyDrawCanvas.height;
+  const W=polyDrawCanvas.width,H=polyDrawCanvas.height;
   polyCtx.clearRect(0,0,W,H);
   const pts=S.polyPoints2D;
   if(!pts.length) return;
-
   const nearFirst=pts.length>=MIN_POINTS&&mx!==undefined&&ptDist({x:mx,y:my},pts[0])<CLOSE_SNAP;
-
-  /* Filled area */
   if(pts.length>=3){
-    polyCtx.beginPath(); polyCtx.moveTo(pts[0].x,pts[0].y);
+    polyCtx.beginPath();polyCtx.moveTo(pts[0].x,pts[0].y);
     for(let i=1;i<pts.length;i++) polyCtx.lineTo(pts[i].x,pts[i].y);
     polyCtx.closePath();
-    polyCtx.fillStyle='rgba(232,64,26,0.08)'; polyCtx.fill();
-    // tile grid preview inside poly
+    polyCtx.fillStyle='rgba(232,64,26,0.08)';polyCtx.fill();
     drawPolyTilePreview(pts);
-    // edge highlight
-    polyCtx.beginPath(); polyCtx.moveTo(pts[0].x,pts[0].y);
+    polyCtx.beginPath();polyCtx.moveTo(pts[0].x,pts[0].y);
     for(let i=1;i<pts.length;i++) polyCtx.lineTo(pts[i].x,pts[i].y);
     polyCtx.closePath();
-    polyCtx.strokeStyle='rgba(232,64,26,.65)'; polyCtx.lineWidth=2;
-    polyCtx.setLineDash([]); polyCtx.stroke();
+    polyCtx.strokeStyle='rgba(232,64,26,.65)';polyCtx.lineWidth=2;
+    polyCtx.setLineDash([]);polyCtx.stroke();
   } else {
-    polyCtx.beginPath(); polyCtx.moveTo(pts[0].x,pts[0].y);
+    polyCtx.beginPath();polyCtx.moveTo(pts[0].x,pts[0].y);
     for(let i=1;i<pts.length;i++) polyCtx.lineTo(pts[i].x,pts[i].y);
-    polyCtx.strokeStyle='rgba(232,64,26,.65)'; polyCtx.lineWidth=2;
-    polyCtx.setLineDash([]); polyCtx.stroke();
+    polyCtx.strokeStyle='rgba(232,64,26,.65)';polyCtx.lineWidth=2;
+    polyCtx.setLineDash([]);polyCtx.stroke();
   }
-
-  /* Rubber-band */
   if(mx!==undefined&&!S.polyClosed&&pts.length>0){
     const last=pts[pts.length-1];
-    polyCtx.beginPath(); polyCtx.moveTo(last.x,last.y); polyCtx.lineTo(mx,my);
-    polyCtx.strokeStyle='rgba(255,255,255,.3)'; polyCtx.lineWidth=1.5;
-    polyCtx.setLineDash([5,5]); polyCtx.stroke(); polyCtx.setLineDash([]);
-
+    polyCtx.beginPath();polyCtx.moveTo(last.x,last.y);polyCtx.lineTo(mx,my);
+    polyCtx.strokeStyle='rgba(255,255,255,.3)';polyCtx.lineWidth=1.5;
+    polyCtx.setLineDash([5,5]);polyCtx.stroke();polyCtx.setLineDash([]);
     if(pts.length>=MIN_POINTS){
-      polyCtx.beginPath(); polyCtx.moveTo(mx,my); polyCtx.lineTo(pts[0].x,pts[0].y);
+      polyCtx.beginPath();polyCtx.moveTo(mx,my);polyCtx.lineTo(pts[0].x,pts[0].y);
       polyCtx.strokeStyle=nearFirst?'rgba(232,64,26,.9)':'rgba(255,255,255,.12)';
-      polyCtx.lineWidth=nearFirst?2:1; polyCtx.setLineDash(nearFirst?[]:[6,5]);
-      polyCtx.stroke(); polyCtx.setLineDash([]);
+      polyCtx.lineWidth=nearFirst?2:1;polyCtx.setLineDash(nearFirst?[]:[6,5]);
+      polyCtx.stroke();polyCtx.setLineDash([]);
     }
   }
-
-  /* Vertices */
   pts.forEach((p,i)=>{
     const isFirst=i===0;
     const snap=isFirst&&nearFirst;
     const R=isFirst?15:10;
-
     if(isFirst&&pts.length>=MIN_POINTS){
-      // Snap zone ring — dashed
-      polyCtx.beginPath(); polyCtx.arc(p.x,p.y,CLOSE_SNAP,0,Math.PI*2);
+      polyCtx.beginPath();polyCtx.arc(p.x,p.y,CLOSE_SNAP,0,Math.PI*2);
       polyCtx.strokeStyle=nearFirst?'rgba(232,64,26,.5)':'rgba(232,64,26,.15)';
-      polyCtx.lineWidth=1.5; polyCtx.setLineDash([4,4]); polyCtx.stroke(); polyCtx.setLineDash([]);
+      polyCtx.lineWidth=1.5;polyCtx.setLineDash([4,4]);polyCtx.stroke();polyCtx.setLineDash([]);
     }
-
-    /* Glow ring */
-    polyCtx.beginPath(); polyCtx.arc(p.x,p.y,R+8,0,Math.PI*2);
+    polyCtx.beginPath();polyCtx.arc(p.x,p.y,R+8,0,Math.PI*2);
     polyCtx.fillStyle=snap?'rgba(232,64,26,.22)':isFirst?'rgba(232,64,26,.1)':'rgba(255,255,255,.05)';
     polyCtx.fill();
-
-    /* Dot */
-    polyCtx.beginPath(); polyCtx.arc(p.x,p.y,R,0,Math.PI*2);
+    polyCtx.beginPath();polyCtx.arc(p.x,p.y,R,0,Math.PI*2);
     polyCtx.fillStyle=snap?'#E8401A':isFirst?'#fff':'rgba(255,220,180,.9)';
     polyCtx.fill();
     polyCtx.strokeStyle=snap?'#fff':isFirst?'#E8401A':'rgba(232,64,26,.7)';
-    polyCtx.lineWidth=2.5; polyCtx.stroke();
-
-    /* Number label */
+    polyCtx.lineWidth=2.5;polyCtx.stroke();
     polyCtx.font='bold 10px DM Mono, monospace';
     polyCtx.fillStyle=isFirst?'#E8401A':'rgba(201,169,110,1)';
-    polyCtx.textAlign='center'; polyCtx.textBaseline='middle';
-    polyCtx.fillText(i+1, p.x, p.y-R-12);
-
-    /* "Fermer ici" tooltip */
+    polyCtx.textAlign='center';polyCtx.textBaseline='middle';
+    polyCtx.fillText(i+1,p.x,p.y-R-12);
     if(snap){
-      const bx=p.x-48, by=p.y-R-38;
+      const bx=p.x-48,by=p.y-R-38;
       polyCtx.fillStyle='#E8401A';
       polyCtx.beginPath();
-      if(polyCtx.roundRect) polyCtx.roundRect(bx,by,96,22,6); else polyCtx.rect(bx,by,96,22);
+      if(polyCtx.roundRect) polyCtx.roundRect(bx,by,96,22,6);else polyCtx.rect(bx,by,96,22);
       polyCtx.fill();
-      polyCtx.font='bold 10px DM Sans, sans-serif'; polyCtx.fillStyle='#fff';
-      polyCtx.textAlign='center'; polyCtx.textBaseline='middle';
-      polyCtx.fillText('⬡ Fermer ici', bx+48, by+11);
+      polyCtx.font='bold 10px DM Sans, sans-serif';polyCtx.fillStyle='#fff';
+      polyCtx.textAlign='center';polyCtx.textBaseline='middle';
+      polyCtx.fillText('⬡ Fermer ici',bx+48,by+11);
     }
   });
-
-  /* Cursor dot */
   if(mx!==undefined&&!S.polyClosed&&!nearFirst){
-    polyCtx.beginPath(); polyCtx.arc(mx,my,5,0,Math.PI*2);
-    polyCtx.fillStyle='rgba(255,255,255,.45)'; polyCtx.fill();
-    polyCtx.strokeStyle='rgba(232,64,26,.55)'; polyCtx.lineWidth=1.5; polyCtx.stroke();
+    polyCtx.beginPath();polyCtx.arc(mx,my,5,0,Math.PI*2);
+    polyCtx.fillStyle='rgba(255,255,255,.45)';polyCtx.fill();
+    polyCtx.strokeStyle='rgba(232,64,26,.55)';polyCtx.lineWidth=1.5;polyCtx.stroke();
   }
 }
 
-/* Mini tile grid preview inside polygon */
 function drawPolyTilePreview(pts){
   const ts=22;
-  const xs=pts.map(p=>p.x), ys=pts.map(p=>p.y);
+  const xs=pts.map(p=>p.x),ys=pts.map(p=>p.y);
   const minX=Math.min(...xs),maxX=Math.max(...xs),minY=Math.min(...ys),maxY=Math.max(...ys);
   polyCtx.save();
-  polyCtx.beginPath(); polyCtx.moveTo(pts[0].x,pts[0].y);
+  polyCtx.beginPath();polyCtx.moveTo(pts[0].x,pts[0].y);
   for(let i=1;i<pts.length;i++) polyCtx.lineTo(pts[i].x,pts[i].y);
-  polyCtx.closePath(); polyCtx.clip();
+  polyCtx.closePath();polyCtx.clip();
   const cc=[(minX+maxX)/2,(minY+maxY)/2];
-  const offX=((cc[0]%ts)+ts)%ts, offY=((cc[1]%ts)+ts)%ts;
-  const cols=Math.ceil((maxX-minX)/ts)+2, rows=Math.ceil((maxY-minY)/ts)+2;
-  // Alternating warm tile colors
+  const offX=((cc[0]%ts)+ts)%ts,offY=((cc[1]%ts)+ts)%ts;
+  const cols=Math.ceil((maxX-minX)/ts)+2,rows=Math.ceil((maxY-minY)/ts)+2;
   const fills=['rgba(201,169,110,0.22)','rgba(122,79,44,0.14)','rgba(201,169,110,0.16)','rgba(160,120,70,0.1)'];
   for(let r=0;r<rows;r++) for(let c=0;c<cols;c++){
-    const tx=minX-offX+c*ts, ty=minY-offY+r*ts;
+    const tx=minX-offX+c*ts,ty=minY-offY+r*ts;
     polyCtx.fillStyle=fills[(r+c)%4];
     polyCtx.fillRect(tx+1,ty+1,ts-2,ts-2);
   }
-  // joint lines
-  polyCtx.strokeStyle='rgba(232,64,26,.12)'; polyCtx.lineWidth=0.5;
+  polyCtx.strokeStyle='rgba(232,64,26,.12)';polyCtx.lineWidth=0.5;
   for(let r=0;r<=rows;r++){
     const ty=minY-offY+r*ts;
-    polyCtx.beginPath(); polyCtx.moveTo(minX,ty); polyCtx.lineTo(maxX,ty); polyCtx.stroke();
+    polyCtx.beginPath();polyCtx.moveTo(minX,ty);polyCtx.lineTo(maxX,ty);polyCtx.stroke();
   }
   for(let c=0;c<=cols;c++){
     const tx=minX-offX+c*ts;
-    polyCtx.beginPath(); polyCtx.moveTo(tx,minY); polyCtx.lineTo(tx,maxY); polyCtx.stroke();
+    polyCtx.beginPath();polyCtx.moveTo(tx,minY);polyCtx.lineTo(tx,maxY);polyCtx.stroke();
   }
   polyCtx.restore();
 }
 
-/* ─── Interactions ─── */
 interactionCanvas.addEventListener('click',e=>{if(!S.drawingZone)return;handlePolyTap(e.clientX,e.clientY);});
 interactionCanvas.addEventListener('touchend',e=>{if(!S.drawingZone)return;e.preventDefault();const t=e.changedTouches[0];handlePolyTap(t.clientX,t.clientY);},{passive:false});
 interactionCanvas.addEventListener('mousemove',e=>{if(!S.drawingZone||S.polyClosed)return;redrawPoly(e.clientX,e.clientY);});
@@ -843,26 +806,26 @@ function handlePolyTap(ex,ey){
   if(S.polyClosed) return;
   const pts=S.polyPoints2D;
   if(pts.length>=MIN_POINTS&&ptDist({x:ex,y:ey},pts[0])<CLOSE_SNAP){
-    spawnRipple(pts[0].x,pts[0].y,'rgba(232,64,26,.9)'); closePolygon(); return;
+    spawnRipple(pts[0].x,pts[0].y,'rgba(232,64,26,.9)');closePolygon();return;
   }
   const world=screenToFloor(ex,ey);
   const s2D=S.xrMode?worldToScreen(world):{x:ex,y:ey};
-  S.polyPoints2D.push(s2D); S.polyPoints3D.push(world);
-  spawnRipple(ex,ey); updatePolyUI(); redrawPoly(ex,ey);
+  S.polyPoints2D.push(s2D);S.polyPoints3D.push(world);
+  spawnRipple(ex,ey);updatePolyUI();redrawPoly(ex,ey);
 }
 
 function closePolygon(){
   if(S.polyPoints2D.length<MIN_POINTS) return;
-  S.polyClosed=true; redrawPoly(); updatePolyUI();
+  S.polyClosed=true;redrawPoly();updatePolyUI();
   interactionCanvas.style.display='none';
-  polyControls.classList.remove('visible'); polyGuidePill.classList.remove('visible');
+  polyControls.classList.remove('visible');polyGuidePill.classList.remove('visible');
   showCarrelagePicker();
 }
 
 function undoLastPoint(){
   if(S.polyClosed){S.polyClosed=false;interactionCanvas.style.display='block';polyControls.classList.add('visible');polyGuidePill.classList.add('visible');updatePolyUI();redrawPoly();return;}
   if(!S.polyPoints2D.length) return;
-  S.polyPoints2D.pop(); S.polyPoints3D.pop(); updatePolyUI(); redrawPoly();
+  S.polyPoints2D.pop();S.polyPoints3D.pop();updatePolyUI();redrawPoly();
 }
 
 pbUndo.addEventListener('click',undoLastPoint);
@@ -871,22 +834,18 @@ polyCloseCta.addEventListener('click',closePolygon);
 pbCancel.addEventListener('click',cancelZoneDrawing);
 
 /* ═══════════════════════════════════════════
-   PATTERN PREVIEW CANVAS
+   PATTERN PREVIEW — uses real image when available
 ═══════════════════════════════════════════ */
-function drawPatternPreview(){
+function drawPatternPreviewWith(texCanvas){
   const c=patternPreviewCanvas;
-  const W=c.offsetWidth||300, H=c.offsetHeight||50;
-  c.width=W; c.height=H;
+  const W=c.offsetWidth||300,H=c.offsetHeight||50;
+  c.width=W;c.height=H;
   const ctx=c.getContext('2d');
-  ctx.fillStyle='#E8E6E2'; ctx.fillRect(0,0,W,H);
-
-  const product=S.catalog.find(p=>p.id===S.selectedProductId)||S.catalog[0];
-  const texCanvas=product?makeTileTexture(product.texType,64):null;
-  const ts=32; // preview scale
+  ctx.fillStyle='#E8E6E2';ctx.fillRect(0,0,W,H);
+  const ts=32;
   const pattern=S.selectedPattern;
-
-  ctx.save();
   const grout=3;
+  ctx.save();
   function drawTile(x,y,w,h,rot){
     ctx.save();
     ctx.translate(x+w/2,y+h/2);
@@ -896,12 +855,10 @@ function drawPatternPreview(){
       ctx.fillStyle=pat;
     } else ctx.fillStyle='#C9A96E';
     ctx.fillRect(-w/2+1,-h/2+1,w-2,h-2);
-    // edge highlight
-    ctx.strokeStyle='rgba(255,255,255,.35)'; ctx.lineWidth=0.5;
+    ctx.strokeStyle='rgba(255,255,255,.35)';ctx.lineWidth=0.5;
     ctx.strokeRect(-w/2+1,-h/2+1,w-2,h-2);
     ctx.restore();
   }
-
   if(pattern==='straight'){
     for(let r=0;r<H/ts+1;r++) for(let cc2=0;cc2<W/ts+1;cc2++)
       drawTile(cc2*ts,r*ts,ts-grout,ts-grout,0);
@@ -911,7 +868,7 @@ function drawPatternPreview(){
       for(let cc2=-1;cc2<W/ts+2;cc2++) drawTile(off+cc2*ts,r*(ts/2),ts-grout,ts/2-grout,0);
     }
   } else if(pattern==='herringbone'){
-    const tw=ts, th=ts/2;
+    const tw=ts,th=ts/2;
     for(let r=-1;r<H/th+2;r++) for(let cc2=-1;cc2<W/tw+2;cc2++){
       drawTile(cc2*tw,r*th*2,tw,th,0);
       drawTile(cc2*tw,r*th*2+th-tw/2,th,tw,Math.PI/2);
@@ -921,14 +878,32 @@ function drawPatternPreview(){
       drawTile(cc2*ts,r*ts,ts-grout,ts-grout,Math.PI/4);
   } else if(pattern==='opus'){
     for(let r=0;r<H/(ts*1.8)+1;r++) for(let cc2=0;cc2<W/(ts*1.8)+1;cc2++){
-      const ox=cc2*(ts*1.8), oy=r*(ts*1.8);
-      drawTile(ox,oy,ts,ts,0); drawTile(ox+ts+grout,oy,ts*0.8,ts*0.8,0);
-      drawTile(ox,oy+ts+grout,ts*0.8,ts*0.8,0); drawTile(ox+ts*0.8+grout+grout,oy+ts+grout,ts*0.8,ts*0.8,0);
+      const ox=cc2*(ts*1.8),oy=r*(ts*1.8);
+      drawTile(ox,oy,ts,ts,0);drawTile(ox+ts+grout,oy,ts*0.8,ts*0.8,0);
+      drawTile(ox,oy+ts+grout,ts*0.8,ts*0.8,0);drawTile(ox+ts*0.8+grout+grout,oy+ts+grout,ts*0.8,ts*0.8,0);
     }
   }
   ctx.restore();
-  // grout tint overlay
-  ctx.fillStyle='rgba(138,122,106,0.18)'; ctx.fillRect(0,0,W,H);
+  ctx.fillStyle='rgba(138,122,106,0.18)';ctx.fillRect(0,0,W,H);
+}
+
+function drawPatternPreview(){
+  const product=S.catalog.find(p=>p.id===S.selectedProductId)||S.catalog[0];
+  if(!product){drawPatternPreviewWith(null);return;}
+  const imgUrl=product.imageUrl||product.thumbnail||'';
+  if(imgUrl){
+    const img=new Image();
+    img.crossOrigin='anonymous';
+    img.onload=()=>{
+      const off=document.createElement('canvas');off.width=off.height=64;
+      off.getContext('2d').drawImage(img,0,0,64,64);
+      drawPatternPreviewWith(off);
+    };
+    img.onerror=()=>drawPatternPreviewWith(makeTileTexture(product.texType||'marbre',64));
+    img.src=imgUrl;
+  } else {
+    drawPatternPreviewWith(makeTileTexture(product.texType||'marbre',64));
+  }
 }
 
 /* ═══════════════════════════════════════════
@@ -941,7 +916,7 @@ function showCarrelagePicker(){
   setTimeout(()=>carrelagePicker.classList.add('visible'),10);
   sheet.style.display='flex';
   setStatus('Étape 2 · Choisir le carrelage','tiling');
-  renderCpCards(); setTimeout(drawPatternPreview,50);
+  renderCpCards();setTimeout(drawPatternPreview,50);
 }
 function hidePicker(){
   carrelagePicker.classList.remove('visible');
@@ -952,22 +927,39 @@ function hidePicker(){
 function renderCpCards(){
   cpScroll.innerHTML='';
   S.catalog.forEach(p=>{
-    const card=document.createElement('div'); card.className='cpCard'+(S.selectedProductId===p.id?' active':'');
+    const card=document.createElement('div');
+    card.className='cpCard'+(S.selectedProductId===p.id?' active':'');
     card.dataset.id=p.id;
 
-    // procedural canvas preview
-    const wrap=document.createElement('div'); wrap.className='cpCard-preview';
-    const previewC=makeTileTexture(p.texType,100);
-    previewC.style.width='100%'; previewC.style.height='100%'; wrap.appendChild(previewC);
+    const wrap=document.createElement('div');wrap.className='cpCard-preview';
 
-    const name=document.createElement('div'); name.className='cpCard-name'; name.textContent=p.name||'Carrelage';
-    const sub=document.createElement('div'); sub.className='cpCard-sub'; sub.textContent=p.category||'';
+    /* ── use real image if available, procedural canvas as fallback ── */
+    const imgUrl=p.imageUrl||p.thumbnail||'';
+    if(imgUrl){
+      const img=document.createElement('img');
+      img.src=imgUrl;
+      img.alt=p.name||'';
+      img.style.cssText='width:100%;height:100%;object-fit:cover;display:block';
+      img.onerror=()=>{
+        img.remove();
+        const fb=makeTileTexture(p.texType||'marbre',100);
+        fb.style.cssText='width:100%;height:100%;display:block';
+        wrap.appendChild(fb);
+      };
+      wrap.appendChild(img);
+    } else {
+      const previewC=makeTileTexture(p.texType||'marbre',100);
+      previewC.style.cssText='width:100%;height:100%;display:block';
+      wrap.appendChild(previewC);
+    }
 
-    card.appendChild(wrap); card.appendChild(name); card.appendChild(sub);
+    const name=document.createElement('div');name.className='cpCard-name';name.textContent=p.name||'Carrelage';
+    const sub=document.createElement('div');sub.className='cpCard-sub';sub.textContent=p.category||'';
+    card.appendChild(wrap);card.appendChild(name);card.appendChild(sub);
     card.addEventListener('click',()=>{
       S.selectedProductId=p.id;
       cpScroll.querySelectorAll('.cpCard').forEach(c=>c.classList.remove('active'));
-      card.classList.add('active'); cpConfirmBtn.disabled=false;
+      card.classList.add('active');cpConfirmBtn.disabled=false;
       drawPatternPreview();
     });
     cpScroll.appendChild(card);
@@ -978,7 +970,7 @@ $('cpCloseBtn').addEventListener('click',()=>{hidePicker();cancelZoneDrawing();}
 document.querySelectorAll('.cpPattern').forEach(btn=>{
   btn.addEventListener('click',()=>{
     document.querySelectorAll('.cpPattern').forEach(b=>b.classList.remove('active'));
-    btn.classList.add('active'); S.selectedPattern=btn.dataset.pattern;
+    btn.classList.add('active');S.selectedPattern=btn.dataset.pattern;
     drawPatternPreview();
   });
 });
@@ -1008,10 +1000,10 @@ function setupXRSelect(){
   if(!S.xrSession)return;
   S.xrSession.addEventListener('select',()=>{
     if(S.drawingZone&&S.reticleVisible&&!S.polyClosed&&S.currentHitMatrix){
-      const mat=new THREE.Matrix4().fromArray(S.currentHitMatrix), pos=new THREE.Vector3();
+      const mat=new THREE.Matrix4().fromArray(S.currentHitMatrix),pos=new THREE.Vector3();
       mat.decompose(pos,new THREE.Quaternion(),new THREE.Vector3());
-      S.polyPoints2D.push(worldToScreen(pos)); S.polyPoints3D.push(pos.clone());
-      updatePolyUI(); redrawPoly();
+      S.polyPoints2D.push(worldToScreen(pos));S.polyPoints3D.push(pos.clone());
+      updatePolyUI();redrawPoly();
     }
   });
 }
@@ -1026,13 +1018,13 @@ document.addEventListener('touchstart',e=>{
     const now=Date.now();
     if(now-S.lastTapTime<300){clearTimeout(S.doubleTapTimeout);if(S.selectedObjectId)deleteSelected();GT.touchStart=null;}
     else{
-      S.lastTapTime=now; S.doubleTapTimeout=setTimeout(()=>{S.lastTapTime=0;},300);
+      S.lastTapTime=now;S.doubleTapTimeout=setTimeout(()=>{S.lastTapTime=0;},300);
       if(S.selectedObjectId){const t=e.touches[0];GT.touchStart={x:t.clientX,y:t.clientY};const o=S.placedObjects.find(o=>o.id===S.selectedObjectId);if(o){GT.rotX=o.group.rotation.x;GT.rotY=o.group.rotation.y;}}
     }
   } else if(e.touches.length===2){
-    GT.touchStart=null; const t1=e.touches[0],t2=e.touches[1];
+    GT.touchStart=null;const t1=e.touches[0],t2=e.touches[1];
     S.twoTouchStart={dist:Math.hypot(t2.clientX-t1.clientX,t2.clientY-t1.clientY)};
-    const o=S.placedObjects.find(o=>o.id===S.selectedObjectId); if(o)S.touchStartScale=o.scaleVal;
+    const o=S.placedObjects.find(o=>o.id===S.selectedObjectId);if(o)S.touchStartScale=o.scaleVal;
   }
 },{passive:true});
 document.addEventListener('touchmove',e=>{
@@ -1054,7 +1046,7 @@ document.addEventListener('touchend',()=>{GT.touchStart=null;S.twoTouchStart=nul
    POLYGON MATH
 ═══════════════════════════════════════════ */
 function pointInPoly(px,pz,poly){
-  let inside=false; const n=poly.length;
+  let inside=false;const n=poly.length;
   for(let i=0,j=n-1;i<n;j=i++){
     const xi=poly[i].x,zi=poly[i].z,xj=poly[j].x,zj=poly[j].z;
     if(((zi>pz)!==(zj>pz))&&(px<(xj-xi)*(pz-zi)/(zj-zi)+xi)) inside=!inside;
@@ -1069,28 +1061,22 @@ function polyBounds(poly){
 function polyCentroid(poly){let cx=0,cz=0;poly.forEach(p=>{cx+=p.x;cz+=p.z;});return{x:cx/poly.length,z:cz/poly.length};}
 
 /* ═══════════════════════════════════════════
-   TILE GRID GENERATION  (IMPROVED)
-   - Grout gap taken into account
-   - Herringbone (point de Hongrie)
-   - Brick offset pattern
-   - Better alignment via centroid offset
+   TILE GRID GENERATION
 ═══════════════════════════════════════════ */
-function generateTilesInPolygon(poly3D, tileS, pattern, grout){
-  const {minX,maxX,minZ,maxZ}=polyBounds(poly3D);
+function generateTilesInPolygon(poly3D,tileS,pattern,grout){
+  const{minX,maxX,minZ,maxZ}=polyBounds(poly3D);
   const cent=polyCentroid(poly3D);
   const positions=[];
   const PAD=tileS*2;
-  const ts=tileS, g=grout;
+  const ts=tileS,g=grout;
   const step=ts+g;
-
-  // Offset so joints align relative to centroid (looks natural)
   const alignX=((cent.x%step)+step)%step;
   const alignZ=((cent.z%step)+step)%step;
 
   if(pattern==='straight'){
     for(let gz=minZ-PAD-alignZ;gz<=maxZ+PAD;gz+=step){
       for(let gx=minX-PAD-alignX;gx<=maxX+PAD;gx+=step){
-        const cx=gx+ts/2, cz=gz+ts/2;
+        const cx=gx+ts/2,cz=gz+ts/2;
         if(pointInPoly(cx,cz,poly3D)) positions.push({x:cx,z:cz,rot:0,w:ts,h:ts});
       }
     }
@@ -1099,53 +1085,49 @@ function generateTilesInPolygon(poly3D, tileS, pattern, grout){
     for(let gz=minZ-PAD-alignZ;gz<=maxZ+PAD;gz+=ts/2+g,row++){
       const shift=(row%2)?(step/2):0;
       for(let gx=minX-PAD-alignX+shift;gx<=maxX+PAD;gx+=step){
-        const cx=gx+ts/2, cz=gz+ts/4;
+        const cx=gx+ts/2,cz=gz+ts/4;
         if(pointInPoly(cx,cz,poly3D)) positions.push({x:cx,z:cz,rot:0,w:ts,h:ts/2});
       }
     }
   } else if(pattern==='herringbone'){
-    // Point de Hongrie: alternating 0 and 90° tiles, brick-offset
-    const tw=ts, th=ts/2;
+    const tw=ts,th=ts/2;
     const rStep=th+g;
     for(let gz=minZ-PAD;gz<=maxZ+PAD;gz+=rStep*2){
       for(let gx=minX-PAD;gx<=maxX+PAD;gx+=tw+g){
-        // Horizontal tile
-        const cx=gx+tw/2, cz=gz+th/2;
+        const cx=gx+tw/2,cz=gz+th/2;
         if(pointInPoly(cx,cz,poly3D)) positions.push({x:cx,z:cz,rot:0,w:tw,h:th});
-        // Vertical tile (rotated 90°) — offset to right and down
-        const cx2=gx+tw+g+th/2, cz2=gz+rStep+tw/2;
+        const cx2=gx+tw+g+th/2,cz2=gz+rStep+tw/2;
         if(pointInPoly(cx2,cz2,poly3D)) positions.push({x:cx2,z:cz2,rot:Math.PI/2,w:tw,h:th});
       }
     }
-    // Interleaved row
     for(let gz=minZ-PAD+rStep;gz<=maxZ+PAD;gz+=rStep*2){
       for(let gx=minX-PAD+(tw+g)/2;gx<=maxX+PAD;gx+=tw+g){
-        const cx=gx+tw/2, cz=gz+th/2;
+        const cx=gx+tw/2,cz=gz+th/2;
         if(pointInPoly(cx,cz,poly3D)) positions.push({x:cx,z:cz,rot:0,w:tw,h:th});
-        const cx2=gx-th/2-g, cz2=gz-rStep+tw/2;
+        const cx2=gx-th/2-g,cz2=gz-rStep+tw/2;
         if(pointInPoly(cx2,cz2,poly3D)) positions.push({x:cx2,z:cz2,rot:Math.PI/2,w:tw,h:th});
       }
     }
   } else if(pattern==='diagonal'){
     for(let gz=minZ-PAD-alignZ;gz<=maxZ+PAD;gz+=step){
       for(let gx=minX-PAD-alignX;gx<=maxX+PAD;gx+=step){
-        const dx=gx-cent.x, dz=gz-cent.z;
-        const rx=cent.x+(dx-dz)*Math.SQRT1_2, rz=cent.z+(dx+dz)*Math.SQRT1_2;
+        const dx=gx-cent.x,dz=gz-cent.z;
+        const rx=cent.x+(dx-dz)*Math.SQRT1_2,rz=cent.z+(dx+dz)*Math.SQRT1_2;
         if(pointInPoly(rx,rz,poly3D)) positions.push({x:rx,z:rz,rot:Math.PI/4,w:ts*0.95,h:ts*0.95});
       }
     }
   } else if(pattern==='opus'){
-    const big=ts, sm=ts*0.58, stride=big+sm+g*3;
-    const offX=((cent.x%stride)+stride)%stride, offZ=((cent.z%stride)+stride)%stride;
+    const big=ts,sm=ts*0.58,stride=big+sm+g*3;
+    const offX=((cent.x%stride)+stride)%stride,offZ=((cent.z%stride)+stride)%stride;
     for(let gz=minZ-PAD-offZ;gz<=maxZ+PAD;gz+=stride){
       for(let gx=minX-PAD-offX;gx<=maxX+PAD;gx+=stride){
-        const bx=gx+big/2, bz=gz+big/2;
+        const bx=gx+big/2,bz=gz+big/2;
         if(pointInPoly(bx,bz,poly3D)) positions.push({x:bx,z:bz,rot:0,w:big,h:big});
-        const s1x=gx+big+g+sm/2, s1z=gz+sm/2;
+        const s1x=gx+big+g+sm/2,s1z=gz+sm/2;
         if(pointInPoly(s1x,s1z,poly3D)) positions.push({x:s1x,z:s1z,rot:0,w:sm,h:sm});
-        const s2x=gx+sm/2, s2z=gz+big+g+sm/2;
+        const s2x=gx+sm/2,s2z=gz+big+g+sm/2;
         if(pointInPoly(s2x,s2z,poly3D)) positions.push({x:s2x,z:s2z,rot:0,w:sm,h:sm});
-        const s3x=gx+big+g+sm/2, s3z=gz+big+g+sm/2;
+        const s3x=gx+big+g+sm/2,s3z=gz+big+g+sm/2;
         if(pointInPoly(s3x,s3z,poly3D)) positions.push({x:s3x,z:s3z,rot:0,w:sm,h:sm});
       }
     }
@@ -1154,51 +1136,57 @@ function generateTilesInPolygon(poly3D, tileS, pattern, grout){
 }
 
 /* ═══════════════════════════════════════════
-   GROUT BASE — filled polygon in scene
+   GROUT BASE
 ═══════════════════════════════════════════ */
-function buildGroutBase(poly3D, fy){
+function buildGroutBase(poly3D,fy){
   const shape=new THREE.Shape();
   shape.moveTo(poly3D[0].x,poly3D[0].z);
   for(let i=1;i<poly3D.length;i++) shape.lineTo(poly3D[i].x,poly3D[i].z);
   shape.closePath();
-  const geo=new THREE.ShapeGeometry(shape); geo.rotateX(-Math.PI/2);
+  const geo=new THREE.ShapeGeometry(shape);geo.rotateX(-Math.PI/2);
   const mat=new THREE.MeshStandardMaterial({
-    color:0x8A7A6A, roughness:0.95, metalness:0,
-    transparent:true, opacity:S.opacity*0.88, side:THREE.DoubleSide, depthWrite:false
+    color:0x8A7A6A,roughness:0.95,metalness:0,
+    transparent:true,opacity:S.opacity*0.88,side:THREE.DoubleSide,depthWrite:false
   });
-  const mesh=new THREE.Mesh(geo,mat); mesh.position.y=fy+0.0005; mesh.receiveShadow=true;
+  const mesh=new THREE.Mesh(geo,mat);mesh.position.y=fy+0.0005;mesh.receiveShadow=true;
   return mesh;
 }
 
 /* ═══════════════════════════════════════════
-   TILE MATERIAL BUILDER (procedural)
+   TILE MATERIAL — real image preferred, procedural fallback
 ═══════════════════════════════════════════ */
-function buildTileMaterial(product, grout){
-  const tex=getTileTexture(product.texType);
-  tex.repeat.set(1,1);
+function buildTileMaterial(product){
+  const imgUrl=product.imageUrl||product.thumbnail||'';
+  let tex;
+  if(imgUrl){
+    tex=getImageTexture(imgUrl);
+  } else {
+    tex=getTileTexture(product.texType||'marbre');
+    tex.repeat.set(1,1);
+  }
   const mat=new THREE.MeshStandardMaterial({
-    map:tex, roughness:0.32, metalness:0.06,
-    transparent:true, opacity:S.opacity,
+    map:tex,roughness:0.32,metalness:0.06,
+    transparent:true,opacity:S.opacity,
     side:THREE.DoubleSide
   });
-  // Zellige & mosaique are slightly more specular
-  if(product.texType==='zellige'||product.texType==='mosaique') mat.metalness=0.14;
-  if(product.texType==='marbre') mat.roughness=0.18;
-  if(product.texType==='beton') mat.roughness=0.85;
+  if(!imgUrl){
+    if(product.texType==='zellige'||product.texType==='mosaique') mat.metalness=0.14;
+    if(product.texType==='marbre') mat.roughness=0.18;
+    if(product.texType==='beton') mat.roughness=0.85;
+  }
   return mat;
 }
 
 /* ═══════════════════════════════════════════
-   TILE MESH BUILDER — box with bevel-like
-   shading via normals
+   TILE MESH BUILDER
 ═══════════════════════════════════════════ */
 const TILE_H=0.010;
-function buildTileMesh(p, mat, fy){
+function buildTileMesh(p,mat,fy){
   const geo=new THREE.BoxGeometry(p.w,TILE_H,p.h);
   const mesh=new THREE.Mesh(geo,mat.clone());
-  mesh.castShadow=true; mesh.receiveShadow=true;
+  mesh.castShadow=true;mesh.receiveShadow=true;
   mesh.rotation.y=p.rot;
-  mesh.position.set(p.x, fy+TILE_H/2, p.z);
+  mesh.position.set(p.x,fy+TILE_H/2,p.z);
   return mesh;
 }
 
@@ -1211,7 +1199,7 @@ async function placeTilePolygon(poly3D){
 
   const fy=S.floorY;
   const flatPoly=poly3D.map(p=>({x:p.x,y:fy,z:p.z}));
-  const tileS=S.tileSize, grout=S.groutWidth;
+  const tileS=S.tileSize,grout=S.groutWidth;
   const positions=generateTilesInPolygon(flatPoly,tileS,S.selectedPattern,grout);
   const total=positions.length;
   if(total===0){setStatus('Zone trop petite ?','error');return;}
@@ -1220,11 +1208,11 @@ async function placeTilePolygon(poly3D){
   tilingFill.style.width='0%';
   tilingText.textContent='0 / '+total;
 
-  const zoneGroup=new THREE.Group(); scene.add(zoneGroup);
+  const zoneGroup=new THREE.Group();scene.add(zoneGroup);
   zoneGroup.userData.isTileZone=true;
   zoneGroup.add(buildGroutBase(flatPoly,fy));
 
-  const baseMat=buildTileMaterial(product,grout);
+  const baseMat=buildTileMaterial(product);
 
   const BATCH=8;
   for(let i=0;i<positions.length;i++){
@@ -1242,7 +1230,7 @@ async function placeTilePolygon(poly3D){
 
   const id=++S.meshIdCounter;
   S.placedObjects.push({id,group:zoneGroup,name:product.name+' (zone)',productId:product.id,scaleVal:1,baseScale:1,isTileZone:true});
-  selectObject(id); updatePlacedBadge();
+  selectObject(id);updatePlacedBadge();
   const area=computePoly3DArea(flatPoly);
   setStatus('✓ '+total+' tuiles · '+area.toFixed(1)+' m² · '+S.selectedPattern,'ok');
   postToFlutter({type:'tile_zone',count:total,area:area.toFixed(2)});
@@ -1257,10 +1245,10 @@ function deselectObject(){S.selectedObjectId=null;actionBar.classList.remove('vi
 function scaleObject(obj,val){const c=Math.max(0.05,Math.min(8,val));obj.scaleVal=c;if(obj.isTileZone)obj.group.scale.setScalar(c);else if(obj.model)obj.model.scale.setScalar((obj.baseScale||1)*c);}
 function deleteSelected(){
   const obj=S.placedObjects.find(o=>o.id===S.selectedObjectId);if(!obj)return;
-  scene.remove(obj.group); S.placedObjects=S.placedObjects.filter(o=>o.id!==S.selectedObjectId);
+  scene.remove(obj.group);S.placedObjects=S.placedObjects.filter(o=>o.id!==S.selectedObjectId);
   S.tileZoneGroups=S.tileZoneGroups.filter(g=>g!==obj.group);
-  deselectObject(); updatePlacedBadge();
-  deleteHint.classList.add('show'); setTimeout(()=>deleteHint.classList.remove('show'),600);
+  deselectObject();updatePlacedBadge();
+  deleteHint.classList.add('show');setTimeout(()=>deleteHint.classList.remove('show'),600);
   postToFlutter({type:'removed',count:S.placedObjects.length});
 }
 function updatePlacedBadge(){const n=S.placedObjects.length;placedCountEl.textContent=n;placedBadge.classList.toggle('visible',n>0);}
@@ -1291,10 +1279,10 @@ handleEl.addEventListener('click',()=>{const h=sheet.getBoundingClientRect().hei
 drawZoneBtn.addEventListener('click',()=>{if(S.drawingZone){cancelZoneDrawing();return;}startZoneDrawing();});
 $('resetBtn').addEventListener('click',()=>{
   S.placedObjects.forEach(o=>scene.remove(o.group));
-  S.placedObjects=[]; S.tileZoneGroups=[]; deselectObject(); updatePlacedBadge();
-  S.selectedProductId=null; S.pendingPolyPts=null;
+  S.placedObjects=[];S.tileZoneGroups=[];deselectObject();updatePlacedBadge();
+  S.selectedProductId=null;S.pendingPolyPts=null;
   polyCtx.clearRect(0,0,polyDrawCanvas.width,polyDrawCanvas.height);
-  hidePicker(); cancelZoneDrawing(); setStatus('Réinitialisé','ok');
+  hidePicker();cancelZoneDrawing();setStatus('Réinitialisé','ok');
   postToFlutter({type:'removed',count:0});
 });
 $('captureBtn').addEventListener('click',doCapture);
@@ -1304,8 +1292,8 @@ $('captureBtn').addEventListener('click',doCapture);
 ═══════════════════════════════════════════ */
 async function doCapture(){
   const showSaveToast=(icon,txt)=>{
-    $('saveToastIcon').textContent=icon; $('saveToastText').textContent=txt;
-    const t=$('saveToast'); t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2200);
+    $('saveToastIcon').textContent=icon;$('saveToastText').textContent=txt;
+    const t=$('saveToast');t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200);
   };
   try{
     renderer3.render(scene,camera3);
@@ -1315,8 +1303,8 @@ async function doCapture(){
       if(navigator.canShare&&navigator.canShare({files:[file]})){
         try{await navigator.share({files:[file],title:'PlaceAR'});showSaveToast('📸','Partagé !');return;}catch{}
       }
-      const a=document.createElement('a'); a.download='placeAR.png'; a.href=URL.createObjectURL(blob); a.click();
-      setTimeout(()=>URL.revokeObjectURL(a.href),3000); showSaveToast('💾','Image sauvegardée !');
+      const a=document.createElement('a');a.download='placeAR.png';a.href=URL.createObjectURL(blob);a.click();
+      setTimeout(()=>URL.revokeObjectURL(a.href),3000);showSaveToast('💾','Image sauvegardée !');
     },'image/png');
   }catch(e){showSaveToast('❌','Erreur capture');}
   postToFlutter({type:'capture'});
@@ -1326,9 +1314,16 @@ async function doCapture(){
    CATALOG & BRIDGE
 ═══════════════════════════════════════════ */
 window.loadProductCatalog=function(products){
-  S.catalog=products.map(p=>({...p,texType:p.texType||'marbre'}));
+  /* Preserve imageUrl / thumbnail / texType from incoming data */
+  S.catalog=products.map(p=>({
+    ...p,
+    texType:p.texType||'marbre',
+    imageUrl:p.imageUrl||p.image||p.thumbnail||'',
+    thumbnail:p.thumbnail||p.imageUrl||p.image||'',
+  }));
   setStatus(products.length+' produit(s) chargé(s)','ok');
 };
+
 function postToFlutter(obj){
   try{
     if(window.flutter_inappwebview){window.flutter_inappwebview.callHandler('FlutterBridge',JSON.stringify(obj));return;}
@@ -1336,6 +1331,7 @@ function postToFlutter(obj){
     if(window.webkit?.messageHandlers?.FlutterBridge){window.webkit.messageHandlers.FlutterBridge.postMessage(JSON.stringify(obj));}
   }catch(e){console.log('[Bridge]',obj);}
 }
+
 window.receiveFromFlutter=function(jsonStr){
   try{
     const data=JSON.parse(jsonStr);
@@ -1345,11 +1341,19 @@ window.receiveFromFlutter=function(jsonStr){
 };
 
 function loadFromUrlParams(){
-  const params=new URLSearchParams(window.location.search), pp=params.get('products');
+  const params=new URLSearchParams(window.location.search),pp=params.get('products');
   if(!pp)return;
   try{
     const products=JSON.parse(decodeURIComponent(pp));
-    const mapped=products.map(p=>({id:p.id||p._id,name:p.name,modelUrl:p.modelUrl||'',imageUrl:p.imageUrl||'',category:p.category||'Carrelage',texType:p.texType||'marbre'}));
+    const mapped=products.map(p=>({
+      id:p.id||p._id,
+      name:p.name,
+      modelUrl:p.modelUrl||'',
+      imageUrl:p.imageUrl||p.image||p.thumbnail||'',
+      thumbnail:p.thumbnail||p.imageUrl||p.image||'',
+      category:p.category||'Carrelage',
+      texType:p.texType||'marbre'
+    }));
     setTimeout(()=>window.loadProductCatalog(mapped),500);
   }catch(e){console.error('URL params',e);}
 }
@@ -1363,7 +1367,7 @@ initThreeJS();
 loadFromUrlParams();
 
 startArBtn.addEventListener('click',async()=>{
-  startArBtn.disabled=true; startArBtn.textContent='Vérification…';
+  startArBtn.disabled=true;startArBtn.textContent='Vérification…';
   S.xrSupported=await checkXRSupport();
   if(S.xrSupported){await startXRSession();setupXRSelect();}
   else{noXrMsg.style.display='block';startArBtn.textContent='Caméra →';startArBtn.disabled=false;startArBtn.onclick=startFallbackMode;await startFallbackMode();}
