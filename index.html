@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no"/>
-<title>PlaceAR · Carrelage v5</title>
+<title>PlaceAR · Carrelage v6</title>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -41,6 +41,8 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:var
 
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
 @keyframes spin{to{transform:rotate(360deg)}}
+@keyframes tapRipple{0%{transform:scale(0);opacity:.8}100%{transform:scale(1);opacity:0}}
+@keyframes slideUp{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
 
 /* GLB LOADER */
 #glbLoader{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center;flex-direction:column;gap:14px}
@@ -48,29 +50,65 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:var
 .spin{width:34px;height:34px;border:3px solid rgba(245,144,100,.25);border-top-color:var(--primary);border-radius:50%;animation:spin .7s linear infinite}
 #glbLoader p{color:rgba(255,255,255,.8);font-size:12px;font-weight:500}
 
-/* POLYGON CONTROLS */
+/* ══════════════════════════════════════
+   POLYGON CONTROLS — redesigned
+══════════════════════════════════════ */
 #polyControls{
-  position:fixed;bottom:96px;left:0;right:0;z-index:22;
-  display:none;flex-direction:column;align-items:center;gap:10px;pointer-events:none
+  position:fixed;bottom:0;left:0;right:0;z-index:22;
+  display:none;flex-direction:column;align-items:stretch;gap:0;pointer-events:none;
+  animation:slideUp .3s ease
 }
 #polyControls.visible{display:flex}
-#polyControls>*{pointer-events:auto}
 
-.polyInfoPill{
-  background:rgba(17,17,17,.92);backdrop-filter:blur(16px);
-  border:1px solid rgba(255,59,48,.4);border-radius:var(--r-xl);
-  padding:8px 22px;font-size:11px;font-weight:600;color:#fff;text-align:center;max-width:88vw
+/* Tap guide pill — stays top-center while drawing */
+#polyGuidePill{
+  position:fixed;top:72px;left:50%;transform:translateX(-50%);z-index:23;
+  display:none;align-items:center;gap:8px;
+  padding:9px 18px;border-radius:var(--r-xl);
+  background:rgba(10,10,20,.88);backdrop-filter:blur(16px);
+  border:1px solid rgba(255,59,48,.45);
+  font-size:11px;font-weight:600;color:#fff;white-space:nowrap;
+  pointer-events:none
 }
-.polyInfoPill span{color:var(--poly)}
-.polyBtnRow{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
-.polyBtn{
-  padding:10px 18px;border-radius:var(--r-md);border:none;cursor:pointer;
-  font-family:var(--font);font-size:12px;font-weight:700;transition:all .18s;white-space:nowrap
+#polyGuidePill.visible{display:flex}
+#polyGuideDot{width:7px;height:7px;border-radius:50%;background:var(--poly);animation:pulse .7s infinite;flex-shrink:0}
+#polyGuideText{}
+
+/* Bottom panel */
+#polyPanel{
+  pointer-events:auto;
+  background:var(--white);border-radius:var(--r-lg) var(--r-lg) 0 0;
+  box-shadow:var(--shadow);padding:14px 14px 28px;
+  display:flex;flex-direction:column;gap:10px
 }
-.polyBtn:active{transform:scale(.95)}
-#pbUndo{background:rgba(255,255,255,.14);color:#fff;border:1px solid rgba(255,255,255,.25)}
-#pbClose{background:var(--poly);color:#fff;display:none}
-#pbCancel{background:rgba(255,255,255,.07);color:rgba(255,255,255,.55);border:1px solid rgba(255,255,255,.15);font-size:11px}
+.polyPanelRow{display:flex;align-items:center;gap:8px}
+#polyPointsCount{
+  flex:1;background:rgba(255,59,48,.07);border:1.5px solid rgba(255,59,48,.25);
+  border-radius:10px;padding:8px 12px;font-size:11px;font-weight:700;color:var(--poly);
+  display:flex;align-items:center;gap:6px
+}
+#polyPointsBubbles{display:flex;gap:4px;flex-wrap:wrap;max-width:120px}
+.ptBubble{width:8px;height:8px;border-radius:50%;background:var(--poly);opacity:.3;transition:opacity .2s}
+.ptBubble.active{opacity:1}
+.polyActionBtn{
+  padding:10px 16px;border-radius:var(--r-md);border:none;cursor:pointer;
+  font-family:var(--font);font-size:11px;font-weight:700;transition:all .18s;white-space:nowrap
+}
+.polyActionBtn:active{transform:scale(.94)}
+#pbUndo{background:var(--lg2);color:var(--hint);border:1.5px solid var(--lg)}
+#pbClose{background:var(--poly);color:#fff;display:none;flex:1}
+#pbCancel{background:transparent;color:rgba(100,100,120,.6);font-size:10px;padding:6px 10px;border:none}
+
+/* Close zone CTA — appears when ≥3 points */
+#polyCloseCta{
+  display:none;align-items:center;justify-content:center;gap:8px;
+  background:linear-gradient(135deg,#FF3B30,#c0221a);color:#fff;
+  border:none;border-radius:var(--r-md);padding:13px;cursor:pointer;
+  font-family:var(--font);font-size:13px;font-weight:700;
+  transition:all .2s;box-shadow:0 4px 16px rgba(255,59,48,.35)
+}
+#polyCloseCta.visible{display:flex}
+#polyCloseCta:active{transform:scale(.97)}
 
 /* CARRELAGE PICKER */
 #carrelagePicker{
@@ -163,9 +201,13 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
 #tilingProgressFill{height:100%;background:linear-gradient(90deg,#D4A96A,#8B5E3C);border-radius:3px;width:0%;transition:width .15s}
 #tilingProgressText{font-size:11px;color:rgba(255,255,255,.7)}
 
-/* Floor grid overlay — shows the horizontal plane while drawing */
-#floorHint{position:fixed;bottom:96px;left:50%;transform:translateX(-50%);z-index:10;pointer-events:none;opacity:0;transition:opacity .4s}
-#floorHint.visible{opacity:1}
+/* Tap ripple feedback */
+.tapRippleEl{
+  position:fixed;pointer-events:none;z-index:24;
+  width:60px;height:60px;margin:-30px 0 0 -30px;
+  border-radius:50%;border:2px solid rgba(255,59,48,.7);
+  animation:tapRipple .5s ease-out forwards
+}
 </style>
 </head>
 <body>
@@ -175,13 +217,28 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
 <canvas id="polyDrawCanvas"></canvas>
 <canvas id="interactionCanvas"></canvas>
 
-<!-- POLYGON CONTROLS -->
+<!-- GUIDE PILL (top, shows while drawing) -->
+<div id="polyGuidePill">
+  <div id="polyGuideDot"></div>
+  <span id="polyGuideText">Tapez les coins de la zone</span>
+</div>
+
+<!-- POLYGON CONTROLS (bottom panel) -->
 <div id="polyControls">
-  <div class="polyInfoPill" id="polyInfo">Tapez les <span>coins de la zone</span> · 0 pt</div>
-  <div class="polyBtnRow">
-    <button class="polyBtn" id="pbUndo">↩ Annuler pt</button>
-    <button class="polyBtn" id="pbClose">⬡ Fermer</button>
-    <button class="polyBtn" id="pbCancel">✕ Annuler</button>
+  <div id="polyPanel">
+    <div class="polyPanelRow">
+      <div id="polyPointsCount">
+        <div id="polyPointsBubbles"></div>
+        <span id="polyCountLabel">0 point</span>
+      </div>
+      <button class="polyActionBtn" id="pbUndo">↩ Défaire</button>
+      <button class="polyActionBtn" id="pbCancel">✕</button>
+    </div>
+    <button class="polyActionBtn" id="pbClose">⬡ Fermer &amp; choisir le carrelage</button>
+    <button id="polyCloseCta">
+      <span style="font-size:18px">⬡</span>
+      Fermer la zone · choisir le carrelage →
+    </button>
   </div>
 </div>
 
@@ -320,8 +377,7 @@ const S = {
   tileZoneGroups:[],
   selectedPattern:'straight',
   tileSize:0.30,
-  /* Floor Y tracked during XR hit-test */
-  floorY: 0,
+  floorY:0,
 };
 
 /* DOM */
@@ -345,14 +401,18 @@ const tilingProgress    = document.getElementById('tilingProgress');
 const tilingFill        = document.getElementById('tilingProgressFill');
 const tilingText        = document.getElementById('tilingProgressText');
 const polyControls      = document.getElementById('polyControls');
-const polyInfo          = document.getElementById('polyInfo');
+const polyGuidePill     = document.getElementById('polyGuidePill');
+const polyGuideText     = document.getElementById('polyGuideText');
 const pbUndo            = document.getElementById('pbUndo');
 const pbClose           = document.getElementById('pbClose');
 const pbCancel          = document.getElementById('pbCancel');
+const polyCloseCta      = document.getElementById('polyCloseCta');
 const carrelagePicker   = document.getElementById('carrelagePicker');
 const cpScroll          = document.getElementById('cpScroll');
 const cpConfirmBtn      = document.getElementById('cpConfirmBtn');
 const drawZoneBtn       = document.getElementById('drawZoneBtn');
+const polyCountLabel    = document.getElementById('polyCountLabel');
+const polyPointsBubbles = document.getElementById('polyPointsBubbles');
 
 let polyCtx;
 const ptDist = (a,b) => Math.hypot(a.x-b.x, a.y-b.y);
@@ -363,11 +423,6 @@ function setStatus(msg,cls=''){statusText.textContent=msg;statusToast.className=
 ═══════════════════════════════════════════ */
 let scene, camera3, renderer3, loader;
 let xrReferenceSpace = null;
-
-/*
-  floorPlane: large invisible plane at Y=S.floorY, used for raycasting.
-  We update its Y whenever XR detects the floor.
-*/
 let floorPlane = null;
 
 function initThreeJS(){
@@ -398,19 +453,17 @@ function initThreeJS(){
   const fill = new THREE.DirectionalLight(0xffffff, 0.4);
   fill.position.set(-4,2,-4); scene.add(fill);
 
-  /* Large invisible floor mesh for raycasting taps → 3D world coords */
   floorPlane = new THREE.Mesh(
     new THREE.PlaneGeometry(300, 300),
     new THREE.MeshBasicMaterial({ visible: false, side: THREE.DoubleSide })
   );
-  floorPlane.rotation.x = -Math.PI / 2;  /* rotate so it lies flat (XZ) */
+  floorPlane.rotation.x = -Math.PI / 2;
   floorPlane.position.y = 0;
   floorPlane.name = 'floor';
   scene.add(floorPlane);
 
   loader = new THREE.GLTFLoader();
 
-  /* Canvas overlays */
   polyDrawCanvas.width  = window.innerWidth;
   polyDrawCanvas.height = window.innerHeight;
   polyCtx = polyDrawCanvas.getContext('2d');
@@ -493,7 +546,6 @@ function xrRenderLoop(timestamp, frame){
         const m = pose.transform.matrix;
         const normalY = m[5];
         S.currentSurfaceType = Math.abs(normalY) > 0.7 ? (normalY > 0 ? 'floor' : 'ceiling') : 'wall';
-        /* Track floor height so our floorPlane stays aligned */
         if(S.currentSurfaceType === 'floor'){
           const pos = new THREE.Vector3();
           new THREE.Matrix4().fromArray(pose.transform.matrix)
@@ -511,8 +563,6 @@ function xrRenderLoop(timestamp, frame){
 
 /* ═══════════════════════════════════════════
    FALLBACK CAMERA MODE
-   Camera looks DOWN at 35° so the floor is
-   clearly visible and raycasting is correct.
 ═══════════════════════════════════════════ */
 async function startFallbackMode(){
   S.fallbackMode = true;
@@ -527,15 +577,8 @@ async function startFallbackMode(){
   }catch(e){ setStatus('Caméra refusée','error'); return; }
 
   renderer3.setAnimationLoop(() => renderer3.render(scene, camera3));
-
-  /*
-    Position camera at standing height (1.5m), looking DOWNWARD at ~40°.
-    This makes the floor fill most of the screen so taps map naturally to floor coords.
-  */
   camera3.position.set(0, 1.5, 0);
-  /* lookAt a point 2m ahead on the floor — gives a natural downward angle */
   camera3.lookAt(0, 0, -2);
-  /* Extra tilt down: rotate the camera -35° around X */
   camera3.rotation.x -= THREE.MathUtils.degToRad(35);
   camera3.updateProjectionMatrix();
 
@@ -549,9 +592,7 @@ async function startFallbackMode(){
 }
 
 /* ═══════════════════════════════════════════
-   RAYCASTING — screen tap → 3D floor point
-   Uses the invisible floorPlane mesh.
-   Falls back to mathematical plane intersection.
+   RAYCASTING
 ═══════════════════════════════════════════ */
 const raycaster = new THREE.Raycaster();
 
@@ -559,17 +600,11 @@ function screenToFloor(sx, sy){
   const nx = (sx / window.innerWidth)  * 2 - 1;
   const ny = -(sy / window.innerHeight) * 2 + 1;
   raycaster.setFromCamera({ x: nx, y: ny }, camera3);
-
-  /* Try mesh intersection first */
   const hits = raycaster.intersectObject(floorPlane);
   if(hits.length > 0) return hits[0].point.clone();
-
-  /* Fallback: ray–plane math */
   const plane = new THREE.Plane(new THREE.Vector3(0,1,0), -S.floorY);
   const target = new THREE.Vector3();
   if(raycaster.ray.intersectPlane(plane, target)) return target.clone();
-
-  /* Last resort: 2m ahead */
   return raycaster.ray.at(2, new THREE.Vector3());
 }
 
@@ -582,10 +617,26 @@ function worldToScreen(v){
 }
 
 /* ═══════════════════════════════════════════
-   POLYGON DRAWING
+   POLYGON DRAWING  — amélioration UX
+   • CLOSE_SNAP agrandi (48px)
+   • Points plus grands (12px)
+   • Zone de tap agrandie via ripple
+   • Bulle de comptage dynamique
+   • Guide pill animé en haut
 ═══════════════════════════════════════════ */
-const CLOSE_SNAP = 34;
+const CLOSE_SNAP = 52;   /* px — agrandi pour touch */
 const MIN_POINTS  = 3;
+
+/* Tap visual ripple feedback */
+function spawnRipple(x, y, color='rgba(255,59,48,.8)'){
+  const el = document.createElement('div');
+  el.className = 'tapRippleEl';
+  el.style.left = x+'px';
+  el.style.top  = y+'px';
+  el.style.borderColor = color;
+  document.body.appendChild(el);
+  el.addEventListener('animationend', ()=>el.remove());
+}
 
 function startZoneDrawing(){
   S.drawingZone   = true;
@@ -595,10 +646,12 @@ function startZoneDrawing(){
   S.pendingPolyPts = null;
   interactionCanvas.style.display = 'block';
   polyControls.classList.add('visible');
+  polyGuidePill.classList.add('visible');
+  sheet.style.display = 'none';   /* cacher la sheet pour plus d'espace */
   drawZoneBtn.className = 'qBtn qBtn-poly-on';
   polyCtx.clearRect(0, 0, polyDrawCanvas.width, polyDrawCanvas.height);
-  setStatus('Étape 1 · Tapez chaque coin de la zone','poly');
   updatePolyUI();
+  setGuideText('Tapez chaque coin de la zone');
 }
 
 function cancelZoneDrawing(){
@@ -608,17 +661,39 @@ function cancelZoneDrawing(){
   S.polyClosed   = false;
   interactionCanvas.style.display = 'none';
   polyControls.classList.remove('visible');
+  polyGuidePill.classList.remove('visible');
+  sheet.style.display = 'flex';
   drawZoneBtn.className = 'qBtn qBtn-poly';
   polyCtx.clearRect(0, 0, polyDrawCanvas.width, polyDrawCanvas.height);
   setStatus('Dessin annulé','ok');
 }
 
+function setGuideText(txt){ polyGuideText.textContent = txt; }
+
 function updatePolyUI(){
   const n = S.polyPoints2D.length;
-  polyInfo.innerHTML = '<span>' + (S.polyClosed ? 'Zone fermée' : 'Tapez les coins') + '</span> · ' + n + ' pt' + (n>1?'s':'');
-  pbClose.style.display = (n >= MIN_POINTS && !S.polyClosed) ? 'block' : 'none';
+  polyCountLabel.textContent = n + (n>1?' points':' point');
+
+  /* Bulle bubbles — max 8 affichées */
+  polyPointsBubbles.innerHTML = '';
+  const shown = Math.min(n, 8);
+  for(let i=0; i<shown; i++){
+    const b = document.createElement('div');
+    b.className='ptBubble active';
+    polyPointsBubbles.appendChild(b);
+  }
+
+  const canClose = n >= MIN_POINTS && !S.polyClosed;
+  pbClose.style.display   = canClose ? 'block' : 'none';
+  polyCloseCta.classList.toggle('visible', canClose);
+
+  if(n===0)       setGuideText('Tapez chaque coin de la zone');
+  else if(n===1)  setGuideText('Continuez · encore 2 points min.');
+  else if(n===2)  setGuideText('Encore 1 point minimum…');
+  else            setGuideText('Tapez le 1er point pour fermer, ou ↓');
 }
 
+/* ── Dessin du polygone ── */
 function redrawPoly(mx, my){
   const W = polyDrawCanvas.width, H = polyDrawCanvas.height;
   polyCtx.clearRect(0,0,W,H);
@@ -628,7 +703,7 @@ function redrawPoly(mx, my){
   const nearFirst = pts.length >= MIN_POINTS && mx !== undefined
     && ptDist({x:mx,y:my}, pts[0]) < CLOSE_SNAP;
 
-  /* Filled zone */
+  /* Filled polygon */
   if(pts.length >= 3){
     polyCtx.beginPath();
     polyCtx.moveTo(pts[0].x, pts[0].y);
@@ -647,7 +722,7 @@ function redrawPoly(mx, my){
   polyCtx.strokeStyle='#FF3B30'; polyCtx.lineWidth=2.5;
   polyCtx.setLineDash([]); polyCtx.stroke();
 
-  /* Rubber-band line */
+  /* Rubber-band */
   if(mx !== undefined && !S.polyClosed && pts.length > 0){
     const last = pts[pts.length-1];
     polyCtx.beginPath(); polyCtx.moveTo(last.x,last.y); polyCtx.lineTo(mx,my);
@@ -662,64 +737,73 @@ function redrawPoly(mx, my){
     }
   }
 
-  /* Vertices */
+  /* Draw each vertex */
   pts.forEach((p,i)=>{
     const isFirst = i === 0;
-    const r = isFirst ? 9 : 6;
+    /* Larger tap target: outer glow ring */
+    const R = isFirst ? 14 : 9;
+    const snapZone = isFirst && nearFirst;
 
+    /* Snap indicator ring for first point */
     if(isFirst && pts.length >= MIN_POINTS){
       polyCtx.beginPath(); polyCtx.arc(p.x,p.y,CLOSE_SNAP,0,Math.PI*2);
-      polyCtx.strokeStyle = nearFirst ? 'rgba(255,59,48,.5)' : 'rgba(255,59,48,.18)';
-      polyCtx.lineWidth=1; polyCtx.setLineDash([4,3]); polyCtx.stroke(); polyCtx.setLineDash([]);
+      polyCtx.strokeStyle = nearFirst ? 'rgba(255,59,48,.55)' : 'rgba(255,59,48,.16)';
+      polyCtx.lineWidth=1.5; polyCtx.setLineDash([5,4]); polyCtx.stroke(); polyCtx.setLineDash([]);
     }
 
-    polyCtx.beginPath(); polyCtx.arc(p.x,p.y,r+8,0,Math.PI*2);
-    polyCtx.fillStyle = isFirst ? 'rgba(255,59,48,.15)' : 'rgba(255,255,255,.06)';
+    /* Outer glow */
+    polyCtx.beginPath(); polyCtx.arc(p.x,p.y,R+10,0,Math.PI*2);
+    polyCtx.fillStyle = snapZone
+      ? 'rgba(255,59,48,.22)'
+      : isFirst ? 'rgba(255,59,48,.12)' : 'rgba(255,255,255,.06)';
     polyCtx.fill();
 
-    const g = polyCtx.createRadialGradient(p.x,p.y,0,p.x,p.y,r);
-    g.addColorStop(0, isFirst ? '#fff' : '#ffe');
-    g.addColorStop(1, isFirst ? '#FF3B30' : 'rgba(255,140,100,.7)');
-    polyCtx.beginPath(); polyCtx.arc(p.x,p.y,r,0,Math.PI*2);
+    /* Dot */
+    const g = polyCtx.createRadialGradient(p.x,p.y,0,p.x,p.y,R);
+    g.addColorStop(0, snapZone ? '#FF3B30' : isFirst ? '#fff' : '#ffe');
+    g.addColorStop(1, snapZone ? '#c01020' : isFirst ? '#FF3B30' : 'rgba(255,140,100,.7)');
+    polyCtx.beginPath(); polyCtx.arc(p.x,p.y,R,0,Math.PI*2);
     polyCtx.fillStyle=g; polyCtx.fill();
-    polyCtx.strokeStyle = isFirst ? '#fff' : 'rgba(255,59,48,.85)';
-    polyCtx.lineWidth=2; polyCtx.stroke();
+    polyCtx.strokeStyle = isFirst ? (snapZone ? '#fff' : '#fff') : 'rgba(255,59,48,.85)';
+    polyCtx.lineWidth=2.5; polyCtx.stroke();
 
-    polyCtx.font='bold 9px Montserrat,sans-serif';
-    polyCtx.fillStyle = isFirst ? 'rgba(255,59,48,1)' : 'rgba(212,169,106,1)';
+    /* Label number above */
+    const labelY = p.y - R - 14;
+    polyCtx.font='bold 10px Montserrat,sans-serif';
+    polyCtx.fillStyle = isFirst ? '#FF3B30' : 'rgba(212,169,106,1)';
     polyCtx.textAlign='center'; polyCtx.textBaseline='middle';
-    polyCtx.fillText(i+1, p.x, p.y-22);
+    polyCtx.fillText(i+1, p.x, labelY);
 
-    if(isFirst && nearFirst){
-      const bx=p.x+14, by=p.y-36;
+    /* "Fermer ici" tooltip on first point when near */
+    if(snapZone){
+      const bx=p.x-46, by=p.y-R-38;
       polyCtx.fillStyle='#FF3B30';
       polyCtx.beginPath();
-      if(polyCtx.roundRect) polyCtx.roundRect(bx,by,68,20,6); else polyCtx.rect(bx,by,68,20);
+      if(polyCtx.roundRect) polyCtx.roundRect(bx,by,92,22,7); else polyCtx.rect(bx,by,92,22);
       polyCtx.fill();
       polyCtx.font='bold 10px Montserrat,sans-serif'; polyCtx.fillStyle='#fff';
-      polyCtx.textAlign='left'; polyCtx.textBaseline='middle';
-      polyCtx.fillText('⬡ Fermer',bx+8,by+10);
+      polyCtx.textAlign='center'; polyCtx.textBaseline='middle';
+      polyCtx.fillText('⬡ Fermer ici', bx+46, by+11);
     }
   });
 
-  if(mx !== undefined && !nearFirst && !S.polyClosed){
-    polyCtx.beginPath(); polyCtx.arc(mx,my,4,0,Math.PI*2);
-    polyCtx.fillStyle='rgba(255,255,255,.4)'; polyCtx.fill();
+  /* Moving cursor dot */
+  if(mx !== undefined && !S.polyClosed && !nearFirst){
+    polyCtx.beginPath(); polyCtx.arc(mx,my,5,0,Math.PI*2);
+    polyCtx.fillStyle='rgba(255,255,255,.5)'; polyCtx.fill();
+    polyCtx.strokeStyle='rgba(255,59,48,.6)'; polyCtx.lineWidth=1.5; polyCtx.stroke();
   }
 }
 
-/* Tile grid preview inside polygon */
 function drawPolyTilePreview(pts){
   const ts = 24;
   const xs = pts.map(p=>p.x), ys = pts.map(p=>p.y);
   const minX=Math.min(...xs), maxX=Math.max(...xs);
   const minY=Math.min(...ys), maxY=Math.max(...ys);
-
   polyCtx.save();
   polyCtx.beginPath(); polyCtx.moveTo(pts[0].x,pts[0].y);
   for(let i=1;i<pts.length;i++) polyCtx.lineTo(pts[i].x,pts[i].y);
   polyCtx.closePath(); polyCtx.clip();
-
   const colors=['rgba(212,169,106,0.20)','rgba(139,94,60,0.14)','rgba(212,169,106,0.14)','rgba(139,94,60,0.10)'];
   const cols=Math.ceil((maxX-minX)/ts)+2, rows=Math.ceil((maxY-minY)/ts)+2;
   const cx=(minX+maxX)/2, cy=(minY+maxY)/2;
@@ -736,14 +820,13 @@ function drawPolyTilePreview(pts){
 
 /* ── Tap handling ── */
 interactionCanvas.addEventListener('click', e=>{
-  if(!S.drawingZone || isOverSheet(e.clientY)) return;
+  if(!S.drawingZone) return;
   handlePolyTap(e.clientX, e.clientY);
 });
 interactionCanvas.addEventListener('touchend', e=>{
   if(!S.drawingZone) return;
   e.preventDefault();
   const t = e.changedTouches[0];
-  if(isOverSheet(t.clientY)) return;
   handlePolyTap(t.clientX, t.clientY);
 },{passive:false});
 interactionCanvas.addEventListener('mousemove', e=>{
@@ -755,28 +838,22 @@ interactionCanvas.addEventListener('touchmove', e=>{
   const t = e.touches[0]; redrawPoly(t.clientX, t.clientY);
 },{passive:true});
 
-function isOverSheet(y){
-  const sr = sheet.getBoundingClientRect();
-  const pr = carrelagePicker.getBoundingClientRect();
-  return y > sr.top || (carrelagePicker.classList.contains('visible') && y > pr.top);
-}
-
 function handlePolyTap(ex, ey){
   if(S.polyClosed) return;
   const pts = S.polyPoints2D;
 
+  /* Snap to close */
   if(pts.length >= MIN_POINTS && ptDist({x:ex,y:ey}, pts[0]) < CLOSE_SNAP){
+    spawnRipple(pts[0].x, pts[0].y, 'rgba(255,59,48,.9)');
     closePolygon(); return;
   }
 
-  /* Convert screen tap to a point on the horizontal floor plane */
   const world = screenToFloor(ex, ey);
-
-  /* For display: project world point back to screen for consistent 2D drawing */
   const screen2D = S.xrMode ? worldToScreen(world) : {x:ex, y:ey};
 
   S.polyPoints2D.push(screen2D);
   S.polyPoints3D.push(world);
+  spawnRipple(ex, ey);
   updatePolyUI();
   redrawPoly(ex, ey);
 }
@@ -788,6 +865,7 @@ function closePolygon(){
   updatePolyUI();
   interactionCanvas.style.display = 'none';
   polyControls.classList.remove('visible');
+  polyGuidePill.classList.remove('visible');
   showCarrelagePicker();
 }
 
@@ -796,6 +874,7 @@ function undoLastPoint(){
     S.polyClosed = false;
     interactionCanvas.style.display = 'block';
     polyControls.classList.add('visible');
+    polyGuidePill.classList.add('visible');
     updatePolyUI(); redrawPoly(); return;
   }
   if(!S.polyPoints2D.length) return;
@@ -805,6 +884,7 @@ function undoLastPoint(){
 
 pbUndo.addEventListener('click', undoLastPoint);
 pbClose.addEventListener('click', closePolygon);
+polyCloseCta.addEventListener('click', closePolygon);
 pbCancel.addEventListener('click', cancelZoneDrawing);
 
 /* ═══════════════════════════════════════════
@@ -813,18 +893,20 @@ pbCancel.addEventListener('click', cancelZoneDrawing);
 function showCarrelagePicker(){
   S.pendingPolyPts = S.polyPoints3D.slice();
   drawZoneBtn.className = 'qBtn qBtn-poly-on';
-  carrelagePicker.classList.add('visible');
+  carrelagePicker.style.display = 'block';
+  setTimeout(()=>carrelagePicker.classList.add('visible'),10);
+  sheet.style.display = 'flex';
   setStatus('Étape 2 · Choisir le carrelage','tiling');
   renderCpCards();
 }
 function hidePicker(){
   carrelagePicker.classList.remove('visible');
+  setTimeout(()=>{ if(!carrelagePicker.classList.contains('visible')) carrelagePicker.style.display='none'; },360);
   drawZoneBtn.className = 'qBtn qBtn-poly';
 }
 function renderCpCards(){
   cpScroll.innerHTML = '';
-  const list = S.catalog.length ? S.catalog : [];
-  list.forEach(p=>{
+  S.catalog.forEach(p=>{
     const card = document.createElement('div');
     card.className = 'cpCard' + (S.selectedProductId===p.id?' active':'');
     card.dataset.id = p.id;
@@ -843,9 +925,7 @@ function renderCpCards(){
   });
 }
 
-document.getElementById('cpCloseBtn').addEventListener('click',()=>{
-  hidePicker(); cancelZoneDrawing();
-});
+document.getElementById('cpCloseBtn').addEventListener('click',()=>{ hidePicker(); cancelZoneDrawing(); });
 document.querySelectorAll('.cpPattern').forEach(btn=>{
   btn.addEventListener('click',()=>{
     document.querySelectorAll('.cpPattern').forEach(b=>b.classList.remove('active'));
@@ -867,7 +947,7 @@ cpConfirmBtn.addEventListener('click', async ()=>{
 });
 
 /* ═══════════════════════════════════════════
-   XR SELECT — add polygon vertex via air tap
+   XR SELECT
 ═══════════════════════════════════════════ */
 function setupXRSelect(){
   if(!S.xrSession) return;
@@ -885,10 +965,9 @@ function setupXRSelect(){
 }
 
 /* ═══════════════════════════════════════════
-   TOUCH GESTURES (rotate / scale placed zones)
+   TOUCH GESTURES
 ═══════════════════════════════════════════ */
 const GT = { touchStart:null, rotX:0, rotY:0 };
-
 document.addEventListener('touchstart',e=>{
   if(S.drawingZone || carrelagePicker.classList.contains('visible')) return;
   if(e.touches.length===1){
@@ -915,7 +994,6 @@ document.addEventListener('touchstart',e=>{
     if(o) S.touchStartScale = o.scaleVal;
   }
 },{passive:true});
-
 document.addEventListener('touchmove',e=>{
   if(S.drawingZone || carrelagePicker.classList.contains('visible')) return;
   if(e.touches.length===1 && GT.touchStart && S.selectedObjectId){
@@ -929,11 +1007,10 @@ document.addEventListener('touchmove',e=>{
     if(o) scaleObject(o, S.touchStartScale*(nd/S.twoTouchStart.dist));
   }
 },{passive:true});
-
 document.addEventListener('touchend',()=>{ GT.touchStart=null; S.twoTouchStart=null; },{passive:true});
 
 /* ═══════════════════════════════════════════
-   POLYGON MATH UTILS
+   POLYGON MATH
 ═══════════════════════════════════════════ */
 function pointInPoly(px, pz, poly){
   let inside = false;
@@ -1009,7 +1086,6 @@ function generateTilesInPolygon(poly3D, tileS, pattern){
       }
     }
   } else {
-    /* Straight — grid anchored to centroid */
     const offX=((cent.x%tileS)+tileS)%tileS, offZ=((cent.z%tileS)+tileS)%tileS;
     for(let gz=minZ-PAD-offZ; gz<=maxZ+PAD; gz+=tileS){
       for(let gx=minX-PAD-offX; gx<=maxX+PAD; gx+=tileS){
@@ -1023,29 +1099,22 @@ function generateTilesInPolygon(poly3D, tileS, pattern){
 }
 
 /* ═══════════════════════════════════════════
-   GROUT BASE (flat polygon mesh on floor)
+   GROUT BASE
 ═══════════════════════════════════════════ */
 function buildGroutBase(poly3D, floorY){
   const shape = new THREE.Shape();
-  /*
-    THREE.Shape works in XY. Our polygon is in XZ (horizontal).
-    We map: shape.x = world.x, shape.y = world.z
-    Then rotate the geometry -90° around X to lay it flat.
-  */
   shape.moveTo(poly3D[0].x, poly3D[0].z);
   for(let i=1; i<poly3D.length; i++) shape.lineTo(poly3D[i].x, poly3D[i].z);
   shape.closePath();
-
   const geo = new THREE.ShapeGeometry(shape);
-  geo.rotateX(-Math.PI / 2);  /* now lies in XZ */
-
+  geo.rotateX(-Math.PI / 2);
   const mat = new THREE.MeshStandardMaterial({
     color: 0x9A8878, roughness: 0.95,
     transparent: true, opacity: S.opacity * 0.85,
     side: THREE.DoubleSide, depthWrite: false
   });
   const mesh = new THREE.Mesh(geo, mat);
-  mesh.position.y = floorY + 0.001;  /* just above floor to avoid z-fighting */
+  mesh.position.y = floorY + 0.001;
   mesh.receiveShadow = true;
   return mesh;
 }
@@ -1066,51 +1135,78 @@ function loadOrGetTexture(url){
 }
 
 /* ═══════════════════════════════════════════
-   GLB HORIZONTAL FIX
-   Strategy:
-   1. Wrap the loaded scene in a pivot group.
-   2. Compute bounding box.
-   3. If the model's height (Y extent) dominates → it's standing up.
-      Rotate the PIVOT -90° on X so it falls flat.
-   4. Scale so the largest XZ dimension = tileSize.
-   5. Centre the pivot horizontally; bottom sits at Y=0 of the group.
+   GLB ORIENTATION FIX  (v2 — exhaustive)
+   ─────────────────────────────────────────
+   Principle:
+     A tile should be FLAT on the floor → its Y extent (height) must be
+     much smaller than its X and Z extents.
+
+   Algorithm:
+     1. Load raw scene.
+     2. Try 4 candidate rotations (none, X-90°, X+90°, Z+90°).
+     3. For each candidate compute bounding-box; choose the rotation
+        whose result has the minimum Y/max(X,Z) ratio.
+     4. Scale so max(X,Z) = tileSize.
+     5. Centre on XZ, bottom flush at Y=0.
+
+   This covers:
+     • Models lying flat already (common for floor tiles exported from Blender)
+     • Models standing upright (exported as furniture by mistake)
+     • Models lying on the wrong side
 ═══════════════════════════════════════════ */
-function prepareGlbTile(gltfScene, tileS, tex){
-  /* Wrap in a pivot so rotation doesn't fight with position offsets */
+function flattenGlbOnFloor(gltfScene, tileS, tex){
+  /*
+    We test several rotations and keep the one that
+    gives the smallest height / footprint ratio.
+  */
+  const CANDIDATES = [
+    new THREE.Euler(0,              0, 0),
+    new THREE.Euler(-Math.PI/2,     0, 0),
+    new THREE.Euler( Math.PI/2,     0, 0),
+    new THREE.Euler(0,              0, Math.PI/2),
+    new THREE.Euler(-Math.PI/2,     0, Math.PI/2),
+    new THREE.Euler( Math.PI,       0, 0),
+  ];
+
+  let bestEuler = CANDIDATES[0];
+  let bestRatio = Infinity;
+
+  const tmp = new THREE.Group();
+  tmp.add(gltfScene.clone ? gltfScene.clone() : gltfScene);
+
+  for(const euler of CANDIDATES){
+    tmp.rotation.copy(euler);
+    tmp.updateMatrixWorld(true);
+    const bb = new THREE.Box3().setFromObject(tmp);
+    const sz = bb.getSize(new THREE.Vector3());
+    const footprint = Math.max(sz.x, sz.z) || 0.001;
+    const ratio = sz.y / footprint;
+    if(ratio < bestRatio){ bestRatio = ratio; bestEuler = euler; }
+  }
+  tmp.parent && tmp.parent.remove(tmp);
+
+  /* Build the real pivot with best rotation */
   const pivot = new THREE.Group();
   pivot.add(gltfScene);
+  pivot.rotation.copy(bestEuler);
+  pivot.updateMatrixWorld(true);
 
-  /* Step 1: initial bounding box */
+  /* Scale to tileSize */
   let bb = new THREE.Box3().setFromObject(pivot);
   let sz = bb.getSize(new THREE.Vector3());
-
-  /* Step 2: detect orientation — if taller than wide/deep, rotate flat */
-  if(sz.y > Math.max(sz.x, sz.z) * 1.1){
-    pivot.rotation.x = -Math.PI / 2;
-  }
-
-  /* Step 3: force update and recompute */
-  pivot.updateMatrixWorld(true);
-  bb = new THREE.Box3().setFromObject(pivot);
-  sz = bb.getSize(new THREE.Vector3());
-  const center = bb.getCenter(new THREE.Vector3());
-
-  /* Step 4: uniform scale so largest horizontal extent = tileS */
   const maxHoriz = Math.max(sz.x, sz.z) || 1;
   const scale = tileS / maxHoriz;
   pivot.scale.setScalar(scale);
-
-  /* Step 5: recompute after scale */
   pivot.updateMatrixWorld(true);
+
+  /* Centre and bottom-flush */
   bb = new THREE.Box3().setFromObject(pivot);
-  const center2 = bb.getCenter(new THREE.Vector3());
+  const center = bb.getCenter(new THREE.Vector3());
+  pivot.position.x -= center.x;
+  pivot.position.z -= center.z;
+  pivot.position.y -= bb.min.y;   /* bottom → Y=0 */
 
-  /* Step 6: centre on XZ, bottom flush with Y=0 */
-  pivot.position.x -= center2.x;
-  pivot.position.z -= center2.z;
-  pivot.position.y -= bb.min.y;  /* lift so bottom = 0 */
-
-  /* Apply texture / material settings */
+  /* Material pass */
   pivot.traverse(c=>{
     if(!c.isMesh) return;
     const mats = Array.isArray(c.material) ? c.material : [c.material];
@@ -1129,13 +1225,12 @@ function prepareGlbTile(gltfScene, tileS, tex){
 }
 
 /* ═══════════════════════════════════════════
-   PLACE TILE POLYGON  (main function)
+   PLACE TILE POLYGON
 ═══════════════════════════════════════════ */
 async function placeTilePolygon(poly3D){
   const product = S.catalog.find(p=>p.id===S.selectedProductId);
   if(!product){ setStatus('Sélectionnez un carrelage d\'abord','error'); return; }
 
-  /* Make sure all points share the same floor Y (flatten any Z noise from XR) */
   const fy = S.floorY;
   const flatPoly = poly3D.map(p=>({ x:p.x, y:fy, z:p.z }));
 
@@ -1153,50 +1248,38 @@ async function placeTilePolygon(poly3D){
   scene.add(zoneGroup);
   zoneGroup.userData.isTileZone = true;
 
-  /* Grout base — flat on the floor */
   zoneGroup.add(buildGroutBase(flatPoly, fy));
 
-  /* Load texture */
   const tex = await loadOrGetTexture(product.imageUrl || '');
 
-  /* Try to load a GLB model */
+  /* GLB load + orientation fix */
   const useGlb = product.modelUrl && product.modelUrl.length > 4;
   let baseModel = null;
-
   if(useGlb){
     setStatus('Chargement GLB…','scanning');
     try{
       const gltf = await new Promise((res,rej)=>loader.load(product.modelUrl,res,null,rej));
-      /* prepareGlbTile returns a properly oriented & scaled pivot */
-      baseModel = prepareGlbTile(gltf.scene, tileS, tex);
+      baseModel = flattenGlbOnFloor(gltf.scene, tileS, tex);
     }catch(e){ console.warn('GLB load failed, using box tiles'); baseModel=null; }
   }
 
-  /* Fallback material for box tiles */
+  /* Fallback box tile */
   const fallbackMat = new THREE.MeshStandardMaterial({
     roughness:0.28, metalness:0.08, transparent:true, opacity:S.opacity,
     ...(tex ? {map:tex, color:new THREE.Color(0xffffff)} : {color:new THREE.Color(0xD4A96A)})
   });
   const tileColors = [0xD4A96A, 0xC09050, 0xE0B878, 0xB88040];
-  const TILE_H = 0.012; /* 12mm tile thickness */
+  const TILE_H = 0.012;
 
   for(let i=0; i<positions.length; i++){
     const p = positions[i];
     let tile;
 
     if(baseModel){
-      /*
-        Clone the prepared pivot. The pivot already has:
-          - correct horizontal orientation
-          - correct scale
-          - origin at bottom-centre
-        We just place it at (x, floorY, z) and add pattern rotation on Y.
-      */
       tile = baseModel.clone(true);
-      tile.rotation.y = p.rot;          /* pattern rotation only on Y */
+      tile.rotation.y = p.rot;
       tile.position.set(p.x, fy, p.z);
     } else {
-      /* Box tile — geometry is already horizontal by default */
       const geo = new THREE.BoxGeometry(p.w - 0.004, TILE_H, p.h - 0.004);
       const mat = fallbackMat.clone();
       if(!tex) mat.color.set(tileColors[i % tileColors.length]);
@@ -1228,7 +1311,7 @@ async function placeTilePolygon(poly3D){
   });
   selectObject(id);
   updatePlacedBadge();
-  setStatus('✓ '+total+' tuiles posées · motif '+S.selectedPattern,'ok');
+  setStatus('✓ '+total+' tuiles posées · '+S.selectedPattern,'ok');
   postToFlutter({type:'tile_zone', count:total});
   drawZoneBtn.className = 'qBtn qBtn-poly';
 }
@@ -1341,10 +1424,7 @@ async function doCapture(){
 /* ═══════════════════════════════════════════
    CATALOG & BRIDGE
 ═══════════════════════════════════════════ */
-window.loadProductCatalog = function(products){
-  S.catalog = products;
-  setStatus(products.length+' produit(s) chargé(s)','ok');
-};
+window.loadProductCatalog = function(products){ S.catalog = products; setStatus(products.length+' produit(s) chargé(s)','ok'); };
 function postToFlutter(obj){
   try{
     if(window.flutter_inappwebview){ window.flutter_inappwebview.callHandler('FlutterBridge',JSON.stringify(obj)); return; }
@@ -1381,8 +1461,7 @@ function loadFromUrlParams(){
 
 function escapeHtml(s){
   if(!s)return'';
-  return s.toString()
-    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  return s.toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
 /* ═══════════════════════════════════════════
