@@ -1142,52 +1142,114 @@ function loadOrGetTexture(url){
 }
 
 /* ═══════════════════════════════════════════
-   GLB ORIENTATION FIX
+   GLB ORIENTATION FIX — Horizontal Loading
+   Teste 24 orientations pour trouver la meilleure
+   orientation HORIZONTALE (ratio hauteur/largeur minimal)
 ═══════════════════════════════════════════ */
 function flattenGlbOnFloor(gltfScene, tileS, tex){
+  /* 24 orientations possibles (6 faces × 4 rotations) */
   const CANDIDATES = [
-    new THREE.Euler(0,          0, 0),
-    new THREE.Euler(-Math.PI/2, 0, 0),
-    new THREE.Euler( Math.PI/2, 0, 0),
-    new THREE.Euler(0,          0, Math.PI/2),
-    new THREE.Euler(-Math.PI/2, 0, Math.PI/2),
-    new THREE.Euler( Math.PI,   0, 0),
+    /* X-axis rotations */
+    new THREE.Euler(0,          0,          0),
+    new THREE.Euler(0,          Math.PI/2,  0),
+    new THREE.Euler(0,          Math.PI,    0),
+    new THREE.Euler(0,          3*Math.PI/2,0),
+    
+    /* Y-axis rotations */
+    new THREE.Euler(Math.PI/2,  0,          0),
+    new THREE.Euler(Math.PI/2,  Math.PI/2,  0),
+    new THREE.Euler(Math.PI/2,  Math.PI,    0),
+    new THREE.Euler(Math.PI/2,  3*Math.PI/2,0),
+    
+    /* Z-axis rotations */
+    new THREE.Euler(-Math.PI/2, 0,          0),
+    new THREE.Euler(-Math.PI/2, Math.PI/2,  0),
+    new THREE.Euler(-Math.PI/2, Math.PI,    0),
+    new THREE.Euler(-Math.PI/2, 3*Math.PI/2,0),
+    
+    /* Inverted Y */
+    new THREE.Euler(Math.PI,    0,          0),
+    new THREE.Euler(Math.PI,    Math.PI/2,  0),
+    new THREE.Euler(Math.PI,    Math.PI,    0),
+    new THREE.Euler(Math.PI,    3*Math.PI/2,0),
+    
+    /* Diagonal rotations for complex models */
+    new THREE.Euler(Math.PI/4,  Math.PI/4,  0),
+    new THREE.Euler(Math.PI/4,  -Math.PI/4, 0),
+    new THREE.Euler(-Math.PI/4, Math.PI/4,  0),
+    new THREE.Euler(-Math.PI/4, -Math.PI/4, 0),
+    
+    /* Additional combinations */
+    new THREE.Euler(0,          0,          Math.PI/2),
+    new THREE.Euler(Math.PI/2,  0,          Math.PI/2),
+    new THREE.Euler(-Math.PI/2, 0,          Math.PI/2),
+    new THREE.Euler(Math.PI,    0,          Math.PI/2),
   ];
 
   let bestEuler = CANDIDATES[0];
   let bestRatio = Infinity;
-  const tmp = new THREE.Group();
-  tmp.add(gltfScene.clone ? gltfScene.clone() : gltfScene);
+  
+  /* Clone pour tester sans modifier l'original */
+  const testGroup = new THREE.Group();
+  const clonedScene = gltfScene.clone();
+  testGroup.add(clonedScene);
 
   for(const euler of CANDIDATES){
-    tmp.rotation.copy(euler);
-    tmp.updateMatrixWorld(true);
-    const bb = new THREE.Box3().setFromObject(tmp);
+    testGroup.rotation.order = 'XYZ';
+    testGroup.rotation.copy(euler);
+    testGroup.updateMatrixWorld(true);
+    
+    const bb = new THREE.Box3().setFromObject(testGroup);
     const sz = bb.getSize(new THREE.Vector3());
-    const footprint = Math.max(sz.x, sz.z) || 0.001;
+    
+    /* Ignorer les dimensions nulles */
+    if(sz.x < 0.001 || sz.z < 0.001) continue;
+    
+    /* Ratio : on veut HEIGHT/WIDTH le plus petit possible */
+    const footprint = Math.max(sz.x, sz.z);
     const ratio = sz.y / footprint;
-    if(ratio < bestRatio){ bestRatio = ratio; bestEuler = euler; }
+    
+    /* Garder la meilleure orientation (ratio minimal) */
+    if(ratio < bestRatio){
+      bestRatio = ratio;
+      bestEuler = euler;
+    }
   }
-  tmp.parent && tmp.parent.remove(tmp);
+  
+  testGroup.parent && testGroup.parent.removeFromParent();
 
+  /* Créer le groupe pivot final avec la meilleure orientation */
   const pivot = new THREE.Group();
   pivot.add(gltfScene);
+  pivot.rotation.order = 'XYZ';
   pivot.rotation.copy(bestEuler);
   pivot.updateMatrixWorld(true);
 
+  /* Calculer bounding box et dimensions */
   let bb = new THREE.Box3().setFromObject(pivot);
   let sz = bb.getSize(new THREE.Vector3());
-  const maxHoriz = Math.max(sz.x, sz.z) || 1;
-  const scale = tileS / maxHoriz;
+  
+  /* Vérifier les dimensions valides */
+  if(sz.x < 0.001) sz.x = 0.001;
+  if(sz.z < 0.001) sz.z = 0.001;
+  
+  const maxHoriz = Math.max(sz.x, sz.z);
+  const scale = Math.min(tileS / maxHoriz, 2.0); /* Limiter le zoom */
+  
+  /* Appliquer le scale */
   pivot.scale.setScalar(scale);
   pivot.updateMatrixWorld(true);
 
+  /* Recalculer après scale */
   bb = new THREE.Box3().setFromObject(pivot);
   const center = bb.getCenter(new THREE.Vector3());
-  pivot.position.x -= center.x;
-  pivot.position.z -= center.z;
-  pivot.position.y -= bb.min.y;
+  
+  /* Centrer horizontalement, positionner au sol */
+  pivot.position.x = -center.x;
+  pivot.position.z = -center.z;
+  pivot.position.y = -bb.min.y; /* Y position = sol */
 
+  /* Appliquer les matériaux */
   pivot.traverse(c=>{
     if(!c.isMesh) return;
     const mats = Array.isArray(c.material) ? c.material : [c.material];
@@ -1195,7 +1257,10 @@ function flattenGlbOnFloor(gltfScene, tileS, tex){
       m.side = THREE.DoubleSide;
       m.transparent = true;
       m.opacity = S.opacity;
-      if(tex && !m.map){ m.map=tex; m.color.set(0xffffff); }
+      if(tex && !m.map){
+        m.map = tex;
+        m.color.set(0xffffff);
+      }
       m.needsUpdate = true;
     });
     c.castShadow = true;
@@ -1257,9 +1322,31 @@ async function placeTilePolygon(poly3D){
   if(useGlb){
     setStatus('Chargement GLB…','scanning');
     try{
-      const gltf = await new Promise((res,rej)=>loader.load(product.modelUrl,res,null,rej));
-      baseModel = flattenGlbOnFloor(gltf.scene, tileS, tex);
-    }catch(e){ console.warn('GLB load failed, using box tiles'); baseModel=null; }
+      const gltf = await new Promise((res,rej)=>{
+        loader.load(
+          product.modelUrl,
+          res,
+          (progress) => {
+            const pct = Math.round((progress.loaded / progress.total) * 100);
+            tilingText.textContent = `Chargement GLB: ${pct}%`;
+          },
+          rej
+        );
+      });
+      
+      /* Cloner le modèle et l'aplatir horizontalement */
+      const sceneCopy = gltf.scene.clone();
+      baseModel = flattenGlbOnFloor(sceneCopy, tileS, tex);
+      
+      if(!baseModel){
+        console.warn('GLB flatten failed, using box tiles');
+        baseModel = null;
+      }
+    }catch(e){ 
+      console.warn('GLB load failed:', e);
+      setStatus('Erreur GLB, utilisation carrelage basique','error');
+      baseModel = null; 
+    }
   }
 
   const fallbackMat = new THREE.MeshStandardMaterial({
@@ -1275,18 +1362,28 @@ async function placeTilePolygon(poly3D){
     let tile;
 
     if(baseModel){
+      /* Cloner et positionner le GLB */
       tile = baseModel.clone(true);
       tile.rotation.y = p.rot;
       tile.position.set(p.x, fy, p.z);
+      
+      /* S'assurer que le modèle reste au sol */
+      tile.traverse(c => {
+        if(c.isMesh){
+          c.castShadow = true;
+          c.receiveShadow = true;
+        }
+      });
     } else {
-      /* Box avec épaisseur minimale */
+      /* Fallback : Box simple */
       const geo = new THREE.BoxGeometry(p.w - 0.002, TILE_H, p.h - 0.002);
       const mat = fallbackMat.clone();
       if(!tex) mat.color.set(tileColors[i % tileColors.length]);
       tile = new THREE.Mesh(geo, mat);
-      tile.castShadow = true; tile.receiveShadow = true;
+      tile.castShadow = true; 
+      tile.receiveShadow = true;
       tile.rotation.y = p.rot;
-      /* Positionner la tuile ASU SOL (y = fy) */
+      /* Positionner la tuile AU SOL (y = fy) */
       tile.position.set(p.x, fy, p.z);
     }
 
