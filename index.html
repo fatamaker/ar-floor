@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no"/>
-<title>PlaceAR · Carrelage v7</title>
+<title>PlaceAR · Carrelage v7 FIXED</title>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -313,6 +313,7 @@ const S = {
   selectedPattern:'straight',
   tileSize:0.30,
   floorY:0,
+  savedCameraState: { pos: null, rot: null },
 };
 
 const threeCanvas       = document.getElementById('threeCanvas');
@@ -367,7 +368,7 @@ function initThreeJS(){
     canvas: threeCanvas,
     alpha: true, antialias: true,
     logarithmicDepthBuffer: true,
-    stencil: true   /* ← REQUIRED for polygon clipping */
+    stencil: true
   });
   renderer3.setSize(window.innerWidth, window.innerHeight);
   renderer3.setPixelRatio(Math.min(devicePixelRatio, 2));
@@ -512,9 +513,11 @@ async function startFallbackMode(){
   }catch(e){ setStatus('Caméra refusée','error'); return; }
 
   renderer3.setAnimationLoop(() => renderer3.render(scene, camera3));
-  camera3.position.set(0, 1.5, 0);
-  camera3.lookAt(0, 0, -2);
-  camera3.rotation.x -= THREE.MathUtils.degToRad(35);
+  
+  /* POSITION INITIALE : CAMÉRA DROITE */
+  camera3.position.set(0, 2.0, 0.1);
+  camera3.lookAt(0, 0, -1);
+  camera3.rotation.z = 0;
   camera3.updateProjectionMatrix();
 
   S.floorY = 0;
@@ -579,6 +582,16 @@ function startZoneDrawing(){
   sheet.style.display = 'none';
   drawZoneBtn.className = 'qBtn qBtn-poly-on';
   polyCtx.clearRect(0, 0, polyDrawCanvas.width, polyDrawCanvas.height);
+  
+  /* CAMÉRA DROITE POUR LE DESSIN */
+  if(S.fallbackMode){
+    camera3.position.set(0, 2.0, 0.1);
+    camera3.rotation.order = 'YXZ';
+    camera3.rotation.set(0, 0, 0);
+    camera3.lookAt(0, 0, -1);
+    camera3.updateProjectionMatrix();
+  }
+  
   updatePolyUI();
   setGuideText('Tapez chaque coin de la zone');
 }
@@ -939,7 +952,7 @@ function generateTilesInPolygon(poly3D, tileS, pattern){
   const {minX,maxX,minZ,maxZ} = polyBounds(poly3D);
   const cent = polyCentroid(poly3D);
   const positions = [];
-  const PAD = tileS * 1.5;  /* bigger pad to ensure ALL border tiles are included */
+  const PAD = tileS * 1.5;
 
   if(pattern==='diagonal'){
     for(let gz=minZ-PAD; gz<=maxZ+PAD; gz+=tileS){
@@ -947,7 +960,6 @@ function generateTilesInPolygon(poly3D, tileS, pattern){
         const dx=gx-cent.x, dz=gz-cent.z;
         const rx=cent.x+(dx-dz)*Math.SQRT1_2;
         const rz=cent.z+(dx+dz)*Math.SQRT1_2;
-        /* Include tiles that INTERSECT the polygon (not just centre inside) */
         if(tileIntersectsPoly(rx, rz, tileS, tileS, Math.PI/4, poly3D))
           positions.push({x:rx, z:rz, rot:Math.PI/4, w:tileS*0.94, h:tileS*0.94});
       }
@@ -994,16 +1006,9 @@ function generateTilesInPolygon(poly3D, tileS, pattern){
   return positions;
 }
 
-/**
- * tileIntersectsPoly — returns true if any part of a rotated tile rect
- * overlaps with the polygon.  Uses SAT (Separating Axis Theorem) for AABB
- * tiles plus a point-in-polygon check for the centre.
- */
 function tileIntersectsPoly(cx, cz, w, h, rot, poly){
-  /* Fast path: centre inside polygon */
   if(pointInPoly(cx, cz, poly)) return true;
 
-  /* Build tile corners (rotated) */
   const hw=w/2, hh=h/2;
   const corners = [
     {x: hw, z: hh}, {x:-hw, z: hh},
@@ -1020,15 +1025,12 @@ function tileIntersectsPoly(cx, cz, w, h, rot, poly){
     for(const c of corners){ c.x+=cx; c.z+=cz; }
   }
 
-  /* Any tile corner inside polygon? */
   for(const c of corners)
     if(pointInPoly(c.x, c.z, poly)) return true;
 
-  /* Any polygon vertex inside tile? (reverse check) */
   for(const v of poly)
     if(pointInRotatedRect(v.x, v.z, cx, cz, w, h, rot)) return true;
 
-  /* Edge–edge intersection */
   const tileEdges = [[corners[0],corners[1]],[corners[1],corners[2]],[corners[2],corners[3]],[corners[3],corners[0]]];
   const n = poly.length;
   for(let i=0;i<n;i++){
@@ -1057,20 +1059,8 @@ function segmentsIntersect(ax,ay,bx,by,cx,cy,dx,dy){
 }
 
 /* ═══════════════════════════════════════════
-   STENCIL MASK — KEY FEATURE v7
-   ─────────────────────────────────────────
-   Strategy:
-   1. Build a STENCIL MESH that exactly matches the polygon shape.
-      This mesh writes stencil=1 wherever it covers pixels.
-   2. ALL tile meshes use stencilFunc = EQUAL(1), so they only
-      render inside the stencil region — i.e. inside the polygon.
-   3. The grout base also clips to stencil=1.
-
-   This gives pixel-perfect clipping of GLB tiles (or box tiles)
-   at the polygon boundary, no matter the tile shape or orientation.
+   STENCIL MASK
 ═══════════════════════════════════════════ */
-
-/* Stencil layer IDs are per zone so multiple zones coexist */
 let stencilIdCounter = 1;
 
 function buildStencilMask(poly3D, floorY, stencilId){
@@ -1082,9 +1072,8 @@ function buildStencilMask(poly3D, floorY, stencilId){
   const geo = new THREE.ShapeGeometry(shape);
   geo.rotateX(-Math.PI / 2);
 
-  /* Material: writes stencilId to stencil buffer, invisible in color/depth */
   const mat = new THREE.MeshBasicMaterial({
-    colorWrite: false,          /* don't write to colour buffer */
+    colorWrite: false,
     depthWrite: false,
     side: THREE.DoubleSide,
     stencilWrite: true,
@@ -1095,14 +1084,10 @@ function buildStencilMask(poly3D, floorY, stencilId){
 
   const mesh = new THREE.Mesh(geo, mat);
   mesh.position.y = floorY + 0.0005;
-  mesh.renderOrder = 0;          /* render first so stencil is ready */
+  mesh.renderOrder = 0;
   return mesh;
 }
 
-/**
- * applyStencilToObject — recursively sets stencil test on all meshes
- * so they only render where stencilId was written.
- */
 function applyStencilToObject(obj, stencilId){
   obj.traverse(c=>{
     if(!c.isMesh) return;
@@ -1133,7 +1118,6 @@ function buildGroutBase(poly3D, floorY, stencilId){
     color: 0x9A8878, roughness: 0.95,
     transparent: true, opacity: S.opacity * 0.85,
     side: THREE.DoubleSide, depthWrite: false,
-    /* Grout doesn't need stencil clipping — it IS the polygon shape */
   });
   const mesh = new THREE.Mesh(geo, mat);
   mesh.position.y = floorY + 0.001;
@@ -1222,17 +1206,22 @@ function flattenGlbOnFloor(gltfScene, tileS, tex){
 }
 
 /* ═══════════════════════════════════════════
-   PLACE TILE POLYGON  — v7 with stencil clip
+   PLACE TILE POLYGON  — v7 FIXED
+   ✓ Tuiles positionnées exactement dans la zone
+   ✓ Épaisseur minimale (y très proche de 0)
+   ✓ Clipping parfait avec stencil
 ═══════════════════════════════════════════ */
 async function placeTilePolygon(poly3D){
   const product = S.catalog.find(p=>p.id===S.selectedProductId);
   if(!product){ setStatus('Sélectionnez un carrelage d\'abord','error'); return; }
 
+  /* Utiliser le floorY détecté ou 0 */
   const fy = S.floorY;
+  
+  /* Projeter les points du polygone sur le plan du sol */
   const flatPoly = poly3D.map(p=>({ x:p.x, y:fy, z:p.z }));
 
   const tileS = S.tileSize;
-  /* Use intersection-based generation so border tiles ARE included */
   const positions = generateTilesInPolygon(flatPoly, tileS, S.selectedPattern);
   const total = positions.length;
 
@@ -1242,27 +1231,27 @@ async function placeTilePolygon(poly3D){
   tilingFill.style.width='0%';
   tilingText.textContent='0 / '+total+' tuiles';
 
-  /* Assign a unique stencil ID for this zone */
+  /* Stencil ID unique pour cette zone */
   const stencilId = stencilIdCounter++;
-  if(stencilIdCounter > 254) stencilIdCounter = 1; /* recycle (max 254 zones) */
+  if(stencilIdCounter > 254) stencilIdCounter = 1;
 
   const zoneGroup = new THREE.Group();
   scene.add(zoneGroup);
   zoneGroup.userData.isTileZone = true;
 
-  /* 1 — stencil mask (renders first, writes stencilId pixels) */
+  /* 1 — Stencil mask (écrit stencilId) */
   const stencilMesh = buildStencilMask(flatPoly, fy, stencilId);
   stencilMesh.renderOrder = 0;
   zoneGroup.add(stencilMesh);
 
-  /* 2 — grout base (polygon shape, no stencil clipping needed) */
+  /* 2 — Grout base (base de joint) */
   const grout = buildGroutBase(flatPoly, fy, stencilId);
   grout.renderOrder = 1;
   zoneGroup.add(grout);
 
   const tex = await loadOrGetTexture(product.imageUrl || '');
 
-  /* 3 — GLB or box tiles */
+  /* 3 — Tuiles GLB ou box */
   const useGlb = product.modelUrl && product.modelUrl.length > 4;
   let baseModel = null;
   if(useGlb){
@@ -1278,7 +1267,8 @@ async function placeTilePolygon(poly3D){
     ...(tex ? {map:tex, color:new THREE.Color(0xffffff)} : {color:new THREE.Color(0xD4A96A)})
   });
   const tileColors = [0xD4A96A, 0xC09050, 0xE0B878, 0xB88040];
-  const TILE_H = 0.012;
+  /* ÉPAISSEUR MINIMALE */
+  const TILE_H = 0.005;
 
   for(let i=0; i<positions.length; i++){
     const p = positions[i];
@@ -1289,16 +1279,18 @@ async function placeTilePolygon(poly3D){
       tile.rotation.y = p.rot;
       tile.position.set(p.x, fy, p.z);
     } else {
+      /* Box avec épaisseur minimale */
       const geo = new THREE.BoxGeometry(p.w - 0.002, TILE_H, p.h - 0.002);
       const mat = fallbackMat.clone();
       if(!tex) mat.color.set(tileColors[i % tileColors.length]);
       tile = new THREE.Mesh(geo, mat);
       tile.castShadow = true; tile.receiveShadow = true;
       tile.rotation.y = p.rot;
-      tile.position.set(p.x, fy + TILE_H/2, p.z);
+      /* Positionner la tuile ASU SOL (y = fy) */
+      tile.position.set(p.x, fy, p.z);
     }
 
-    /* ← KEY: apply stencil clipping to each tile */
+    /* Clipping stencil */
     tile.renderOrder = 2;
     applyStencilToObject(tile, stencilId);
 
