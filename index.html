@@ -1145,10 +1145,11 @@ function loadOrGetTexture(url){
    GLB ORIENTATION FIX — Horizontal Loading
    Teste 24 orientations pour trouver la meilleure
    orientation HORIZONTALE (ratio hauteur/largeur minimal)
+   + Détection face avant/arrière
 ═══════════════════════════════════════════ */
 function flattenGlbOnFloor(gltfScene, tileS, tex){
-  /* 24 orientations possibles (6 faces × 4 rotations) */
-  const CANDIDATES = [
+  /* 48 orientations = 24 + 24 avec flip Y */
+  const BASE_ORIENTATIONS = [
     /* X-axis rotations */
     new THREE.Euler(0,          0,          0),
     new THREE.Euler(0,          Math.PI/2,  0),
@@ -1186,15 +1187,33 @@ function flattenGlbOnFloor(gltfScene, tileS, tex){
     new THREE.Euler(Math.PI,    0,          Math.PI/2),
   ];
 
+  /* Combiner avec rotations Y pour éviter les modèles à l'envers */
+  const CANDIDATES = [];
+  const Y_ROTATIONS = [0, Math.PI]; // Normal + Flipped (180°)
+  
+  for(const baseEuler of BASE_ORIENTATIONS){
+    for(const yRot of Y_ROTATIONS){
+      const euler = new THREE.Euler(
+        baseEuler.x,
+        baseEuler.y + yRot,
+        baseEuler.z,
+        'XYZ'
+      );
+      CANDIDATES.push(euler);
+    }
+  }
+
   let bestEuler = CANDIDATES[0];
   let bestRatio = Infinity;
+  let bestFaceUp = 0; // 0 = normal, 1 = flipped
   
   /* Clone pour tester sans modifier l'original */
   const testGroup = new THREE.Group();
   const clonedScene = gltfScene.clone();
   testGroup.add(clonedScene);
 
-  for(const euler of CANDIDATES){
+  for(let idx = 0; idx < CANDIDATES.length; idx++){
+    const euler = CANDIDATES[idx];
     testGroup.rotation.order = 'XYZ';
     testGroup.rotation.copy(euler);
     testGroup.updateMatrixWorld(true);
@@ -1209,10 +1228,17 @@ function flattenGlbOnFloor(gltfScene, tileS, tex){
     const footprint = Math.max(sz.x, sz.z);
     const ratio = sz.y / footprint;
     
-    /* Garder la meilleure orientation (ratio minimal) */
-    if(ratio < bestRatio){
-      bestRatio = ratio;
+    /* 
+       Bonus pour les orientations non-flipped (idx < 24)
+       Préférer les modèles face avant plutôt que dos
+    */
+    const isFaceUp = idx < CANDIDATES.length / 2 ? 0 : 1;
+    const adjustedRatio = ratio + (isFaceUp * 0.05); // Léger bonus pour face avant
+    
+    if(adjustedRatio < bestRatio){
+      bestRatio = adjustedRatio;
       bestEuler = euler;
+      bestFaceUp = isFaceUp;
     }
   }
   
@@ -1254,7 +1280,7 @@ function flattenGlbOnFloor(gltfScene, tileS, tex){
     if(!c.isMesh) return;
     const mats = Array.isArray(c.material) ? c.material : [c.material];
     mats.forEach(m=>{
-      m.side = THREE.DoubleSide;
+      m.side = THREE.DoubleSide; /* ← Important pour voir les deux faces */
       m.transparent = true;
       m.opacity = S.opacity;
       if(tex && !m.map){
