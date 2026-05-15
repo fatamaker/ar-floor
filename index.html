@@ -3,17 +3,19 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no"/>
-<title>PlaceAR · Carrelage v6</title>
-<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+<title>PlaceAR · Carrelage v7</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --primary:#F59064;--secondary:#284F75;--lg:#F0F0F0;--lg2:#F7F7F7;--dg:#6E6E6E;
-  --hint:#474747;--grey:#AAAAAA;--green:#52B46B;--red:#DD5050;--white:#ffffff;
-  --tile:#D4A96A;--tile2:#8B5E3C;--poly:#FF3B30;
-  --font:'Montserrat',sans-serif;
-  --r-sm:8px;--r-md:14px;--r-lg:22px;--r-xl:32px;
-  --shadow:0 8px 40px rgba(40,79,117,0.18);
+  --primary:#E8834A;--secondary:#1E3F5C;--accent:#C9A96E;
+  --lg:#EFEFEF;--lg2:#F8F8F8;--dg:#5A5A5A;
+  --hint:#3A3A3A;--grey:#AAAAAA;--green:#45A363;--red:#D94040;--white:#ffffff;
+  --tile:#C9A96E;--tile2:#7A4F2C;--poly:#E8401A;
+  --font:'DM Sans',sans-serif;--mono:'DM Mono',monospace;
+  --r-sm:6px;--r-md:12px;--r-lg:20px;--r-xl:30px;
+  --shadow:0 6px 32px rgba(30,63,92,0.16);
+  --grout:#8A7A6A;
 }
 html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:var(--font)}
 #threeCanvas{position:fixed;inset:0;width:100%;height:100%;z-index:0}
@@ -21,17 +23,17 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:var
 #interactionCanvas{position:fixed;inset:0;width:100%;height:100%;z-index:3;display:none;cursor:crosshair;touch-action:none}
 
 /* TOP BAR */
-#topBar{position:fixed;top:0;left:0;right:0;z-index:20;display:flex;align-items:center;justify-content:space-between;padding:14px 18px 10px;background:linear-gradient(to bottom,rgba(0,0,0,.65) 0%,transparent 100%);pointer-events:none}
+#topBar{position:fixed;top:0;left:0;right:0;z-index:20;display:flex;align-items:center;justify-content:space-between;padding:14px 18px 10px;background:linear-gradient(to bottom,rgba(0,0,0,.7) 0%,transparent 100%);pointer-events:none}
 #topBar>*{pointer-events:auto}
-#appLogoText{font-size:16px;font-weight:700;color:#fff;letter-spacing:-.3px}
+#appLogoText{font-size:15px;font-weight:600;color:#fff;letter-spacing:-.2px}
 #topRight{display:flex;align-items:center;gap:8px}
 .topPill{display:flex;align-items:center;gap:5px;padding:5px 12px;border-radius:var(--r-xl);font-size:10px;font-weight:600;backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.15);color:#fff;background:rgba(17,17,17,.5);cursor:pointer}
 .topPill-dot{width:5px;height:5px;border-radius:50%;background:var(--green);animation:pulse .9s infinite}
-#placedBadge{display:none;align-items:center;gap:5px;padding:4px 11px;border-radius:20px;background:rgba(245,144,100,.18);border:1px solid rgba(245,144,100,.4);font-size:10px;font-weight:700;color:var(--primary)}
+#placedBadge{display:none;align-items:center;gap:5px;padding:4px 11px;border-radius:20px;background:rgba(232,131,74,.18);border:1px solid rgba(232,131,74,.4);font-size:10px;font-weight:600;color:var(--primary)}
 #placedBadge.visible{display:flex}
 
 /* STATUS */
-#statusToast{position:fixed;top:68px;left:50%;transform:translateX(-50%);z-index:19;display:flex;align-items:center;gap:7px;padding:7px 16px;border-radius:var(--r-xl);font-size:11px;font-weight:500;color:rgba(255,255,255,.9);background:rgba(17,17,17,.78);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,.1);white-space:nowrap;pointer-events:none;max-width:90vw}
+#statusToast{position:fixed;top:68px;left:50%;transform:translateX(-50%);z-index:19;display:flex;align-items:center;gap:7px;padding:7px 16px;border-radius:var(--r-xl);font-size:11px;font-weight:500;color:rgba(255,255,255,.92);background:rgba(10,10,20,.82);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,.1);white-space:nowrap;pointer-events:none;max-width:90vw;font-family:var(--mono)}
 #statusDot{width:6px;height:6px;border-radius:50%;background:var(--grey);flex-shrink:0;transition:background .3s}
 #statusToast.ok #statusDot{background:var(--green)}
 #statusToast.scanning #statusDot{background:var(--primary);animation:pulse .8s infinite}
@@ -39,112 +41,81 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:var
 #statusToast.tiling #statusDot{background:var(--tile);animation:pulse .8s infinite}
 #statusToast.poly #statusDot{background:var(--poly);animation:pulse .8s infinite}
 
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
 @keyframes spin{to{transform:rotate(360deg)}}
-@keyframes tapRipple{0%{transform:scale(0);opacity:.8}100%{transform:scale(1);opacity:0}}
-@keyframes slideUp{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
+@keyframes tapRipple{0%{transform:scale(0);opacity:.9}100%{transform:scale(1);opacity:0}}
+@keyframes slideUp{from{transform:translateY(24px);opacity:0}to{transform:translateY(0);opacity:1}}
+@keyframes snapPulse{0%{transform:scale(1)}50%{transform:scale(1.25)}100%{transform:scale(1)}}
 
 /* GLB LOADER */
-#glbLoader{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center;flex-direction:column;gap:14px}
+#glbLoader{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;flex-direction:column;gap:14px}
 #glbLoader.visible{display:flex}
-.spin{width:34px;height:34px;border:3px solid rgba(245,144,100,.25);border-top-color:var(--primary);border-radius:50%;animation:spin .7s linear infinite}
-#glbLoader p{color:rgba(255,255,255,.8);font-size:12px;font-weight:500}
+.spin{width:32px;height:32px;border:3px solid rgba(232,131,74,.2);border-top-color:var(--primary);border-radius:50%;animation:spin .7s linear infinite}
 
-/* ══════════════════════════════════════
-   POLYGON CONTROLS — redesigned
-══════════════════════════════════════ */
-#polyControls{
-  position:fixed;bottom:0;left:0;right:0;z-index:22;
-  display:none;flex-direction:column;align-items:stretch;gap:0;pointer-events:none;
-  animation:slideUp .3s ease
-}
+/* POLYGON CONTROLS */
+#polyControls{position:fixed;bottom:0;left:0;right:0;z-index:22;display:none;flex-direction:column;align-items:stretch;pointer-events:none;animation:slideUp .3s ease}
 #polyControls.visible{display:flex}
 
-/* Tap guide pill — stays top-center while drawing */
-#polyGuidePill{
-  position:fixed;top:72px;left:50%;transform:translateX(-50%);z-index:23;
-  display:none;align-items:center;gap:8px;
-  padding:9px 18px;border-radius:var(--r-xl);
-  background:rgba(10,10,20,.88);backdrop-filter:blur(16px);
-  border:1px solid rgba(255,59,48,.45);
-  font-size:11px;font-weight:600;color:#fff;white-space:nowrap;
-  pointer-events:none
-}
+#polyGuidePill{position:fixed;top:68px;left:50%;transform:translateX(-50%);z-index:23;display:none;align-items:center;gap:8px;padding:9px 18px;border-radius:var(--r-xl);background:rgba(10,10,20,.9);backdrop-filter:blur(16px);border:1px solid rgba(232,64,26,.5);font-size:11px;font-weight:600;color:#fff;white-space:nowrap;pointer-events:none;font-family:var(--mono)}
 #polyGuidePill.visible{display:flex}
 #polyGuideDot{width:7px;height:7px;border-radius:50%;background:var(--poly);animation:pulse .7s infinite;flex-shrink:0}
-#polyGuideText{}
 
-/* Bottom panel */
-#polyPanel{
-  pointer-events:auto;
-  background:var(--white);border-radius:var(--r-lg) var(--r-lg) 0 0;
-  box-shadow:var(--shadow);padding:14px 14px 28px;
-  display:flex;flex-direction:column;gap:10px
-}
+/* area badge */
+#areaBadge{position:fixed;top:108px;left:50%;transform:translateX(-50%);z-index:23;display:none;align-items:center;gap:6px;padding:6px 14px;border-radius:var(--r-xl);background:rgba(201,169,110,.18);backdrop-filter:blur(12px);border:1px solid rgba(201,169,110,.4);font-size:11px;font-weight:600;color:#D4B078;pointer-events:none;font-family:var(--mono)}
+#areaBadge.visible{display:flex}
+
+#polyPanel{pointer-events:auto;background:var(--white);border-radius:var(--r-lg) var(--r-lg) 0 0;box-shadow:var(--shadow);padding:14px 14px 28px;display:flex;flex-direction:column;gap:10px}
 .polyPanelRow{display:flex;align-items:center;gap:8px}
-#polyPointsCount{
-  flex:1;background:rgba(255,59,48,.07);border:1.5px solid rgba(255,59,48,.25);
-  border-radius:10px;padding:8px 12px;font-size:11px;font-weight:700;color:var(--poly);
-  display:flex;align-items:center;gap:6px
-}
-#polyPointsBubbles{display:flex;gap:4px;flex-wrap:wrap;max-width:120px}
-.ptBubble{width:8px;height:8px;border-radius:50%;background:var(--poly);opacity:.3;transition:opacity .2s}
+#polyPointsCount{flex:1;background:rgba(232,64,26,.07);border:1.5px solid rgba(232,64,26,.2);border-radius:10px;padding:8px 12px;font-size:11px;font-weight:600;color:var(--poly);display:flex;align-items:center;gap:6px;font-family:var(--mono)}
+#polyPointsBubbles{display:flex;gap:4px;flex-wrap:wrap;max-width:100px}
+.ptBubble{width:7px;height:7px;border-radius:50%;background:var(--poly);opacity:.2;transition:opacity .2s}
 .ptBubble.active{opacity:1}
-.polyActionBtn{
-  padding:10px 16px;border-radius:var(--r-md);border:none;cursor:pointer;
-  font-family:var(--font);font-size:11px;font-weight:700;transition:all .18s;white-space:nowrap
-}
+.polyActionBtn{padding:10px 14px;border-radius:var(--r-md);border:none;cursor:pointer;font-family:var(--font);font-size:11px;font-weight:600;transition:all .18s;white-space:nowrap}
 .polyActionBtn:active{transform:scale(.94)}
-#pbUndo{background:var(--lg2);color:var(--hint);border:1.5px solid var(--lg)}
+#pbUndo{background:var(--lg2);color:var(--hint);border:1px solid var(--lg)}
 #pbClose{background:var(--poly);color:#fff;display:none;flex:1}
-#pbCancel{background:transparent;color:rgba(100,100,120,.6);font-size:10px;padding:6px 10px;border:none}
-
-/* Close zone CTA — appears when ≥3 points */
-#polyCloseCta{
-  display:none;align-items:center;justify-content:center;gap:8px;
-  background:linear-gradient(135deg,#FF3B30,#c0221a);color:#fff;
-  border:none;border-radius:var(--r-md);padding:13px;cursor:pointer;
-  font-family:var(--font);font-size:13px;font-weight:700;
-  transition:all .2s;box-shadow:0 4px 16px rgba(255,59,48,.35)
-}
+#pbCancel{background:transparent;color:rgba(100,100,120,.5);font-size:10px;padding:6px 10px;border:none}
+#polyCloseCta{display:none;align-items:center;justify-content:center;gap:8px;background:var(--poly);color:#fff;border:none;border-radius:var(--r-md);padding:13px;cursor:pointer;font-family:var(--font);font-size:13px;font-weight:600;transition:all .2s}
 #polyCloseCta.visible{display:flex}
 #polyCloseCta:active{transform:scale(.97)}
 
 /* CARRELAGE PICKER */
-#carrelagePicker{
-  position:fixed;bottom:0;left:0;right:0;z-index:35;
-  background:var(--white);border-radius:var(--r-lg) var(--r-lg) 0 0;
-  box-shadow:var(--shadow);padding:0 0 28px;
-  transform:translateY(100%);transition:transform .35s cubic-bezier(.32,.72,0,1);
-  display:none
-}
+#carrelagePicker{position:fixed;bottom:0;left:0;right:0;z-index:35;background:var(--white);border-radius:var(--r-lg) var(--r-lg) 0 0;box-shadow:var(--shadow);padding:0 0 28px;transform:translateY(100%);transition:transform .35s cubic-bezier(.32,.72,0,1);display:none}
 #carrelagePicker.visible{transform:translateY(0);display:block}
 .cpHeader{display:flex;align-items:center;justify-content:space-between;padding:16px 16px 8px}
-.cpTitle{font-size:13px;font-weight:700;color:var(--secondary)}
+.cpTitle{font-size:13px;font-weight:600;color:var(--secondary)}
 .cpClose{background:var(--lg2);border:none;border-radius:50%;width:28px;height:28px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--dg)}
 .cpScroll{display:flex;gap:10px;overflow-x:auto;padding:0 14px 4px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
 .cpScroll::-webkit-scrollbar{display:none}
-.cpCard{flex-shrink:0;width:110px;border-radius:var(--r-md);border:2px solid var(--lg);background:var(--lg2);cursor:pointer;overflow:hidden;transition:all .2s}
+.cpCard{flex-shrink:0;width:100px;border-radius:var(--r-md);border:2px solid var(--lg);background:var(--lg2);cursor:pointer;overflow:hidden;transition:all .2s}
 .cpCard:active{transform:scale(.95)}
-.cpCard.active{border-color:var(--tile);box-shadow:0 0 0 3px rgba(212,169,106,.25)}
-.cpCard-img{width:100%;height:64px;object-fit:cover;display:block}
-.cpCard-name{font-size:9px;font-weight:700;color:var(--hint);padding:5px 7px 2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cpCard.active{border-color:var(--tile);box-shadow:0 0 0 3px rgba(201,169,110,.2)}
+.cpCard-preview{width:100%;height:70px;display:block;position:relative;overflow:hidden}
+.cpCard-preview canvas{width:100%;height:100%;display:block}
+.cpCard-name{font-size:9px;font-weight:600;color:var(--hint);padding:5px 7px 2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .cpCard-sub{font-size:8px;color:var(--grey);padding:0 7px 6px}
 .cpOptions{padding:12px 14px 0;border-top:1px solid var(--lg);margin-top:10px}
-.cpOptLabel{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--grey);margin-bottom:8px}
-.cpPatterns{display:flex;gap:6px;flex-wrap:wrap}
-.cpPattern{flex:1;min-width:56px;padding:7px 4px;border-radius:var(--r-sm);border:1.5px solid rgba(212,169,106,.3);background:rgba(212,169,106,.08);cursor:pointer;text-align:center;font-size:8px;font-weight:700;color:#8B5E3C;transition:all .2s}
+.cpOptLabel{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--grey);margin-bottom:8px}
+.cpPatterns{display:flex;gap:5px;flex-wrap:wrap}
+.cpPattern{flex:1;min-width:50px;padding:7px 4px;border-radius:var(--r-sm);border:1.5px solid rgba(201,169,110,.25);background:rgba(201,169,110,.06);cursor:pointer;text-align:center;font-size:8px;font-weight:700;color:#7A4F2C;transition:all .18s;position:relative;overflow:hidden}
 .cpPattern:active{transform:scale(.95)}
-.cpPattern.active{background:linear-gradient(135deg,#D4A96A,#8B5E3C);color:#fff;border-color:transparent}
-.cpPattern-icon{font-size:15px;display:block;margin-bottom:2px}
+.cpPattern.active{background:var(--tile);color:#fff;border-color:transparent}
+.cpPattern-icon{font-size:13px;display:block;margin-bottom:2px}
 .cpSizeRow{display:flex;align-items:center;gap:10px;margin-top:12px}
 .cpSizeLabel{font-size:10px;font-weight:600;color:var(--dg);white-space:nowrap}
-input.tileZoneInput{flex:1;-webkit-appearance:none;height:4px;background:linear-gradient(to right,#D4A96A,#8B5E3C);border-radius:3px;outline:none}
-input.tileZoneInput::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:#8B5E3C;cursor:pointer;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.2)}
-.cpSizeVal{font-size:10px;font-weight:700;color:#8B5E3C;background:rgba(212,169,106,.15);padding:2px 8px;border-radius:6px;min-width:40px;text-align:center}
-#cpConfirmBtn{display:block;width:calc(100% - 28px);margin:14px auto 0;padding:13px;background:linear-gradient(135deg,#D4A96A,#8B5E3C);color:#fff;border:none;border-radius:var(--r-md);font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer;transition:all .2s;box-shadow:0 3px 12px rgba(139,94,60,.3)}
-#cpConfirmBtn:disabled{opacity:.5;cursor:not-allowed}
+input.tileZoneInput{flex:1;-webkit-appearance:none;height:4px;background:var(--lg);border-radius:3px;outline:none}
+input.tileZoneInput::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:var(--tile2);cursor:pointer;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.2)}
+.cpSizeVal{font-size:10px;font-weight:700;color:var(--tile2);background:rgba(201,169,110,.12);padding:2px 8px;border-radius:6px;min-width:40px;text-align:center;font-family:var(--mono)}
+#cpConfirmBtn{display:block;width:calc(100% - 28px);margin:14px auto 0;padding:13px;background:linear-gradient(135deg,var(--tile),var(--tile2));color:#fff;border:none;border-radius:var(--r-md);font-family:var(--font);font-size:12px;font-weight:600;cursor:pointer;transition:all .2s}
+#cpConfirmBtn:disabled{opacity:.4;cursor:not-allowed}
 #cpConfirmBtn:not(:disabled):active{transform:scale(.97)}
+
+/* GROUT SLIDER */
+.cpGroutRow{display:flex;align-items:center;gap:10px;margin-top:10px}
+
+/* Pattern preview canvas in picker */
+#patternPreviewWrap{width:100%;height:52px;border-radius:var(--r-sm);overflow:hidden;margin-top:8px;border:1px solid var(--lg)}
+#patternPreviewCanvas{width:100%;height:100%;display:block}
 
 /* ACTION BAR */
 #actionBar{position:fixed;bottom:0;left:0;right:0;z-index:25;transform:translateY(100%);transition:transform .3s cubic-bezier(.32,.72,0,1);display:none}
@@ -154,60 +125,49 @@ input.tileZoneInput::-webkit-slider-thumb{-webkit-appearance:none;width:16px;hei
 .aBtn:active{transform:scale(.93)}
 .aBtn svg{width:17px;height:17px;stroke:var(--dg);fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
 .aBtn.confirm{background:var(--secondary);color:#fff}.aBtn.confirm svg{stroke:#fff}
-.aBtn.danger{background:rgba(221,80,80,.1);color:var(--red)}.aBtn.danger svg{stroke:var(--red)}
-#selectedProductName{font-size:11px;font-weight:700;color:var(--secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:90px;flex-shrink:0}
+.aBtn.danger{background:rgba(217,64,64,.1);color:var(--red)}.aBtn.danger svg{stroke:var(--red)}
+#selectedProductName{font-size:11px;font-weight:600;color:var(--secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:90px;flex-shrink:0}
 
 /* SHEET */
 #sheet{position:fixed;bottom:0;left:0;right:0;z-index:30;background:var(--white);border-radius:var(--r-lg) var(--r-lg) 0 0;box-shadow:var(--shadow);display:none;flex-direction:column}
 #sheetHandle{width:100%;padding:12px 0 6px;cursor:grab;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-#handleBar{width:38px;height:4px;border-radius:3px;background:var(--lg)}
+#handleBar{width:36px;height:4px;border-radius:3px;background:var(--lg)}
 #quickRow{display:flex;align-items:center;gap:6px;padding:0 12px 12px;flex-shrink:0}
 .qBtn{flex:1;display:flex;align-items:center;justify-content:center;gap:4px;padding:11px 6px;border-radius:var(--r-md);border:none;cursor:pointer;font-family:var(--font);font-size:10px;font-weight:600;transition:all .18s;white-space:nowrap;min-width:0}
 .qBtn:active{transform:scale(.96)}
 .qBtn-primary{background:var(--secondary);color:#fff}
 .qBtn-ghost{background:var(--lg2);color:var(--hint)}
-.qBtn-poly{background:rgba(255,59,48,.1);color:var(--poly);border:1.5px solid rgba(255,59,48,.3)}
-.qBtn-poly-on{background:rgba(255,59,48,.22);color:var(--poly);border:1.5px solid rgba(255,59,48,.7)}
-.qBtn-danger{background:rgba(221,80,80,.12);color:var(--red)}
-
+.qBtn-poly{background:rgba(232,64,26,.08);color:var(--poly);border:1.5px solid rgba(232,64,26,.25)}
+.qBtn-poly-on{background:rgba(232,64,26,.18);color:var(--poly);border:1.5px solid rgba(232,64,26,.6)}
+.qBtn-danger{background:rgba(217,64,64,.1);color:var(--red)}
 input[type=range]{-webkit-appearance:none;width:100%;height:4px;background:var(--lg);border-radius:3px;outline:none}
 input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:var(--secondary);cursor:pointer;border:2px solid #fff}
 
 /* START SCREEN */
-#startScreen{position:fixed;inset:0;z-index:100;background:linear-gradient(135deg,#0a0f1a 0%,#1a2a3a 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px}
+#startScreen{position:fixed;inset:0;z-index:100;background:linear-gradient(160deg,#0A0F1C 0%,#162130 60%,#0A0F1C 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px}
 #startScreen.hidden{display:none}
-.startIcon{width:80px;height:80px;border-radius:28px;background:rgba(245,144,100,.15);border:1px solid rgba(245,144,100,.3);display:flex;align-items:center;justify-content:center;margin-bottom:24px}
-.startTitle{font-size:32px;font-weight:700;color:#fff;letter-spacing:-1px;margin-bottom:10px;text-align:center}
-.startSub{font-size:13px;color:rgba(255,255,255,.6);line-height:1.7;text-align:center;max-width:280px;margin-bottom:12px}
-.startFeatures{display:flex;flex-direction:column;gap:8px;margin-bottom:32px;width:100%;max-width:280px}
-.startFeature{display:flex;align-items:center;gap:10px;font-size:12px;color:rgba(255,255,255,.7)}
-.startFeature-dot{width:6px;height:6px;border-radius:50%;background:var(--primary);flex-shrink:0}
-.startFeature-dot.tile{background:#D4A96A}
-.startFeature-dot.poly{background:var(--poly)}
-#startArBtn{padding:16px 40px;background:var(--primary);color:#fff;border:none;border-radius:var(--r-xl);font-family:var(--font);font-size:15px;font-weight:700;cursor:pointer;box-shadow:0 6px 24px rgba(245,144,100,.4);width:100%;max-width:280px}
-#noXrMsg{color:rgba(255,100,100,.8);font-size:12px;margin-top:12px;text-align:center;display:none}
+.startGrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:24px;width:100%;max-width:280px}
+.startTile{border-radius:10px;height:48px;position:relative;overflow:hidden}
+.startTitle{font-size:28px;font-weight:600;color:#fff;letter-spacing:-.5px;margin-bottom:8px;text-align:center}
+.startSub{font-size:13px;color:rgba(255,255,255,.55);line-height:1.7;text-align:center;max-width:260px;margin-bottom:20px}
+.startSteps{display:flex;flex-direction:column;gap:6px;margin-bottom:28px;width:100%;max-width:260px}
+.startStep{display:flex;align-items:flex-start;gap:10px;font-size:12px;color:rgba(255,255,255,.65);line-height:1.5}
+.stepNum{width:18px;height:18px;border-radius:50%;background:var(--primary);color:#fff;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+#startArBtn{padding:15px 40px;background:var(--primary);color:#fff;border:none;border-radius:var(--r-xl);font-family:var(--font);font-size:14px;font-weight:600;cursor:pointer;width:100%;max-width:260px}
+#noXrMsg{color:rgba(255,120,100,.8);font-size:12px;margin-top:12px;text-align:center;display:none}
 
 /* MISC */
 #videoEl{position:fixed;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;display:none}
-#saveToast{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:200;display:flex;flex-direction:column;align-items:center;gap:10px;padding:24px 32px;background:rgba(20,30,40,.92);backdrop-filter:blur(20px);border-radius:var(--r-lg);border:1px solid rgba(255,255,255,.15);color:#fff;font-size:13px;font-weight:600;pointer-events:none;opacity:0;transition:opacity .3s;text-align:center}
+#saveToast{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:200;display:flex;flex-direction:column;align-items:center;gap:10px;padding:24px 32px;background:rgba(15,25,35,.95);backdrop-filter:blur(20px);border-radius:var(--r-lg);border:1px solid rgba(255,255,255,.12);color:#fff;font-size:13px;font-weight:600;pointer-events:none;opacity:0;transition:opacity .3s;text-align:center}
 #saveToast.show{opacity:1}
-#deleteHint{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:18;padding:12px 24px;border-radius:var(--r-lg);background:rgba(221,80,80,.85);color:#fff;font-size:14px;font-weight:700;pointer-events:none;opacity:0;transition:opacity .2s;text-align:center}
-#deleteHint.show{opacity:1;animation:pulse-delete .6s ease-out}
-@keyframes pulse-delete{0%{opacity:1;transform:translate(-50%,-50%) scale(1)}50%{opacity:.5}100%{opacity:0;transform:translate(-50%,-50%) scale(.8)}}
-
-#tilingProgress{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:60;background:rgba(20,30,40,.95);border:1px solid rgba(212,169,106,.4);border-radius:var(--r-lg);padding:24px 32px;color:#fff;text-align:center;display:none;min-width:220px}
+#deleteHint{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:18;padding:12px 24px;border-radius:var(--r-lg);background:rgba(217,64,64,.88);color:#fff;font-size:14px;font-weight:600;pointer-events:none;opacity:0;transition:opacity .2s;text-align:center}
+#deleteHint.show{opacity:1}
+#tilingProgress{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:60;background:rgba(15,25,35,.96);border:1px solid rgba(201,169,110,.3);border-radius:var(--r-lg);padding:24px 32px;color:#fff;text-align:center;display:none;min-width:220px}
 #tilingProgress.visible{display:block}
-#tilingProgressBar{width:180px;height:6px;background:rgba(255,255,255,.1);border-radius:3px;margin:12px auto 6px;overflow:hidden}
-#tilingProgressFill{height:100%;background:linear-gradient(90deg,#D4A96A,#8B5E3C);border-radius:3px;width:0%;transition:width .15s}
-#tilingProgressText{font-size:11px;color:rgba(255,255,255,.7)}
-
-/* Tap ripple feedback */
-.tapRippleEl{
-  position:fixed;pointer-events:none;z-index:24;
-  width:60px;height:60px;margin:-30px 0 0 -30px;
-  border-radius:50%;border:2px solid rgba(255,59,48,.7);
-  animation:tapRipple .5s ease-out forwards
-}
+#tilingProgressBar{width:180px;height:5px;background:rgba(255,255,255,.1);border-radius:3px;margin:12px auto 6px;overflow:hidden}
+#tilingProgressFill{height:100%;background:linear-gradient(90deg,var(--tile),var(--tile2));border-radius:3px;width:0%;transition:width .12s}
+#tilingProgressText{font-size:11px;color:rgba(255,255,255,.6);font-family:var(--mono)}
+.tapRippleEl{position:fixed;pointer-events:none;z-index:24;width:56px;height:56px;margin:-28px 0 0 -28px;border-radius:50%;border:2px solid rgba(232,64,26,.7);animation:tapRipple .5s ease-out forwards}
 </style>
 </head>
 <body>
@@ -217,32 +177,21 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
 <canvas id="polyDrawCanvas"></canvas>
 <canvas id="interactionCanvas"></canvas>
 
-<!-- GUIDE PILL (top, shows while drawing) -->
-<div id="polyGuidePill">
-  <div id="polyGuideDot"></div>
-  <span id="polyGuideText">Tapez les coins de la zone</span>
-</div>
+<div id="polyGuidePill"><div id="polyGuideDot"></div><span id="polyGuideText">Tapez les coins de la zone</span></div>
+<div id="areaBadge">⬡ <span id="areaText">0.0 m²</span></div>
 
-<!-- POLYGON CONTROLS (bottom panel) -->
 <div id="polyControls">
   <div id="polyPanel">
     <div class="polyPanelRow">
-      <div id="polyPointsCount">
-        <div id="polyPointsBubbles"></div>
-        <span id="polyCountLabel">0 point</span>
-      </div>
+      <div id="polyPointsCount"><div id="polyPointsBubbles"></div><span id="polyCountLabel">0 point</span></div>
       <button class="polyActionBtn" id="pbUndo">↩ Défaire</button>
       <button class="polyActionBtn" id="pbCancel">✕</button>
     </div>
     <button class="polyActionBtn" id="pbClose">⬡ Fermer &amp; choisir le carrelage</button>
-    <button id="polyCloseCta">
-      <span style="font-size:18px">⬡</span>
-      Fermer la zone · choisir le carrelage →
-    </button>
+    <button id="polyCloseCta"><span style="font-size:17px">⬡</span> Fermer la zone · choisir →</button>
   </div>
 </div>
 
-<!-- CARRELAGE PICKER -->
 <div id="carrelagePicker">
   <div class="cpHeader">
     <span class="cpTitle">2 · Choisir le carrelage</span>
@@ -253,14 +202,23 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
     <div class="cpOptLabel">Motif de pose</div>
     <div class="cpPatterns" id="cpPatterns">
       <div class="cpPattern active" data-pattern="straight"><span class="cpPattern-icon">⬛</span>Droit</div>
-      <div class="cpPattern" data-pattern="diagonal"><span class="cpPattern-icon">◆</span>Diagonal</div>
-      <div class="cpPattern" data-pattern="chevron"><span class="cpPattern-icon">〰</span>Chevron</div>
+      <div class="cpPattern" data-pattern="brick"><span class="cpPattern-icon">▬</span>Brique</div>
+      <div class="cpPattern" data-pattern="herringbone"><span class="cpPattern-icon">〽</span>Hongrie</div>
+      <div class="cpPattern" data-pattern="diagonal"><span class="cpPattern-icon">◆</span>Diag.</div>
       <div class="cpPattern" data-pattern="opus"><span class="cpPattern-icon">▦</span>Opus</div>
+    </div>
+    <div style="width:100%;height:50px;border-radius:var(--r-sm);overflow:hidden;margin-top:8px;border:1px solid var(--lg)">
+      <canvas id="patternPreviewCanvas" style="width:100%;height:100%;display:block"></canvas>
     </div>
     <div class="cpSizeRow">
       <span class="cpSizeLabel">Taille tuile</span>
       <input type="range" class="tileZoneInput" id="tileSizeSlider" min="10" max="60" step="5" value="30">
-      <span class="cpSizeVal" id="tileSizeVal">30cm</span>
+      <span class="cpSizeVal" id="tileSizeVal">30 cm</span>
+    </div>
+    <div class="cpGroutRow">
+      <span class="cpSizeLabel">Joint</span>
+      <input type="range" class="tileZoneInput" id="groutSlider" min="2" max="12" step="1" value="4">
+      <span class="cpSizeVal" id="groutVal">4 mm</span>
     </div>
     <button id="cpConfirmBtn" disabled>Poser les tuiles dans la zone</button>
   </div>
@@ -270,56 +228,44 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
 <div id="saveToast"><span id="saveToastIcon">📸</span><span id="saveToastText">Capture !</span></div>
 <div id="deleteHint">Supprimé</div>
 <div id="tilingProgress">
-  <div style="font-size:13px;font-weight:700">Pose du carrelage…</div>
+  <div style="font-size:13px;font-weight:600">Pose du carrelage…</div>
   <div id="tilingProgressBar"><div id="tilingProgressFill"></div></div>
   <div id="tilingProgressText">0 / 0 tuiles</div>
 </div>
 
 <!-- START SCREEN -->
 <div id="startScreen">
-  <div class="startIcon">
-    <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
-      <rect x="4" y="4" width="14" height="14" rx="2" fill="rgba(212,169,106,.7)"/>
-      <rect x="22" y="4" width="14" height="14" rx="2" fill="rgba(139,94,60,.5)"/>
-      <rect x="4" y="22" width="14" height="14" rx="2" fill="rgba(139,94,60,.5)"/>
-      <rect x="22" y="22" width="14" height="14" rx="2" fill="rgba(212,169,106,.7)"/>
-    </svg>
-  </div>
+  <div class="startGrid" id="startTileGrid"></div>
   <div class="startTitle">PlaceAR</div>
-  <div class="startSub">Délimitez une zone, choisissez le carrelage, posez !</div>
-  <div class="startFeatures">
-    <div class="startFeature"><div class="startFeature-dot poly"></div>1 · Tracez le polygone sur le sol</div>
-    <div class="startFeature"><div class="startFeature-dot tile"></div>2 · Sélectionnez le carrelage et le motif</div>
-    <div class="startFeature"><div class="startFeature-dot"></div>3 · Remplissage automatique précis</div>
-    <div class="startFeature"><div class="startFeature-dot"></div>Gestes : rotation, zoom, suppression</div>
+  <div class="startSub">Visualisez votre carrelage en réalité augmentée avant la pose</div>
+  <div class="startSteps">
+    <div class="startStep"><div class="stepNum">1</div>Tracez le polygone de la zone à carreler</div>
+    <div class="startStep"><div class="stepNum">2</div>Choisissez le carrelage et le motif de pose</div>
+    <div class="startStep"><div class="stepNum">3</div>Remplissage précis avec joints et textures</div>
   </div>
-  <button id="startArBtn">🚀 Lancer la AR</button>
-  <div id="noXrMsg">WebXR non supporté.<br>Mode caméra activé.</div>
+  <button id="startArBtn">Lancer la AR →</button>
+  <div id="noXrMsg">WebXR non supporté · mode caméra activé</div>
 </div>
 
 <!-- TOP BAR -->
 <div id="topBar" style="display:none">
   <div style="display:flex;align-items:center;gap:8px">
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-      <rect x="2" y="2" width="9" height="9" rx="1.5" fill="rgba(212,169,106,.8)"/>
-      <rect x="13" y="2" width="9" height="9" rx="1.5" fill="rgba(139,94,60,.6)"/>
-      <rect x="2" y="13" width="9" height="9" rx="1.5" fill="rgba(139,94,60,.6)"/>
-      <rect x="13" y="13" width="9" height="9" rx="1.5" fill="rgba(212,169,106,.8)"/>
+    <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+      <rect x="1" y="1" width="8.5" height="8.5" rx="1.5" fill="rgba(201,169,110,.8)"/>
+      <rect x="12.5" y="1" width="8.5" height="8.5" rx="1.5" fill="rgba(122,79,44,.55)"/>
+      <rect x="1" y="12.5" width="8.5" height="8.5" rx="1.5" fill="rgba(122,79,44,.55)"/>
+      <rect x="12.5" y="12.5" width="8.5" height="8.5" rx="1.5" fill="rgba(201,169,110,.8)"/>
     </svg>
     <span id="appLogoText">PlaceAR</span>
   </div>
   <div id="topRight">
-    <div id="placedBadge">
-      <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><rect x="1" y="1" width="3.5" height="3.5" rx=".8" fill="currentColor"/><rect x="5.5" y="1" width="3.5" height="3.5" rx=".8" fill="currentColor" opacity=".5"/><rect x="1" y="5.5" width="3.5" height="3.5" rx=".8" fill="currentColor" opacity=".5"/><rect x="5.5" y="5.5" width="3.5" height="3.5" rx=".8" fill="currentColor" opacity=".3"/></svg>
-      <span id="placedCountEl">0</span> placé(s)
-    </div>
+    <div id="placedBadge">⬡ <span id="placedCountEl">0</span> zone(s)</div>
     <div class="topPill"><div class="topPill-dot"></div><span>AR Live</span></div>
   </div>
 </div>
 
 <div id="statusToast" style="display:none"><div id="statusDot"></div><span id="statusText">Init…</span></div>
 
-<!-- ACTION BAR -->
 <div id="actionBar">
   <div id="actionBarInner">
     <span id="selectedProductName">—</span>
@@ -335,21 +281,15 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
   </div>
 </div>
 
-<!-- MAIN SHEET -->
 <div id="sheet" style="height:82px">
   <div id="sheetHandle"><div id="handleBar"></div></div>
   <div id="quickRow">
     <button class="qBtn qBtn-danger" id="resetBtn" style="max-width:44px" title="Tout effacer">
-      <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
-        <path d="M1.5 6.5a5 5 0 1 0 1-3"/><polyline points="1.5,2.5 1.5,5 4,5"/>
-      </svg>
+      <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M1.5 6.5a5 5 0 1 0 1-3"/><polyline points="1.5,2.5 1.5,5 4,5"/></svg>
     </button>
-    <button class="qBtn qBtn-poly" id="drawZoneBtn" style="flex:3">✏️ 1 · Tracer la zone</button>
+    <button class="qBtn qBtn-poly" id="drawZoneBtn" style="flex:3">✏️  1 · Tracer la zone</button>
     <button class="qBtn qBtn-ghost" id="captureBtn" style="max-width:44px" title="Capture">
-      <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
-        <path d="M1 4Q1 3 2 3L4 3 4.8 1.8 8.2 1.8 9 3 11 3Q12 3 12 4L12 11Q12 12 11 12L2 12Q1 12 1 11Z"/>
-        <circle cx="6.5" cy="7" r="2"/>
-      </svg>
+      <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M1 4Q1 3 2 3L4 3 4.8 1.8 8.2 1.8 9 3 11 3Q12 3 12 4L12 11Q12 12 11 12L2 12Q1 12 1 11Z"/><circle cx="6.5" cy="7" r="2"/></svg>
     </button>
   </div>
 </div>
@@ -358,6 +298,170 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/environments/RoomEnvironment.js"></script>
 <script>
+/* ═══════════════════════════ TILE TEXTURES ═══════════════════════════ */
+function makeTileTexture(type, size=256){
+  const c=document.createElement('canvas'); c.width=c.height=size;
+  const ctx=c.getContext('2d');
+  const s=size;
+  switch(type){
+    case 'zellige':{
+      // iridescent zellige effect
+      const grd=ctx.createLinearGradient(0,0,s,s);
+      grd.addColorStop(0,'#3D7A6A'); grd.addColorStop(.3,'#4E9B7A');
+      grd.addColorStop(.6,'#2E6060'); grd.addColorStop(1,'#1A4040');
+      ctx.fillStyle=grd; ctx.fillRect(0,0,s,s);
+      // surface texture noise
+      for(let i=0;i<600;i++){
+        const x=Math.random()*s,y=Math.random()*s;
+        ctx.fillStyle=`rgba(${Math.random()>0.5?'255,255,255':'0,50,50'},${Math.random()*.12})`;
+        ctx.fillRect(x,y,Math.random()*4+1,Math.random()*4+1);
+      }
+      // crackle lines
+      ctx.strokeStyle='rgba(0,0,0,.15)'; ctx.lineWidth=1;
+      for(let i=0;i<8;i++){
+        ctx.beginPath(); ctx.moveTo(Math.random()*s,Math.random()*s);
+        ctx.lineTo(Math.random()*s,Math.random()*s); ctx.stroke();
+      }
+      break;
+    }
+    case 'marbre':{
+      ctx.fillStyle='#F0EDE8'; ctx.fillRect(0,0,s,s);
+      // veins
+      for(let v=0;v<6;v++){
+        const x0=Math.random()*s, y0=-20;
+        ctx.beginPath(); ctx.moveTo(x0,y0);
+        let cx=x0,cy=y0;
+        for(let i=0;i<8;i++){
+          cx+=(-40+Math.random()*80); cy+=s/8;
+          ctx.lineTo(cx,cy);
+        }
+        ctx.strokeStyle=`rgba(160,140,120,${0.1+Math.random()*.25})`;
+        ctx.lineWidth=0.5+Math.random()*2.5;
+        ctx.stroke();
+      }
+      // subtle sheen
+      const sg=ctx.createLinearGradient(0,0,s,s);
+      sg.addColorStop(0,'rgba(255,255,255,.18)'); sg.addColorStop(.5,'rgba(255,255,255,0)'); sg.addColorStop(1,'rgba(200,190,180,.1)');
+      ctx.fillStyle=sg; ctx.fillRect(0,0,s,s);
+      break;
+    }
+    case 'ciment':{
+      ctx.fillStyle='#7A7678'; ctx.fillRect(0,0,s,s);
+      // geometric pattern
+      ctx.strokeStyle='rgba(255,255,255,.18)'; ctx.lineWidth=1.5;
+      const motifs=['geo1'];
+      // octagon-like motif
+      const c2=s/2, r=s*0.36;
+      ctx.beginPath();
+      for(let i=0;i<8;i++){
+        const a=Math.PI/4*i-Math.PI/8;
+        i===0?ctx.moveTo(c2+r*Math.cos(a),c2+r*Math.sin(a)):ctx.lineTo(c2+r*Math.cos(a),c2+r*Math.sin(a));
+      }
+      ctx.closePath(); ctx.stroke();
+      ctx.strokeStyle='rgba(255,255,255,.1)'; ctx.lineWidth=1;
+      ctx.beginPath(); ctx.arc(c2,c2,r*0.5,0,Math.PI*2); ctx.stroke();
+      // noise texture
+      for(let i=0;i<400;i++){
+        const x=Math.random()*s,y=Math.random()*s,v=Math.random();
+        ctx.fillStyle=`rgba(${v>.5?'255,255,255':'0,0,0'},${Math.random()*.06})`;
+        ctx.fillRect(x,y,2,2);
+      }
+      break;
+    }
+    case 'tomette':{
+      // terracotta hexagon
+      const g=ctx.createRadialGradient(s*.4,s*.35,0,s/2,s/2,s*.7);
+      g.addColorStop(0,'#D4784A'); g.addColorStop(.6,'#B85E38'); g.addColorStop(1,'#8C4020');
+      ctx.fillStyle=g; ctx.fillRect(0,0,s,s);
+      // hex border
+      ctx.strokeStyle='rgba(80,30,10,.3)'; ctx.lineWidth=3;
+      ctx.beginPath();
+      for(let i=0;i<6;i++){
+        const a=Math.PI/3*i-Math.PI/6;
+        const px=s/2+s*.43*Math.cos(a), py=s/2+s*.43*Math.sin(a);
+        i===0?ctx.moveTo(px,py):ctx.lineTo(px,py);
+      }
+      ctx.closePath(); ctx.stroke();
+      // clay texture
+      for(let i=0;i<300;i++){
+        const x=Math.random()*s,y=Math.random()*s;
+        ctx.fillStyle=`rgba(${Math.random()>.5?'255,200,160':'80,20,0'},${Math.random()*.08})`;
+        ctx.fillRect(x,y,Math.random()*3+1,1);
+      }
+      break;
+    }
+    case 'mosaique':{
+      // small mosaic pieces
+      const colors=['#1A6BA8','#1E8FCC','#0F4A7A','#2AAEE0','#0E3A5C'];
+      const gs=s/8;
+      for(let r=0;r<8;r++) for(let cc=0;cc<8;cc++){
+        ctx.fillStyle=colors[Math.floor(Math.random()*colors.length)];
+        ctx.fillRect(cc*gs+1,r*gs+1,gs-2,gs-2);
+        // highlight
+        ctx.fillStyle='rgba(255,255,255,.15)';
+        ctx.fillRect(cc*gs+2,r*gs+2,gs/2,gs/3);
+      }
+      break;
+    }
+    case 'beton':{
+      ctx.fillStyle='#B2B0AE'; ctx.fillRect(0,0,s,s);
+      const g2=ctx.createLinearGradient(0,0,0,s);
+      g2.addColorStop(0,'rgba(255,255,255,.08)'); g2.addColorStop(1,'rgba(0,0,0,.08)');
+      ctx.fillStyle=g2; ctx.fillRect(0,0,s,s);
+      for(let i=0;i<800;i++){
+        const x=Math.random()*s,y=Math.random()*s;
+        ctx.fillStyle=`rgba(${Math.random()>.5?'255':'0'},255,255,${Math.random()*.04})`;
+        ctx.fillRect(x,y,Math.random()*2+1,Math.random()*2+1);
+      }
+      // form marks
+      ctx.strokeStyle='rgba(0,0,0,.06)'; ctx.lineWidth=1;
+      for(let i=0;i<3;i++){
+        const y=s*(0.25+i*.25);
+        ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(s,y); ctx.stroke();
+      }
+      break;
+    }
+  }
+  return c;
+}
+
+/* Generate texture Three objects from canvas */
+const TEX_CACHE = {};
+function getTileTexture(type){
+  if(TEX_CACHE[type]) return TEX_CACHE[type];
+  const c = makeTileTexture(type);
+  const tex = new THREE.CanvasTexture(c);
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+  TEX_CACHE[type] = tex;
+  return tex;
+}
+
+/* ═══════════════════════════════════════════
+   CATALOG
+═══════════════════════════════════════════ */
+const MOCK_CATALOG=[
+  {id:'t1',name:'Zellige Vert',   category:'Carrelage',modelUrl:'',texType:'zellige',  color:0x3A7A65},
+  {id:'t2',name:'Marbre Blanc',   category:'Carrelage',modelUrl:'',texType:'marbre',   color:0xEDEAE4},
+  {id:'t3',name:'Carreaux Ciment',category:'Carrelage',modelUrl:'',texType:'ciment',   color:0x7A7678},
+  {id:'t4',name:'Tomette',        category:'Carrelage',modelUrl:'',texType:'tomette',  color:0xC06030},
+  {id:'t5',name:'Mosaïque Bleue', category:'Carrelage',modelUrl:'',texType:'mosaique', color:0x1A6BA8},
+  {id:'t6',name:'Béton Ciré',     category:'Carrelage',modelUrl:'',texType:'beton',    color:0xB0AEAC},
+];
+
+/* ═══════════════════════════════════════════
+   START SCREEN TILE GRID PREVIEW
+═══════════════════════════════════════════ */
+function renderStartGrid(){
+  const grid=document.getElementById('startTileGrid');
+  MOCK_CATALOG.forEach(p=>{
+    const d=document.createElement('div'); d.className='startTile';
+    const c=makeTileTexture(p.texType,120);
+    c.style.width='100%'; c.style.height='100%'; c.style.display='block';
+    d.appendChild(c); grid.appendChild(d);
+  });
+}
+renderStartGrid();
+
 /* ═══════════════════════════════════════════
    STATE
 ═══════════════════════════════════════════ */
@@ -365,7 +469,7 @@ const S = {
   xrSupported:false, xrSession:null, xrMode:false, fallbackMode:false,
   catalog:[], selectedProductId:null,
   placedObjects:[], selectedObjectId:null,
-  opacity:0.92,
+  opacity:0.93,
   touchStartDist:null, touchStartScale:1,
   hitTestSource:null, hitTestSourceInitialized:false,
   reticleVisible:false, currentHitMatrix:null, meshIdCounter:0,
@@ -376,589 +480,536 @@ const S = {
   polyClosed:false, pendingPolyPts:null,
   tileZoneGroups:[],
   selectedPattern:'straight',
-  tileSize:0.30,
+  tileSize:0.30, groutWidth:0.004,
   floorY:0,
 };
 
-/* DOM */
-const threeCanvas       = document.getElementById('threeCanvas');
-const polyDrawCanvas    = document.getElementById('polyDrawCanvas');
-const interactionCanvas = document.getElementById('interactionCanvas');
-const startScreen       = document.getElementById('startScreen');
-const startArBtn        = document.getElementById('startArBtn');
-const noXrMsg           = document.getElementById('noXrMsg');
-const topBar            = document.getElementById('topBar');
-const sheet             = document.getElementById('sheet');
-const statusToast       = document.getElementById('statusToast');
-const statusText        = document.getElementById('statusText');
-const placedBadge       = document.getElementById('placedBadge');
-const placedCountEl     = document.getElementById('placedCountEl');
-const actionBar         = document.getElementById('actionBar');
-const selProdName       = document.getElementById('selectedProductName');
-const glbLoader         = document.getElementById('glbLoader');
-const deleteHint        = document.getElementById('deleteHint');
-const tilingProgress    = document.getElementById('tilingProgress');
-const tilingFill        = document.getElementById('tilingProgressFill');
-const tilingText        = document.getElementById('tilingProgressText');
-const polyControls      = document.getElementById('polyControls');
-const polyGuidePill     = document.getElementById('polyGuidePill');
-const polyGuideText     = document.getElementById('polyGuideText');
-const pbUndo            = document.getElementById('pbUndo');
-const pbClose           = document.getElementById('pbClose');
-const pbCancel          = document.getElementById('pbCancel');
-const polyCloseCta      = document.getElementById('polyCloseCta');
-const carrelagePicker   = document.getElementById('carrelagePicker');
-const cpScroll          = document.getElementById('cpScroll');
-const cpConfirmBtn      = document.getElementById('cpConfirmBtn');
-const drawZoneBtn       = document.getElementById('drawZoneBtn');
-const polyCountLabel    = document.getElementById('polyCountLabel');
-const polyPointsBubbles = document.getElementById('polyPointsBubbles');
+const $ = id => document.getElementById(id);
+const threeCanvas=$('threeCanvas'), polyDrawCanvas=$('polyDrawCanvas'), interactionCanvas=$('interactionCanvas');
+const startScreen=$('startScreen'), startArBtn=$('startArBtn'), noXrMsg=$('noXrMsg');
+const topBar=$('topBar'), sheet=$('sheet'), statusToast=$('statusToast'), statusText=$('statusText');
+const placedBadge=$('placedBadge'), placedCountEl=$('placedCountEl'), actionBar=$('actionBar'), selProdName=$('selectedProductName');
+const glbLoader=$('glbLoader'), deleteHint=$('deleteHint'), tilingProgress=$('tilingProgress');
+const tilingFill=$('tilingProgressFill'), tilingText=$('tilingProgressText');
+const polyControls=$('polyControls'), polyGuidePill=$('polyGuidePill'), polyGuideText=$('polyGuideText');
+const pbUndo=$('pbUndo'), pbClose=$('pbClose'), pbCancel=$('pbCancel'), polyCloseCta=$('polyCloseCta');
+const carrelagePicker=$('carrelagePicker'), cpScroll=$('cpScroll'), cpConfirmBtn=$('cpConfirmBtn');
+const drawZoneBtn=$('drawZoneBtn'), polyCountLabel=$('polyCountLabel'), polyPointsBubbles=$('polyPointsBubbles');
+const areaBadge=$('areaBadge'), areaText=$('areaText');
+const patternPreviewCanvas=$('patternPreviewCanvas');
 
 let polyCtx;
-const ptDist = (a,b) => Math.hypot(a.x-b.x, a.y-b.y);
+const ptDist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 function setStatus(msg,cls=''){statusText.textContent=msg;statusToast.className=cls;statusToast.style.display='flex';}
 
 /* ═══════════════════════════════════════════
    THREE.JS INIT
 ═══════════════════════════════════════════ */
-let scene, camera3, renderer3, loader;
-let xrReferenceSpace = null;
-let floorPlane = null;
+let scene, camera3, renderer3, loader, xrReferenceSpace=null, floorPlane=null;
 
 function initThreeJS(){
-  scene = new THREE.Scene();
-  camera3 = new THREE.PerspectiveCamera(70, window.innerWidth/window.innerHeight, 0.01, 100);
+  scene=new THREE.Scene();
+  camera3=new THREE.PerspectiveCamera(70,window.innerWidth/window.innerHeight,0.01,100);
+  renderer3=new THREE.WebGLRenderer({canvas:threeCanvas,alpha:true,antialias:true,logarithmicDepthBuffer:true});
+  renderer3.setSize(window.innerWidth,window.innerHeight);
+  renderer3.setPixelRatio(Math.min(devicePixelRatio,2));
+  renderer3.outputEncoding=THREE.sRGBEncoding;
+  renderer3.physicallyCorrectLights=true;
+  renderer3.shadowMap.enabled=true;
+  renderer3.shadowMap.type=THREE.PCFSoftShadowMap;
+  renderer3.xr.enabled=true;
 
-  renderer3 = new THREE.WebGLRenderer({
-    canvas: threeCanvas,
-    alpha: true, antialias: true,
-    logarithmicDepthBuffer: true
-  });
-  renderer3.setSize(window.innerWidth, window.innerHeight);
-  renderer3.setPixelRatio(Math.min(devicePixelRatio, 2));
-  renderer3.outputEncoding = THREE.sRGBEncoding;
-  renderer3.physicallyCorrectLights = true;
-  renderer3.shadowMap.enabled = true;
-  renderer3.shadowMap.type = THREE.PCFSoftShadowMap;
-  renderer3.xr.enabled = true;
-
-  const pmrem = new THREE.PMREMGenerator(renderer3);
+  const pmrem=new THREE.PMREMGenerator(renderer3);
   pmrem.compileEquirectangularShader();
-  scene.environment = pmrem.fromScene(new THREE.RoomEnvironment()).texture;
+  scene.environment=pmrem.fromScene(new THREE.RoomEnvironment()).texture;
   pmrem.dispose();
 
-  scene.add(new THREE.AmbientLight(0xffffff, 1.2));
-  const dir = new THREE.DirectionalLight(0xffffff, 1.4);
-  dir.position.set(3,8,5); dir.castShadow=true; scene.add(dir);
-  const fill = new THREE.DirectionalLight(0xffffff, 0.4);
-  fill.position.set(-4,2,-4); scene.add(fill);
+  scene.add(new THREE.AmbientLight(0xffffff,1.4));
+  const dir=new THREE.DirectionalLight(0xffffff,1.6);
+  dir.position.set(3,8,5); dir.castShadow=true;
+  dir.shadow.mapSize.width=2048; dir.shadow.mapSize.height=2048;
+  scene.add(dir);
+  scene.add(Object.assign(new THREE.DirectionalLight(0xffffff,0.5),{position:new THREE.Vector3(-4,2,-4)}));
 
-  floorPlane = new THREE.Mesh(
-    new THREE.PlaneGeometry(300, 300),
-    new THREE.MeshBasicMaterial({ visible: false, side: THREE.DoubleSide })
+  floorPlane=new THREE.Mesh(
+    new THREE.PlaneGeometry(300,300),
+    new THREE.MeshBasicMaterial({visible:false,side:THREE.DoubleSide})
   );
-  floorPlane.rotation.x = -Math.PI / 2;
-  floorPlane.position.y = 0;
-  floorPlane.name = 'floor';
-  scene.add(floorPlane);
+  floorPlane.rotation.x=-Math.PI/2; floorPlane.name='floor'; scene.add(floorPlane);
+  loader=new THREE.GLTFLoader();
 
-  loader = new THREE.GLTFLoader();
-
-  polyDrawCanvas.width  = window.innerWidth;
-  polyDrawCanvas.height = window.innerHeight;
-  polyCtx = polyDrawCanvas.getContext('2d');
-  interactionCanvas.width  = window.innerWidth;
-  interactionCanvas.height = window.innerHeight;
-
-  window.addEventListener('resize', onResize);
+  polyDrawCanvas.width=window.innerWidth; polyDrawCanvas.height=window.innerHeight;
+  polyCtx=polyDrawCanvas.getContext('2d');
+  interactionCanvas.width=window.innerWidth; interactionCanvas.height=window.innerHeight;
+  window.addEventListener('resize',onResize);
 }
 
 function onResize(){
-  camera3.aspect = window.innerWidth / window.innerHeight;
+  camera3.aspect=window.innerWidth/window.innerHeight;
   camera3.updateProjectionMatrix();
-  renderer3.setSize(window.innerWidth, window.innerHeight);
-  polyDrawCanvas.width  = window.innerWidth;
-  polyDrawCanvas.height = window.innerHeight;
-  interactionCanvas.width  = window.innerWidth;
-  interactionCanvas.height = window.innerHeight;
+  renderer3.setSize(window.innerWidth,window.innerHeight);
+  polyDrawCanvas.width=window.innerWidth; polyDrawCanvas.height=window.innerHeight;
+  interactionCanvas.width=window.innerWidth; interactionCanvas.height=window.innerHeight;
   if(S.drawingZone) redrawPoly();
 }
 
-/* ═══════════════════════════════════════════
-   WEBXR
-═══════════════════════════════════════════ */
-async function checkXRSupport(){
-  if(!navigator.xr) return false;
-  try{ return await navigator.xr.isSessionSupported('immersive-ar'); }catch{ return false; }
-}
+/* ═══ WEBXR ═══ */
+async function checkXRSupport(){if(!navigator.xr)return false;try{return await navigator.xr.isSessionSupported('immersive-ar');}catch{return false;}}
 
 async function startXRSession(){
   try{
-    const session = await navigator.xr.requestSession('immersive-ar',{
-      requiredFeatures:['hit-test'],
-      optionalFeatures:['dom-overlay','plane-detection'],
-      domOverlay:{root:document.body},
+    const session=await navigator.xr.requestSession('immersive-ar',{
+      requiredFeatures:['hit-test'],optionalFeatures:['dom-overlay','plane-detection'],domOverlay:{root:document.body},
     });
-    S.xrSession = session; S.xrMode = true;
+    S.xrSession=session; S.xrMode=true;
     renderer3.xr.setReferenceSpaceType('local');
     await renderer3.xr.setSession(session);
-    xrReferenceSpace = await session.requestReferenceSpace('local');
-    const viewerSpace = await session.requestReferenceSpace('viewer');
-    S.hitTestSource = await session.requestHitTestSource({
-      space: viewerSpace,
-      entityTypes: ['plane','point','mesh']
-    });
-    S.hitTestSourceInitialized = true;
-    session.addEventListener('end', onXRSessionEnd);
+    xrReferenceSpace=await session.requestReferenceSpace('local');
+    const vs=await session.requestReferenceSpace('viewer');
+    S.hitTestSource=await session.requestHitTestSource({space:vs,entityTypes:['plane','point','mesh']});
+    S.hitTestSourceInitialized=true;
+    session.addEventListener('end',()=>{S.xrMode=false;S.xrSession=null;S.hitTestSourceInitialized=false;S.hitTestSource=null;renderer3.setAnimationLoop(null);});
     renderer3.setAnimationLoop(xrRenderLoop);
-    showARUI();
-    setupXRSelect();
-  }catch(err){
-    console.error('WebXR error:', err);
-    setStatus('Erreur WebXR — mode caméra','error');
-    startFallbackMode();
-  }
+    showARUI(); setupXRSelect();
+  }catch(err){console.error('WebXR',err);startFallbackMode();}
 }
 
 function showARUI(){
   startScreen.classList.add('hidden');
-  topBar.style.display = 'flex';
-  sheet.style.display  = 'flex';
-  statusToast.style.display = 'flex';
+  topBar.style.display='flex'; sheet.style.display='flex';
+  statusToast.style.display='flex';
   setStatus('Tapez "Tracer la zone" pour commencer','scanning');
 }
 
-function onXRSessionEnd(){
-  S.xrMode=false; S.xrSession=null;
-  S.hitTestSourceInitialized=false; S.hitTestSource=null;
-  renderer3.setAnimationLoop(null);
-}
-
-function xrRenderLoop(timestamp, frame){
-  if(!frame) return;
-  if(S.hitTestSourceInitialized && S.hitTestSource){
-    const results = frame.getHitTestResults(S.hitTestSource);
-    if(results.length > 0){
-      const pose = results[0].getPose(xrReferenceSpace);
+function xrRenderLoop(ts,frame){
+  if(!frame)return;
+  if(S.hitTestSourceInitialized&&S.hitTestSource){
+    const results=frame.getHitTestResults(S.hitTestSource);
+    if(results.length>0){
+      const pose=results[0].getPose(xrReferenceSpace);
       if(pose){
-        S.currentHitMatrix = pose.transform.matrix;
-        S.reticleVisible = true;
-        const m = pose.transform.matrix;
-        const normalY = m[5];
-        S.currentSurfaceType = Math.abs(normalY) > 0.7 ? (normalY > 0 ? 'floor' : 'ceiling') : 'wall';
-        if(S.currentSurfaceType === 'floor'){
-          const pos = new THREE.Vector3();
-          new THREE.Matrix4().fromArray(pose.transform.matrix)
-            .decompose(pos, new THREE.Quaternion(), new THREE.Vector3());
-          S.floorY = pos.y;
-          floorPlane.position.y = S.floorY;
+        S.currentHitMatrix=pose.transform.matrix; S.reticleVisible=true;
+        const m=pose.transform.matrix, normalY=m[5];
+        S.currentSurfaceType=Math.abs(normalY)>0.7?(normalY>0?'floor':'ceiling'):'wall';
+        if(S.currentSurfaceType==='floor'){
+          const pos=new THREE.Vector3();
+          new THREE.Matrix4().fromArray(pose.transform.matrix).decompose(pos,new THREE.Quaternion(),new THREE.Vector3());
+          S.floorY=pos.y; floorPlane.position.y=S.floorY;
         }
       }
-    } else {
-      S.reticleVisible = false;
-    }
+    } else S.reticleVisible=false;
   }
-  renderer3.render(scene, camera3);
+  renderer3.render(scene,camera3);
 }
 
-/* ═══════════════════════════════════════════
-   FALLBACK CAMERA MODE
-═══════════════════════════════════════════ */
+/* ═══ FALLBACK ═══ */
 async function startFallbackMode(){
-  S.fallbackMode = true;
+  S.fallbackMode=true;
   try{
-    const stream = await navigator.mediaDevices.getUserMedia({
-      video:{ facingMode:'environment' }, audio:false
-    });
-    const vid = document.getElementById('videoEl');
-    vid.srcObject = stream;
-    vid.style.display = 'block';
-    await vid.play();
-  }catch(e){ setStatus('Caméra refusée','error'); return; }
-
-  renderer3.setAnimationLoop(() => renderer3.render(scene, camera3));
-  camera3.position.set(0, 1.5, 0);
-  camera3.lookAt(0, 0, -2);
-  camera3.rotation.x -= THREE.MathUtils.degToRad(35);
+    const stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'},audio:false});
+    const vid=$('videoEl'); vid.srcObject=stream; vid.style.display='block'; await vid.play();
+  }catch(e){setStatus('Caméra refusée','error');return;}
+  renderer3.setAnimationLoop(()=>renderer3.render(scene,camera3));
+  camera3.position.set(0,1.5,0); camera3.lookAt(0,0,-2);
+  camera3.rotation.x-=THREE.MathUtils.degToRad(35);
   camera3.updateProjectionMatrix();
-
-  S.floorY = 0;
-  floorPlane.position.y = 0;
-
-  showARUI();
-  S.reticleVisible = true;
-  S.currentSurfaceType = 'floor';
+  S.floorY=0; floorPlane.position.y=0;
+  showARUI(); S.reticleVisible=true; S.currentSurfaceType='floor';
   setStatus('Mode caméra · Tracez la zone sur le sol','ok');
 }
 
-/* ═══════════════════════════════════════════
-   RAYCASTING
-═══════════════════════════════════════════ */
-const raycaster = new THREE.Raycaster();
-
-function screenToFloor(sx, sy){
-  const nx = (sx / window.innerWidth)  * 2 - 1;
-  const ny = -(sy / window.innerHeight) * 2 + 1;
-  raycaster.setFromCamera({ x: nx, y: ny }, camera3);
-  const hits = raycaster.intersectObject(floorPlane);
-  if(hits.length > 0) return hits[0].point.clone();
-  const plane = new THREE.Plane(new THREE.Vector3(0,1,0), -S.floorY);
-  const target = new THREE.Vector3();
-  if(raycaster.ray.intersectPlane(plane, target)) return target.clone();
-  return raycaster.ray.at(2, new THREE.Vector3());
+/* ═══ RAYCASTING ═══ */
+const raycaster=new THREE.Raycaster();
+function screenToFloor(sx,sy){
+  const nx=(sx/window.innerWidth)*2-1, ny=-(sy/window.innerHeight)*2+1;
+  raycaster.setFromCamera({x:nx,y:ny},camera3);
+  const hits=raycaster.intersectObject(floorPlane);
+  if(hits.length>0) return hits[0].point.clone();
+  const plane=new THREE.Plane(new THREE.Vector3(0,1,0),-S.floorY), target=new THREE.Vector3();
+  if(raycaster.ray.intersectPlane(plane,target)) return target.clone();
+  return raycaster.ray.at(2,new THREE.Vector3());
 }
-
 function worldToScreen(v){
-  const vec = v.clone().project(camera3);
-  return {
-    x: (vec.x + 1) / 2 * window.innerWidth,
-    y: (-(vec.y - 1) / 2) * window.innerHeight
-  };
+  const vec=v.clone().project(camera3);
+  return{x:(vec.x+1)/2*window.innerWidth,y:(-(vec.y-1)/2)*window.innerHeight};
 }
 
 /* ═══════════════════════════════════════════
-   POLYGON DRAWING  — amélioration UX
-   • CLOSE_SNAP agrandi (48px)
-   • Points plus grands (12px)
-   • Zone de tap agrandie via ripple
-   • Bulle de comptage dynamique
-   • Guide pill animé en haut
+   POLYGON AREA COMPUTATION
 ═══════════════════════════════════════════ */
-const CLOSE_SNAP = 52;   /* px — agrandi pour touch */
-const MIN_POINTS  = 3;
+function computePoly3DArea(pts){
+  // Shoelace on XZ plane
+  let a=0;
+  for(let i=0,n=pts.length;i<n;i++){
+    const j=(i+1)%n;
+    a+=pts[i].x*pts[j].z - pts[j].x*pts[i].z;
+  }
+  return Math.abs(a)/2;
+}
 
-/* Tap visual ripple feedback */
-function spawnRipple(x, y, color='rgba(255,59,48,.8)'){
-  const el = document.createElement('div');
-  el.className = 'tapRippleEl';
-  el.style.left = x+'px';
-  el.style.top  = y+'px';
-  el.style.borderColor = color;
-  document.body.appendChild(el);
-  el.addEventListener('animationend', ()=>el.remove());
+/* ═══════════════════════════════════════════
+   POLYGON DRAWING
+═══════════════════════════════════════════ */
+const CLOSE_SNAP=54, MIN_POINTS=3;
+
+function spawnRipple(x,y,color='rgba(232,64,26,.8)'){
+  const el=document.createElement('div'); el.className='tapRippleEl';
+  el.style.left=x+'px'; el.style.top=y+'px'; el.style.borderColor=color;
+  document.body.appendChild(el); el.addEventListener('animationend',()=>el.remove());
 }
 
 function startZoneDrawing(){
-  S.drawingZone   = true;
-  S.polyPoints2D  = [];
-  S.polyPoints3D  = [];
-  S.polyClosed    = false;
-  S.pendingPolyPts = null;
-  interactionCanvas.style.display = 'block';
-  polyControls.classList.add('visible');
-  polyGuidePill.classList.add('visible');
-  sheet.style.display = 'none';   /* cacher la sheet pour plus d'espace */
-  drawZoneBtn.className = 'qBtn qBtn-poly-on';
-  polyCtx.clearRect(0, 0, polyDrawCanvas.width, polyDrawCanvas.height);
-  updatePolyUI();
-  setGuideText('Tapez chaque coin de la zone');
+  S.drawingZone=true; S.polyPoints2D=[]; S.polyPoints3D=[]; S.polyClosed=false; S.pendingPolyPts=null;
+  interactionCanvas.style.display='block';
+  polyControls.classList.add('visible'); polyGuidePill.classList.add('visible');
+  sheet.style.display='none'; drawZoneBtn.className='qBtn qBtn-poly-on';
+  polyCtx.clearRect(0,0,polyDrawCanvas.width,polyDrawCanvas.height);
+  updatePolyUI(); setGuideText('Tapez chaque coin de la zone');
 }
 
 function cancelZoneDrawing(){
-  S.drawingZone  = false;
-  S.polyPoints2D = [];
-  S.polyPoints3D = [];
-  S.polyClosed   = false;
-  interactionCanvas.style.display = 'none';
-  polyControls.classList.remove('visible');
-  polyGuidePill.classList.remove('visible');
-  sheet.style.display = 'flex';
-  drawZoneBtn.className = 'qBtn qBtn-poly';
-  polyCtx.clearRect(0, 0, polyDrawCanvas.width, polyDrawCanvas.height);
+  S.drawingZone=false; S.polyPoints2D=[]; S.polyPoints3D=[]; S.polyClosed=false;
+  interactionCanvas.style.display='none'; polyControls.classList.remove('visible');
+  polyGuidePill.classList.remove('visible'); areaBadge.classList.remove('visible');
+  sheet.style.display='flex'; drawZoneBtn.className='qBtn qBtn-poly';
+  polyCtx.clearRect(0,0,polyDrawCanvas.width,polyDrawCanvas.height);
   setStatus('Dessin annulé','ok');
 }
 
-function setGuideText(txt){ polyGuideText.textContent = txt; }
+function setGuideText(t){polyGuideText.textContent=t;}
 
 function updatePolyUI(){
-  const n = S.polyPoints2D.length;
-  polyCountLabel.textContent = n + (n>1?' points':' point');
-
-  /* Bulle bubbles — max 8 affichées */
-  polyPointsBubbles.innerHTML = '';
-  const shown = Math.min(n, 8);
-  for(let i=0; i<shown; i++){
-    const b = document.createElement('div');
-    b.className='ptBubble active';
-    polyPointsBubbles.appendChild(b);
+  const n=S.polyPoints2D.length;
+  polyCountLabel.textContent=n+(n>1?' points':' point');
+  polyPointsBubbles.innerHTML='';
+  const shown=Math.min(n,8);
+  for(let i=0;i<shown;i++){
+    const b=document.createElement('div'); b.className='ptBubble active'; polyPointsBubbles.appendChild(b);
   }
+  const canClose=n>=MIN_POINTS&&!S.polyClosed;
+  pbClose.style.display=canClose?'block':'none';
+  polyCloseCta.classList.toggle('visible',canClose);
 
-  const canClose = n >= MIN_POINTS && !S.polyClosed;
-  pbClose.style.display   = canClose ? 'block' : 'none';
-  polyCloseCta.classList.toggle('visible', canClose);
+  // area display
+  if(S.polyPoints3D.length>=3){
+    const area=computePoly3DArea(S.polyPoints3D);
+    areaText.textContent=area.toFixed(2)+' m²';
+    areaBadge.classList.add('visible');
+  } else areaBadge.classList.remove('visible');
 
-  if(n===0)       setGuideText('Tapez chaque coin de la zone');
-  else if(n===1)  setGuideText('Continuez · encore 2 points min.');
-  else if(n===2)  setGuideText('Encore 1 point minimum…');
-  else            setGuideText('Tapez le 1er point pour fermer, ou ↓');
+  if(n===0) setGuideText('Tapez chaque coin de la zone');
+  else if(n===1) setGuideText('Continuez · encore 2 points min.');
+  else if(n===2) setGuideText('Encore 1 point minimum…');
+  else setGuideText('Approchez du 1er point pour fermer');
 }
 
-/* ── Dessin du polygone ── */
-function redrawPoly(mx, my){
-  const W = polyDrawCanvas.width, H = polyDrawCanvas.height;
+/* ─── Poly draw ─── */
+function redrawPoly(mx,my){
+  const W=polyDrawCanvas.width, H=polyDrawCanvas.height;
   polyCtx.clearRect(0,0,W,H);
-  const pts = S.polyPoints2D;
+  const pts=S.polyPoints2D;
   if(!pts.length) return;
 
-  const nearFirst = pts.length >= MIN_POINTS && mx !== undefined
-    && ptDist({x:mx,y:my}, pts[0]) < CLOSE_SNAP;
+  const nearFirst=pts.length>=MIN_POINTS&&mx!==undefined&&ptDist({x:mx,y:my},pts[0])<CLOSE_SNAP;
 
-  /* Filled polygon */
-  if(pts.length >= 3){
-    polyCtx.beginPath();
-    polyCtx.moveTo(pts[0].x, pts[0].y);
-    for(let i=1;i<pts.length;i++) polyCtx.lineTo(pts[i].x, pts[i].y);
+  /* Filled area */
+  if(pts.length>=3){
+    polyCtx.beginPath(); polyCtx.moveTo(pts[0].x,pts[0].y);
+    for(let i=1;i<pts.length;i++) polyCtx.lineTo(pts[i].x,pts[i].y);
     polyCtx.closePath();
-    polyCtx.fillStyle = 'rgba(255,59,48,0.10)';
-    polyCtx.fill();
+    polyCtx.fillStyle='rgba(232,64,26,0.08)'; polyCtx.fill();
+    // tile grid preview inside poly
     drawPolyTilePreview(pts);
+    // edge highlight
+    polyCtx.beginPath(); polyCtx.moveTo(pts[0].x,pts[0].y);
+    for(let i=1;i<pts.length;i++) polyCtx.lineTo(pts[i].x,pts[i].y);
+    polyCtx.closePath();
+    polyCtx.strokeStyle='rgba(232,64,26,.65)'; polyCtx.lineWidth=2;
+    polyCtx.setLineDash([]); polyCtx.stroke();
+  } else {
+    polyCtx.beginPath(); polyCtx.moveTo(pts[0].x,pts[0].y);
+    for(let i=1;i<pts.length;i++) polyCtx.lineTo(pts[i].x,pts[i].y);
+    polyCtx.strokeStyle='rgba(232,64,26,.65)'; polyCtx.lineWidth=2;
+    polyCtx.setLineDash([]); polyCtx.stroke();
   }
 
-  /* Outline */
-  polyCtx.beginPath();
-  polyCtx.moveTo(pts[0].x, pts[0].y);
-  for(let i=1;i<pts.length;i++) polyCtx.lineTo(pts[i].x, pts[i].y);
-  if(S.polyClosed) polyCtx.closePath();
-  polyCtx.strokeStyle='#FF3B30'; polyCtx.lineWidth=2.5;
-  polyCtx.setLineDash([]); polyCtx.stroke();
-
   /* Rubber-band */
-  if(mx !== undefined && !S.polyClosed && pts.length > 0){
-    const last = pts[pts.length-1];
+  if(mx!==undefined&&!S.polyClosed&&pts.length>0){
+    const last=pts[pts.length-1];
     polyCtx.beginPath(); polyCtx.moveTo(last.x,last.y); polyCtx.lineTo(mx,my);
-    polyCtx.strokeStyle='rgba(255,255,255,.35)'; polyCtx.lineWidth=1.5;
-    polyCtx.setLineDash([5,4]); polyCtx.stroke(); polyCtx.setLineDash([]);
-    if(pts.length >= MIN_POINTS){
+    polyCtx.strokeStyle='rgba(255,255,255,.3)'; polyCtx.lineWidth=1.5;
+    polyCtx.setLineDash([5,5]); polyCtx.stroke(); polyCtx.setLineDash([]);
+
+    if(pts.length>=MIN_POINTS){
       polyCtx.beginPath(); polyCtx.moveTo(mx,my); polyCtx.lineTo(pts[0].x,pts[0].y);
-      polyCtx.strokeStyle = nearFirst ? '#FF3B30' : 'rgba(255,255,255,.18)';
-      polyCtx.lineWidth   = nearFirst ? 2.5 : 1;
-      polyCtx.setLineDash(nearFirst ? [] : [6,4]);
+      polyCtx.strokeStyle=nearFirst?'rgba(232,64,26,.9)':'rgba(255,255,255,.12)';
+      polyCtx.lineWidth=nearFirst?2:1; polyCtx.setLineDash(nearFirst?[]:[6,5]);
       polyCtx.stroke(); polyCtx.setLineDash([]);
     }
   }
 
-  /* Draw each vertex */
+  /* Vertices */
   pts.forEach((p,i)=>{
-    const isFirst = i === 0;
-    /* Larger tap target: outer glow ring */
-    const R = isFirst ? 14 : 9;
-    const snapZone = isFirst && nearFirst;
+    const isFirst=i===0;
+    const snap=isFirst&&nearFirst;
+    const R=isFirst?15:10;
 
-    /* Snap indicator ring for first point */
-    if(isFirst && pts.length >= MIN_POINTS){
+    if(isFirst&&pts.length>=MIN_POINTS){
+      // Snap zone ring — dashed
       polyCtx.beginPath(); polyCtx.arc(p.x,p.y,CLOSE_SNAP,0,Math.PI*2);
-      polyCtx.strokeStyle = nearFirst ? 'rgba(255,59,48,.55)' : 'rgba(255,59,48,.16)';
-      polyCtx.lineWidth=1.5; polyCtx.setLineDash([5,4]); polyCtx.stroke(); polyCtx.setLineDash([]);
+      polyCtx.strokeStyle=nearFirst?'rgba(232,64,26,.5)':'rgba(232,64,26,.15)';
+      polyCtx.lineWidth=1.5; polyCtx.setLineDash([4,4]); polyCtx.stroke(); polyCtx.setLineDash([]);
     }
 
-    /* Outer glow */
-    polyCtx.beginPath(); polyCtx.arc(p.x,p.y,R+10,0,Math.PI*2);
-    polyCtx.fillStyle = snapZone
-      ? 'rgba(255,59,48,.22)'
-      : isFirst ? 'rgba(255,59,48,.12)' : 'rgba(255,255,255,.06)';
+    /* Glow ring */
+    polyCtx.beginPath(); polyCtx.arc(p.x,p.y,R+8,0,Math.PI*2);
+    polyCtx.fillStyle=snap?'rgba(232,64,26,.22)':isFirst?'rgba(232,64,26,.1)':'rgba(255,255,255,.05)';
     polyCtx.fill();
 
     /* Dot */
-    const g = polyCtx.createRadialGradient(p.x,p.y,0,p.x,p.y,R);
-    g.addColorStop(0, snapZone ? '#FF3B30' : isFirst ? '#fff' : '#ffe');
-    g.addColorStop(1, snapZone ? '#c01020' : isFirst ? '#FF3B30' : 'rgba(255,140,100,.7)');
     polyCtx.beginPath(); polyCtx.arc(p.x,p.y,R,0,Math.PI*2);
-    polyCtx.fillStyle=g; polyCtx.fill();
-    polyCtx.strokeStyle = isFirst ? (snapZone ? '#fff' : '#fff') : 'rgba(255,59,48,.85)';
+    polyCtx.fillStyle=snap?'#E8401A':isFirst?'#fff':'rgba(255,220,180,.9)';
+    polyCtx.fill();
+    polyCtx.strokeStyle=snap?'#fff':isFirst?'#E8401A':'rgba(232,64,26,.7)';
     polyCtx.lineWidth=2.5; polyCtx.stroke();
 
-    /* Label number above */
-    const labelY = p.y - R - 14;
-    polyCtx.font='bold 10px Montserrat,sans-serif';
-    polyCtx.fillStyle = isFirst ? '#FF3B30' : 'rgba(212,169,106,1)';
+    /* Number label */
+    polyCtx.font='bold 10px DM Mono, monospace';
+    polyCtx.fillStyle=isFirst?'#E8401A':'rgba(201,169,110,1)';
     polyCtx.textAlign='center'; polyCtx.textBaseline='middle';
-    polyCtx.fillText(i+1, p.x, labelY);
+    polyCtx.fillText(i+1, p.x, p.y-R-12);
 
-    /* "Fermer ici" tooltip on first point when near */
-    if(snapZone){
-      const bx=p.x-46, by=p.y-R-38;
-      polyCtx.fillStyle='#FF3B30';
+    /* "Fermer ici" tooltip */
+    if(snap){
+      const bx=p.x-48, by=p.y-R-38;
+      polyCtx.fillStyle='#E8401A';
       polyCtx.beginPath();
-      if(polyCtx.roundRect) polyCtx.roundRect(bx,by,92,22,7); else polyCtx.rect(bx,by,92,22);
+      if(polyCtx.roundRect) polyCtx.roundRect(bx,by,96,22,6); else polyCtx.rect(bx,by,96,22);
       polyCtx.fill();
-      polyCtx.font='bold 10px Montserrat,sans-serif'; polyCtx.fillStyle='#fff';
+      polyCtx.font='bold 10px DM Sans, sans-serif'; polyCtx.fillStyle='#fff';
       polyCtx.textAlign='center'; polyCtx.textBaseline='middle';
-      polyCtx.fillText('⬡ Fermer ici', bx+46, by+11);
+      polyCtx.fillText('⬡ Fermer ici', bx+48, by+11);
     }
   });
 
-  /* Moving cursor dot */
-  if(mx !== undefined && !S.polyClosed && !nearFirst){
+  /* Cursor dot */
+  if(mx!==undefined&&!S.polyClosed&&!nearFirst){
     polyCtx.beginPath(); polyCtx.arc(mx,my,5,0,Math.PI*2);
-    polyCtx.fillStyle='rgba(255,255,255,.5)'; polyCtx.fill();
-    polyCtx.strokeStyle='rgba(255,59,48,.6)'; polyCtx.lineWidth=1.5; polyCtx.stroke();
+    polyCtx.fillStyle='rgba(255,255,255,.45)'; polyCtx.fill();
+    polyCtx.strokeStyle='rgba(232,64,26,.55)'; polyCtx.lineWidth=1.5; polyCtx.stroke();
   }
 }
 
+/* Mini tile grid preview inside polygon */
 function drawPolyTilePreview(pts){
-  const ts = 24;
-  const xs = pts.map(p=>p.x), ys = pts.map(p=>p.y);
-  const minX=Math.min(...xs), maxX=Math.max(...xs);
-  const minY=Math.min(...ys), maxY=Math.max(...ys);
+  const ts=22;
+  const xs=pts.map(p=>p.x), ys=pts.map(p=>p.y);
+  const minX=Math.min(...xs),maxX=Math.max(...xs),minY=Math.min(...ys),maxY=Math.max(...ys);
   polyCtx.save();
   polyCtx.beginPath(); polyCtx.moveTo(pts[0].x,pts[0].y);
   for(let i=1;i<pts.length;i++) polyCtx.lineTo(pts[i].x,pts[i].y);
   polyCtx.closePath(); polyCtx.clip();
-  const colors=['rgba(212,169,106,0.20)','rgba(139,94,60,0.14)','rgba(212,169,106,0.14)','rgba(139,94,60,0.10)'];
+  const cc=[(minX+maxX)/2,(minY+maxY)/2];
+  const offX=((cc[0]%ts)+ts)%ts, offY=((cc[1]%ts)+ts)%ts;
   const cols=Math.ceil((maxX-minX)/ts)+2, rows=Math.ceil((maxY-minY)/ts)+2;
-  const cx=(minX+maxX)/2, cy=(minY+maxY)/2;
-  const offX=((cx%ts)+ts)%ts, offY=((cy%ts)+ts)%ts;
-  for(let r=0;r<rows;r++){
-    for(let c=0;c<cols;c++){
-      const tx=minX-offX+c*ts, ty=minY-offY+r*ts;
-      polyCtx.fillStyle=colors[(r+c)%4];
-      polyCtx.fillRect(tx+1,ty+1,ts-2,ts-2);
-    }
+  // Alternating warm tile colors
+  const fills=['rgba(201,169,110,0.22)','rgba(122,79,44,0.14)','rgba(201,169,110,0.16)','rgba(160,120,70,0.1)'];
+  for(let r=0;r<rows;r++) for(let c=0;c<cols;c++){
+    const tx=minX-offX+c*ts, ty=minY-offY+r*ts;
+    polyCtx.fillStyle=fills[(r+c)%4];
+    polyCtx.fillRect(tx+1,ty+1,ts-2,ts-2);
+  }
+  // joint lines
+  polyCtx.strokeStyle='rgba(232,64,26,.12)'; polyCtx.lineWidth=0.5;
+  for(let r=0;r<=rows;r++){
+    const ty=minY-offY+r*ts;
+    polyCtx.beginPath(); polyCtx.moveTo(minX,ty); polyCtx.lineTo(maxX,ty); polyCtx.stroke();
+  }
+  for(let c=0;c<=cols;c++){
+    const tx=minX-offX+c*ts;
+    polyCtx.beginPath(); polyCtx.moveTo(tx,minY); polyCtx.lineTo(tx,maxY); polyCtx.stroke();
   }
   polyCtx.restore();
 }
 
-/* ── Tap handling ── */
-interactionCanvas.addEventListener('click', e=>{
-  if(!S.drawingZone) return;
-  handlePolyTap(e.clientX, e.clientY);
-});
-interactionCanvas.addEventListener('touchend', e=>{
-  if(!S.drawingZone) return;
-  e.preventDefault();
-  const t = e.changedTouches[0];
-  handlePolyTap(t.clientX, t.clientY);
-},{passive:false});
-interactionCanvas.addEventListener('mousemove', e=>{
-  if(!S.drawingZone || S.polyClosed) return;
-  redrawPoly(e.clientX, e.clientY);
-});
-interactionCanvas.addEventListener('touchmove', e=>{
-  if(!S.drawingZone || S.polyClosed) return;
-  const t = e.touches[0]; redrawPoly(t.clientX, t.clientY);
-},{passive:true});
+/* ─── Interactions ─── */
+interactionCanvas.addEventListener('click',e=>{if(!S.drawingZone)return;handlePolyTap(e.clientX,e.clientY);});
+interactionCanvas.addEventListener('touchend',e=>{if(!S.drawingZone)return;e.preventDefault();const t=e.changedTouches[0];handlePolyTap(t.clientX,t.clientY);},{passive:false});
+interactionCanvas.addEventListener('mousemove',e=>{if(!S.drawingZone||S.polyClosed)return;redrawPoly(e.clientX,e.clientY);});
+interactionCanvas.addEventListener('touchmove',e=>{if(!S.drawingZone||S.polyClosed)return;const t=e.touches[0];redrawPoly(t.clientX,t.clientY);},{passive:true});
 
-function handlePolyTap(ex, ey){
+function handlePolyTap(ex,ey){
   if(S.polyClosed) return;
-  const pts = S.polyPoints2D;
-
-  /* Snap to close */
-  if(pts.length >= MIN_POINTS && ptDist({x:ex,y:ey}, pts[0]) < CLOSE_SNAP){
-    spawnRipple(pts[0].x, pts[0].y, 'rgba(255,59,48,.9)');
-    closePolygon(); return;
+  const pts=S.polyPoints2D;
+  if(pts.length>=MIN_POINTS&&ptDist({x:ex,y:ey},pts[0])<CLOSE_SNAP){
+    spawnRipple(pts[0].x,pts[0].y,'rgba(232,64,26,.9)'); closePolygon(); return;
   }
-
-  const world = screenToFloor(ex, ey);
-  const screen2D = S.xrMode ? worldToScreen(world) : {x:ex, y:ey};
-
-  S.polyPoints2D.push(screen2D);
-  S.polyPoints3D.push(world);
-  spawnRipple(ex, ey);
-  updatePolyUI();
-  redrawPoly(ex, ey);
+  const world=screenToFloor(ex,ey);
+  const s2D=S.xrMode?worldToScreen(world):{x:ex,y:ey};
+  S.polyPoints2D.push(s2D); S.polyPoints3D.push(world);
+  spawnRipple(ex,ey); updatePolyUI(); redrawPoly(ex,ey);
 }
 
 function closePolygon(){
-  if(S.polyPoints2D.length < MIN_POINTS) return;
-  S.polyClosed = true;
-  redrawPoly();
-  updatePolyUI();
-  interactionCanvas.style.display = 'none';
-  polyControls.classList.remove('visible');
-  polyGuidePill.classList.remove('visible');
+  if(S.polyPoints2D.length<MIN_POINTS) return;
+  S.polyClosed=true; redrawPoly(); updatePolyUI();
+  interactionCanvas.style.display='none';
+  polyControls.classList.remove('visible'); polyGuidePill.classList.remove('visible');
   showCarrelagePicker();
 }
 
 function undoLastPoint(){
-  if(S.polyClosed){
-    S.polyClosed = false;
-    interactionCanvas.style.display = 'block';
-    polyControls.classList.add('visible');
-    polyGuidePill.classList.add('visible');
-    updatePolyUI(); redrawPoly(); return;
-  }
+  if(S.polyClosed){S.polyClosed=false;interactionCanvas.style.display='block';polyControls.classList.add('visible');polyGuidePill.classList.add('visible');updatePolyUI();redrawPoly();return;}
   if(!S.polyPoints2D.length) return;
-  S.polyPoints2D.pop(); S.polyPoints3D.pop();
-  updatePolyUI(); redrawPoly();
+  S.polyPoints2D.pop(); S.polyPoints3D.pop(); updatePolyUI(); redrawPoly();
 }
 
-pbUndo.addEventListener('click', undoLastPoint);
-pbClose.addEventListener('click', closePolygon);
-polyCloseCta.addEventListener('click', closePolygon);
-pbCancel.addEventListener('click', cancelZoneDrawing);
+pbUndo.addEventListener('click',undoLastPoint);
+pbClose.addEventListener('click',closePolygon);
+polyCloseCta.addEventListener('click',closePolygon);
+pbCancel.addEventListener('click',cancelZoneDrawing);
+
+/* ═══════════════════════════════════════════
+   PATTERN PREVIEW CANVAS
+═══════════════════════════════════════════ */
+function drawPatternPreview(){
+  const c=patternPreviewCanvas;
+  const W=c.offsetWidth||300, H=c.offsetHeight||50;
+  c.width=W; c.height=H;
+  const ctx=c.getContext('2d');
+  ctx.fillStyle='#E8E6E2'; ctx.fillRect(0,0,W,H);
+
+  const product=S.catalog.find(p=>p.id===S.selectedProductId)||S.catalog[0];
+  const texCanvas=product?makeTileTexture(product.texType,64):null;
+  const ts=32; // preview scale
+  const pattern=S.selectedPattern;
+
+  ctx.save();
+  const grout=3;
+  function drawTile(x,y,w,h,rot){
+    ctx.save();
+    ctx.translate(x+w/2,y+h/2);
+    if(rot) ctx.rotate(rot);
+    if(texCanvas){
+      const pat=ctx.createPattern(texCanvas,'repeat');
+      ctx.fillStyle=pat;
+    } else ctx.fillStyle='#C9A96E';
+    ctx.fillRect(-w/2+1,-h/2+1,w-2,h-2);
+    // edge highlight
+    ctx.strokeStyle='rgba(255,255,255,.35)'; ctx.lineWidth=0.5;
+    ctx.strokeRect(-w/2+1,-h/2+1,w-2,h-2);
+    ctx.restore();
+  }
+
+  if(pattern==='straight'){
+    for(let r=0;r<H/ts+1;r++) for(let cc2=0;cc2<W/ts+1;cc2++)
+      drawTile(cc2*ts,r*ts,ts-grout,ts-grout,0);
+  } else if(pattern==='brick'){
+    for(let r=0;r<H/ts+1;r++){
+      const off=(r%2)?ts/2:0;
+      for(let cc2=-1;cc2<W/ts+2;cc2++) drawTile(off+cc2*ts,r*(ts/2),ts-grout,ts/2-grout,0);
+    }
+  } else if(pattern==='herringbone'){
+    const tw=ts, th=ts/2;
+    for(let r=-1;r<H/th+2;r++) for(let cc2=-1;cc2<W/tw+2;cc2++){
+      drawTile(cc2*tw,r*th*2,tw,th,0);
+      drawTile(cc2*tw,r*th*2+th-tw/2,th,tw,Math.PI/2);
+    }
+  } else if(pattern==='diagonal'){
+    for(let r=-1;r<H/ts+2;r++) for(let cc2=-1;cc2<W/ts+2;cc2++)
+      drawTile(cc2*ts,r*ts,ts-grout,ts-grout,Math.PI/4);
+  } else if(pattern==='opus'){
+    for(let r=0;r<H/(ts*1.8)+1;r++) for(let cc2=0;cc2<W/(ts*1.8)+1;cc2++){
+      const ox=cc2*(ts*1.8), oy=r*(ts*1.8);
+      drawTile(ox,oy,ts,ts,0); drawTile(ox+ts+grout,oy,ts*0.8,ts*0.8,0);
+      drawTile(ox,oy+ts+grout,ts*0.8,ts*0.8,0); drawTile(ox+ts*0.8+grout+grout,oy+ts+grout,ts*0.8,ts*0.8,0);
+    }
+  }
+  ctx.restore();
+  // grout tint overlay
+  ctx.fillStyle='rgba(138,122,106,0.18)'; ctx.fillRect(0,0,W,H);
+}
 
 /* ═══════════════════════════════════════════
    CARRELAGE PICKER
 ═══════════════════════════════════════════ */
 function showCarrelagePicker(){
-  S.pendingPolyPts = S.polyPoints3D.slice();
-  drawZoneBtn.className = 'qBtn qBtn-poly-on';
-  carrelagePicker.style.display = 'block';
+  S.pendingPolyPts=S.polyPoints3D.slice();
+  drawZoneBtn.className='qBtn qBtn-poly-on';
+  carrelagePicker.style.display='block';
   setTimeout(()=>carrelagePicker.classList.add('visible'),10);
-  sheet.style.display = 'flex';
+  sheet.style.display='flex';
   setStatus('Étape 2 · Choisir le carrelage','tiling');
-  renderCpCards();
+  renderCpCards(); setTimeout(drawPatternPreview,50);
 }
 function hidePicker(){
   carrelagePicker.classList.remove('visible');
-  setTimeout(()=>{ if(!carrelagePicker.classList.contains('visible')) carrelagePicker.style.display='none'; },360);
-  drawZoneBtn.className = 'qBtn qBtn-poly';
+  setTimeout(()=>{if(!carrelagePicker.classList.contains('visible'))carrelagePicker.style.display='none';},360);
+  drawZoneBtn.className='qBtn qBtn-poly';
 }
+
 function renderCpCards(){
-  cpScroll.innerHTML = '';
+  cpScroll.innerHTML='';
   S.catalog.forEach(p=>{
-    const card = document.createElement('div');
-    card.className = 'cpCard' + (S.selectedProductId===p.id?' active':'');
-    card.dataset.id = p.id;
-    const img = p.imageUrl || p.thumbnail || '';
-    card.innerHTML =
-      '<img class="cpCard-img" src="'+escapeHtml(img)+'" onerror="this.style.background=\'#c8d0d8\'" loading="lazy">' +
-      '<div class="cpCard-name">'+escapeHtml(p.name||'Carrelage')+'</div>' +
-      '<div class="cpCard-sub">'+escapeHtml(p.category||'')+'</div>';
+    const card=document.createElement('div'); card.className='cpCard'+(S.selectedProductId===p.id?' active':'');
+    card.dataset.id=p.id;
+
+    // procedural canvas preview
+    const wrap=document.createElement('div'); wrap.className='cpCard-preview';
+    const previewC=makeTileTexture(p.texType,100);
+    previewC.style.width='100%'; previewC.style.height='100%'; wrap.appendChild(previewC);
+
+    const name=document.createElement('div'); name.className='cpCard-name'; name.textContent=p.name||'Carrelage';
+    const sub=document.createElement('div'); sub.className='cpCard-sub'; sub.textContent=p.category||'';
+
+    card.appendChild(wrap); card.appendChild(name); card.appendChild(sub);
     card.addEventListener('click',()=>{
-      S.selectedProductId = p.id;
+      S.selectedProductId=p.id;
       cpScroll.querySelectorAll('.cpCard').forEach(c=>c.classList.remove('active'));
-      card.classList.add('active');
-      cpConfirmBtn.disabled = false;
+      card.classList.add('active'); cpConfirmBtn.disabled=false;
+      drawPatternPreview();
     });
     cpScroll.appendChild(card);
   });
 }
 
-document.getElementById('cpCloseBtn').addEventListener('click',()=>{ hidePicker(); cancelZoneDrawing(); });
+$('cpCloseBtn').addEventListener('click',()=>{hidePicker();cancelZoneDrawing();});
 document.querySelectorAll('.cpPattern').forEach(btn=>{
   btn.addEventListener('click',()=>{
     document.querySelectorAll('.cpPattern').forEach(b=>b.classList.remove('active'));
-    btn.classList.add('active');
-    S.selectedPattern = btn.dataset.pattern;
+    btn.classList.add('active'); S.selectedPattern=btn.dataset.pattern;
+    drawPatternPreview();
   });
 });
-document.getElementById('tileSizeSlider').addEventListener('input',e=>{
-  S.tileSize = parseInt(e.target.value) / 100;
-  document.getElementById('tileSizeVal').textContent = e.target.value + 'cm';
+$('tileSizeSlider').addEventListener('input',e=>{
+  S.tileSize=parseInt(e.target.value)/100;
+  $('tileSizeVal').textContent=e.target.value+' cm';
+  drawPatternPreview();
 });
-cpConfirmBtn.addEventListener('click', async ()=>{
-  if(!S.selectedProductId || !S.pendingPolyPts) return;
+$('groutSlider').addEventListener('input',e=>{
+  S.groutWidth=parseInt(e.target.value)/1000;
+  $('groutVal').textContent=e.target.value+' mm';
+  drawPatternPreview();
+});
+cpConfirmBtn.addEventListener('click',async()=>{
+  if(!S.selectedProductId||!S.pendingPolyPts) return;
   hidePicker();
   polyCtx.clearRect(0,0,polyDrawCanvas.width,polyDrawCanvas.height);
   cancelZoneDrawing();
   await placeTilePolygon(S.pendingPolyPts);
-  S.pendingPolyPts = null;
+  S.pendingPolyPts=null;
 });
 
 /* ═══════════════════════════════════════════
    XR SELECT
 ═══════════════════════════════════════════ */
 function setupXRSelect(){
-  if(!S.xrSession) return;
+  if(!S.xrSession)return;
   S.xrSession.addEventListener('select',()=>{
-    if(S.drawingZone && S.reticleVisible && !S.polyClosed && S.currentHitMatrix){
-      const mat = new THREE.Matrix4().fromArray(S.currentHitMatrix);
-      const pos = new THREE.Vector3();
-      mat.decompose(pos, new THREE.Quaternion(), new THREE.Vector3());
-      const s2 = worldToScreen(pos);
-      S.polyPoints2D.push(s2);
-      S.polyPoints3D.push(pos.clone());
+    if(S.drawingZone&&S.reticleVisible&&!S.polyClosed&&S.currentHitMatrix){
+      const mat=new THREE.Matrix4().fromArray(S.currentHitMatrix), pos=new THREE.Vector3();
+      mat.decompose(pos,new THREE.Quaternion(),new THREE.Vector3());
+      S.polyPoints2D.push(worldToScreen(pos)); S.polyPoints3D.push(pos.clone());
       updatePolyUI(); redrawPoly();
     }
   });
@@ -967,131 +1018,134 @@ function setupXRSelect(){
 /* ═══════════════════════════════════════════
    TOUCH GESTURES
 ═══════════════════════════════════════════ */
-const GT = { touchStart:null, rotX:0, rotY:0 };
+const GT={touchStart:null,rotX:0,rotY:0};
 document.addEventListener('touchstart',e=>{
-  if(S.drawingZone || carrelagePicker.classList.contains('visible')) return;
+  if(S.drawingZone||carrelagePicker.classList.contains('visible'))return;
   if(e.touches.length===1){
-    const now = Date.now();
-    if(now - S.lastTapTime < 300){
-      clearTimeout(S.doubleTapTimeout);
-      if(S.selectedObjectId) deleteSelected();
-      GT.touchStart = null;
-    } else {
-      S.lastTapTime = now;
-      S.doubleTapTimeout = setTimeout(()=>{ S.lastTapTime=0; },300);
-      if(S.selectedObjectId){
-        const t=e.touches[0];
-        GT.touchStart = {x:t.clientX, y:t.clientY};
-        const o = S.placedObjects.find(o=>o.id===S.selectedObjectId);
-        if(o){ GT.rotX=o.group.rotation.x; GT.rotY=o.group.rotation.y; }
-      }
+    const now=Date.now();
+    if(now-S.lastTapTime<300){clearTimeout(S.doubleTapTimeout);if(S.selectedObjectId)deleteSelected();GT.touchStart=null;}
+    else{
+      S.lastTapTime=now; S.doubleTapTimeout=setTimeout(()=>{S.lastTapTime=0;},300);
+      if(S.selectedObjectId){const t=e.touches[0];GT.touchStart={x:t.clientX,y:t.clientY};const o=S.placedObjects.find(o=>o.id===S.selectedObjectId);if(o){GT.rotX=o.group.rotation.x;GT.rotY=o.group.rotation.y;}}
     }
   } else if(e.touches.length===2){
-    GT.touchStart = null;
-    const t1=e.touches[0], t2=e.touches[1];
-    S.twoTouchStart = { dist: Math.hypot(t2.clientX-t1.clientX, t2.clientY-t1.clientY) };
-    const o = S.placedObjects.find(o=>o.id===S.selectedObjectId);
-    if(o) S.touchStartScale = o.scaleVal;
+    GT.touchStart=null; const t1=e.touches[0],t2=e.touches[1];
+    S.twoTouchStart={dist:Math.hypot(t2.clientX-t1.clientX,t2.clientY-t1.clientY)};
+    const o=S.placedObjects.find(o=>o.id===S.selectedObjectId); if(o)S.touchStartScale=o.scaleVal;
   }
 },{passive:true});
 document.addEventListener('touchmove',e=>{
-  if(S.drawingZone || carrelagePicker.classList.contains('visible')) return;
-  if(e.touches.length===1 && GT.touchStart && S.selectedObjectId){
-    const t=e.touches[0], dx=t.clientX-GT.touchStart.x, dy=t.clientY-GT.touchStart.y;
-    const o = S.placedObjects.find(o=>o.id===S.selectedObjectId);
-    if(o){ o.group.rotation.y=GT.rotY+dx*0.01; o.group.rotation.x=GT.rotX+dy*0.01; }
-  } else if(e.touches.length===2 && S.twoTouchStart && S.selectedObjectId){
-    const t1=e.touches[0], t2=e.touches[1];
-    const nd = Math.hypot(t2.clientX-t1.clientX, t2.clientY-t1.clientY);
-    const o = S.placedObjects.find(o=>o.id===S.selectedObjectId);
-    if(o) scaleObject(o, S.touchStartScale*(nd/S.twoTouchStart.dist));
+  if(S.drawingZone||carrelagePicker.classList.contains('visible'))return;
+  if(e.touches.length===1&&GT.touchStart&&S.selectedObjectId){
+    const t=e.touches[0],dx=t.clientX-GT.touchStart.x,dy=t.clientY-GT.touchStart.y;
+    const o=S.placedObjects.find(o=>o.id===S.selectedObjectId);
+    if(o){o.group.rotation.y=GT.rotY+dx*0.01;o.group.rotation.x=GT.rotX+dy*0.01;}
+  } else if(e.touches.length===2&&S.twoTouchStart&&S.selectedObjectId){
+    const t1=e.touches[0],t2=e.touches[1];
+    const nd=Math.hypot(t2.clientX-t1.clientX,t2.clientY-t1.clientY);
+    const o=S.placedObjects.find(o=>o.id===S.selectedObjectId);
+    if(o)scaleObject(o,S.touchStartScale*(nd/S.twoTouchStart.dist));
   }
 },{passive:true});
-document.addEventListener('touchend',()=>{ GT.touchStart=null; S.twoTouchStart=null; },{passive:true});
+document.addEventListener('touchend',()=>{GT.touchStart=null;S.twoTouchStart=null;},{passive:true});
 
 /* ═══════════════════════════════════════════
    POLYGON MATH
 ═══════════════════════════════════════════ */
-function pointInPoly(px, pz, poly){
-  let inside = false;
-  const n = poly.length;
-  for(let i=0, j=n-1; i<n; j=i++){
-    const xi=poly[i].x, zi=poly[i].z;
-    const xj=poly[j].x, zj=poly[j].z;
-    if(((zi>pz)!==(zj>pz)) && (px < (xj-xi)*(pz-zi)/(zj-zi)+xi))
-      inside = !inside;
+function pointInPoly(px,pz,poly){
+  let inside=false; const n=poly.length;
+  for(let i=0,j=n-1;i<n;j=i++){
+    const xi=poly[i].x,zi=poly[i].z,xj=poly[j].x,zj=poly[j].z;
+    if(((zi>pz)!==(zj>pz))&&(px<(xj-xi)*(pz-zi)/(zj-zi)+xi)) inside=!inside;
   }
   return inside;
 }
 function polyBounds(poly){
   let minX=Infinity,maxX=-Infinity,minZ=Infinity,maxZ=-Infinity;
-  poly.forEach(p=>{
-    if(p.x<minX)minX=p.x; if(p.x>maxX)maxX=p.x;
-    if(p.z<minZ)minZ=p.z; if(p.z>maxZ)maxZ=p.z;
-  });
+  poly.forEach(p=>{if(p.x<minX)minX=p.x;if(p.x>maxX)maxX=p.x;if(p.z<minZ)minZ=p.z;if(p.z>maxZ)maxZ=p.z;});
   return{minX,maxX,minZ,maxZ};
 }
-function polyCentroid(poly){
-  let cx=0,cz=0;
-  poly.forEach(p=>{cx+=p.x;cz+=p.z;});
-  return{x:cx/poly.length, z:cz/poly.length};
-}
+function polyCentroid(poly){let cx=0,cz=0;poly.forEach(p=>{cx+=p.x;cz+=p.z;});return{x:cx/poly.length,z:cz/poly.length};}
 
 /* ═══════════════════════════════════════════
-   TILE GRID GENERATION
+   TILE GRID GENERATION  (IMPROVED)
+   - Grout gap taken into account
+   - Herringbone (point de Hongrie)
+   - Brick offset pattern
+   - Better alignment via centroid offset
 ═══════════════════════════════════════════ */
-function generateTilesInPolygon(poly3D, tileS, pattern){
-  const {minX,maxX,minZ,maxZ} = polyBounds(poly3D);
-  const cent = polyCentroid(poly3D);
-  const positions = [];
-  const PAD = tileS;
+function generateTilesInPolygon(poly3D, tileS, pattern, grout){
+  const {minX,maxX,minZ,maxZ}=polyBounds(poly3D);
+  const cent=polyCentroid(poly3D);
+  const positions=[];
+  const PAD=tileS*2;
+  const ts=tileS, g=grout;
+  const step=ts+g;
 
-  if(pattern==='diagonal'){
-    for(let gz=minZ-PAD; gz<=maxZ+PAD; gz+=tileS){
-      for(let gx=minX-PAD; gx<=maxX+PAD; gx+=tileS){
-        const dx=gx-cent.x, dz=gz-cent.z;
-        const rx=cent.x+(dx-dz)*Math.SQRT1_2;
-        const rz=cent.z+(dx+dz)*Math.SQRT1_2;
-        if(pointInPoly(rx, rz, poly3D))
-          positions.push({x:rx, z:rz, rot:Math.PI/4, w:tileS*0.94, h:tileS*0.94});
+  // Offset so joints align relative to centroid (looks natural)
+  const alignX=((cent.x%step)+step)%step;
+  const alignZ=((cent.z%step)+step)%step;
+
+  if(pattern==='straight'){
+    for(let gz=minZ-PAD-alignZ;gz<=maxZ+PAD;gz+=step){
+      for(let gx=minX-PAD-alignX;gx<=maxX+PAD;gx+=step){
+        const cx=gx+ts/2, cz=gz+ts/2;
+        if(pointInPoly(cx,cz,poly3D)) positions.push({x:cx,z:cz,rot:0,w:ts,h:ts});
       }
     }
-  } else if(pattern==='chevron'){
-    const tw=tileS, th=tileS*0.5;
-    const offX=((cent.x%tw)+tw)%tw, offZ=((cent.z%th)+th)%th;
+  } else if(pattern==='brick'){
     let row=0;
-    for(let gz=minZ-PAD-offZ; gz<=maxZ+PAD; gz+=th, row++){
-      const shift=(row%2===0)?0:tw*0.5;
-      for(let gx=minX-PAD-offX+shift; gx<=maxX+PAD; gx+=tw){
-        const cx2=gx+tw/2, cz2=gz+th/2;
-        if(pointInPoly(cx2, cz2, poly3D)){
-          const rot=(row%2===0)?Math.PI/6:-Math.PI/6;
-          positions.push({x:cx2, z:cz2, rot, w:tw, h:th});
-        }
+    for(let gz=minZ-PAD-alignZ;gz<=maxZ+PAD;gz+=ts/2+g,row++){
+      const shift=(row%2)?(step/2):0;
+      for(let gx=minX-PAD-alignX+shift;gx<=maxX+PAD;gx+=step){
+        const cx=gx+ts/2, cz=gz+ts/4;
+        if(pointInPoly(cx,cz,poly3D)) positions.push({x:cx,z:cz,rot:0,w:ts,h:ts/2});
+      }
+    }
+  } else if(pattern==='herringbone'){
+    // Point de Hongrie: alternating 0 and 90° tiles, brick-offset
+    const tw=ts, th=ts/2;
+    const rStep=th+g;
+    for(let gz=minZ-PAD;gz<=maxZ+PAD;gz+=rStep*2){
+      for(let gx=minX-PAD;gx<=maxX+PAD;gx+=tw+g){
+        // Horizontal tile
+        const cx=gx+tw/2, cz=gz+th/2;
+        if(pointInPoly(cx,cz,poly3D)) positions.push({x:cx,z:cz,rot:0,w:tw,h:th});
+        // Vertical tile (rotated 90°) — offset to right and down
+        const cx2=gx+tw+g+th/2, cz2=gz+rStep+tw/2;
+        if(pointInPoly(cx2,cz2,poly3D)) positions.push({x:cx2,z:cz2,rot:Math.PI/2,w:tw,h:th});
+      }
+    }
+    // Interleaved row
+    for(let gz=minZ-PAD+rStep;gz<=maxZ+PAD;gz+=rStep*2){
+      for(let gx=minX-PAD+(tw+g)/2;gx<=maxX+PAD;gx+=tw+g){
+        const cx=gx+tw/2, cz=gz+th/2;
+        if(pointInPoly(cx,cz,poly3D)) positions.push({x:cx,z:cz,rot:0,w:tw,h:th});
+        const cx2=gx-th/2-g, cz2=gz-rStep+tw/2;
+        if(pointInPoly(cx2,cz2,poly3D)) positions.push({x:cx2,z:cz2,rot:Math.PI/2,w:tw,h:th});
+      }
+    }
+  } else if(pattern==='diagonal'){
+    for(let gz=minZ-PAD-alignZ;gz<=maxZ+PAD;gz+=step){
+      for(let gx=minX-PAD-alignX;gx<=maxX+PAD;gx+=step){
+        const dx=gx-cent.x, dz=gz-cent.z;
+        const rx=cent.x+(dx-dz)*Math.SQRT1_2, rz=cent.z+(dx+dz)*Math.SQRT1_2;
+        if(pointInPoly(rx,rz,poly3D)) positions.push({x:rx,z:rz,rot:Math.PI/4,w:ts*0.95,h:ts*0.95});
       }
     }
   } else if(pattern==='opus'){
-    const big=tileS, sm=tileS*0.6, stride=big+sm;
+    const big=ts, sm=ts*0.58, stride=big+sm+g*3;
     const offX=((cent.x%stride)+stride)%stride, offZ=((cent.z%stride)+stride)%stride;
-    for(let gz=minZ-PAD-offZ; gz<=maxZ+PAD; gz+=stride){
-      for(let gx=minX-PAD-offX; gx<=maxX+PAD; gx+=stride){
+    for(let gz=minZ-PAD-offZ;gz<=maxZ+PAD;gz+=stride){
+      for(let gx=minX-PAD-offX;gx<=maxX+PAD;gx+=stride){
         const bx=gx+big/2, bz=gz+big/2;
         if(pointInPoly(bx,bz,poly3D)) positions.push({x:bx,z:bz,rot:0,w:big,h:big});
-        const sx=gx+big+sm/2, sz=gz+big/2;
-        if(pointInPoly(sx,sz,poly3D)) positions.push({x:sx,z:sz,rot:0,w:sm,h:sm});
-        const sx2=gx+big/2, sz2=gz+big+sm/2;
-        if(pointInPoly(sx2,sz2,poly3D)) positions.push({x:sx2,z:sz2,rot:0,w:sm,h:sm});
-        const sx3=gx+big+sm/2, sz3=gz+big+sm/2;
-        if(pointInPoly(sx3,sz3,poly3D)) positions.push({x:sx3,z:sz3,rot:0,w:sm,h:sm});
-      }
-    }
-  } else {
-    const offX=((cent.x%tileS)+tileS)%tileS, offZ=((cent.z%tileS)+tileS)%tileS;
-    for(let gz=minZ-PAD-offZ; gz<=maxZ+PAD; gz+=tileS){
-      for(let gx=minX-PAD-offX; gx<=maxX+PAD; gx+=tileS){
-        const cx2=gx+tileS/2, cz2=gz+tileS/2;
-        if(pointInPoly(cx2, cz2, poly3D))
-          positions.push({x:cx2, z:cz2, rot:0, w:tileS, h:tileS});
+        const s1x=gx+big+g+sm/2, s1z=gz+sm/2;
+        if(pointInPoly(s1x,s1z,poly3D)) positions.push({x:s1x,z:s1z,rot:0,w:sm,h:sm});
+        const s2x=gx+sm/2, s2z=gz+big+g+sm/2;
+        if(pointInPoly(s2x,s2z,poly3D)) positions.push({x:s2x,z:s2z,rot:0,w:sm,h:sm});
+        const s3x=gx+big+g+sm/2, s3z=gz+big+g+sm/2;
+        if(pointInPoly(s3x,s3z,poly3D)) positions.push({x:s3x,z:s3z,rot:0,w:sm,h:sm});
       }
     }
   }
@@ -1099,202 +1153,85 @@ function generateTilesInPolygon(poly3D, tileS, pattern){
 }
 
 /* ═══════════════════════════════════════════
-   GROUT BASE
+   GROUT BASE — filled polygon in scene
 ═══════════════════════════════════════════ */
-function buildGroutBase(poly3D, floorY){
-  const shape = new THREE.Shape();
-  shape.moveTo(poly3D[0].x, poly3D[0].z);
-  for(let i=1; i<poly3D.length; i++) shape.lineTo(poly3D[i].x, poly3D[i].z);
+function buildGroutBase(poly3D, fy){
+  const shape=new THREE.Shape();
+  shape.moveTo(poly3D[0].x,poly3D[0].z);
+  for(let i=1;i<poly3D.length;i++) shape.lineTo(poly3D[i].x,poly3D[i].z);
   shape.closePath();
-  const geo = new THREE.ShapeGeometry(shape);
-  geo.rotateX(-Math.PI / 2);
-  const mat = new THREE.MeshStandardMaterial({
-    color: 0x9A8878, roughness: 0.95,
-    transparent: true, opacity: S.opacity * 0.85,
-    side: THREE.DoubleSide, depthWrite: false
+  const geo=new THREE.ShapeGeometry(shape); geo.rotateX(-Math.PI/2);
+  const mat=new THREE.MeshStandardMaterial({
+    color:0x8A7A6A, roughness:0.95, metalness:0,
+    transparent:true, opacity:S.opacity*0.88, side:THREE.DoubleSide, depthWrite:false
   });
-  const mesh = new THREE.Mesh(geo, mat);
-  mesh.position.y = floorY + 0.001;
-  mesh.receiveShadow = true;
+  const mesh=new THREE.Mesh(geo,mat); mesh.position.y=fy+0.0005; mesh.receiveShadow=true;
   return mesh;
 }
 
 /* ═══════════════════════════════════════════
-   TEXTURE CACHE
+   TILE MATERIAL BUILDER (procedural)
 ═══════════════════════════════════════════ */
-let _cachedTex=null, _cachedTexUrl='';
-function loadOrGetTexture(url){
-  return new Promise(res=>{
-    if(!url){ res(null); return; }
-    if(url===_cachedTexUrl && _cachedTex){ res(_cachedTex); return; }
-    new THREE.TextureLoader().load(url, t=>{
-      t.wrapS = t.wrapT = THREE.RepeatWrapping;
-      _cachedTex=t; _cachedTexUrl=url; res(t);
-    }, null, ()=>res(null));
+function buildTileMaterial(product, grout){
+  const tex=getTileTexture(product.texType);
+  tex.repeat.set(1,1);
+  const mat=new THREE.MeshStandardMaterial({
+    map:tex, roughness:0.32, metalness:0.06,
+    transparent:true, opacity:S.opacity,
+    side:THREE.DoubleSide
   });
+  // Zellige & mosaique are slightly more specular
+  if(product.texType==='zellige'||product.texType==='mosaique') mat.metalness=0.14;
+  if(product.texType==='marbre') mat.roughness=0.18;
+  if(product.texType==='beton') mat.roughness=0.85;
+  return mat;
 }
 
 /* ═══════════════════════════════════════════
-   GLB ORIENTATION FIX  (v2 — exhaustive)
-   ─────────────────────────────────────────
-   Principle:
-     A tile should be FLAT on the floor → its Y extent (height) must be
-     much smaller than its X and Z extents.
-
-   Algorithm:
-     1. Load raw scene.
-     2. Try 4 candidate rotations (none, X-90°, X+90°, Z+90°).
-     3. For each candidate compute bounding-box; choose the rotation
-        whose result has the minimum Y/max(X,Z) ratio.
-     4. Scale so max(X,Z) = tileSize.
-     5. Centre on XZ, bottom flush at Y=0.
-
-   This covers:
-     • Models lying flat already (common for floor tiles exported from Blender)
-     • Models standing upright (exported as furniture by mistake)
-     • Models lying on the wrong side
+   TILE MESH BUILDER — box with bevel-like
+   shading via normals
 ═══════════════════════════════════════════ */
-function flattenGlbOnFloor(gltfScene, tileS, tex){
-  /*
-    We test several rotations and keep the one that
-    gives the smallest height / footprint ratio.
-  */
-  const CANDIDATES = [
-    new THREE.Euler(0,              0, 0),
-    new THREE.Euler(-Math.PI/2,     0, 0),
-    new THREE.Euler( Math.PI/2,     0, 0),
-    new THREE.Euler(0,              0, Math.PI/2),
-    new THREE.Euler(-Math.PI/2,     0, Math.PI/2),
-    new THREE.Euler( Math.PI,       0, 0),
-  ];
-
-  let bestEuler = CANDIDATES[0];
-  let bestRatio = Infinity;
-
-  const tmp = new THREE.Group();
-  tmp.add(gltfScene.clone ? gltfScene.clone() : gltfScene);
-
-  for(const euler of CANDIDATES){
-    tmp.rotation.copy(euler);
-    tmp.updateMatrixWorld(true);
-    const bb = new THREE.Box3().setFromObject(tmp);
-    const sz = bb.getSize(new THREE.Vector3());
-    const footprint = Math.max(sz.x, sz.z) || 0.001;
-    const ratio = sz.y / footprint;
-    if(ratio < bestRatio){ bestRatio = ratio; bestEuler = euler; }
-  }
-  tmp.parent && tmp.parent.remove(tmp);
-
-  /* Build the real pivot with best rotation */
-  const pivot = new THREE.Group();
-  pivot.add(gltfScene);
-  pivot.rotation.copy(bestEuler);
-  pivot.updateMatrixWorld(true);
-
-  /* Scale to tileSize */
-  let bb = new THREE.Box3().setFromObject(pivot);
-  let sz = bb.getSize(new THREE.Vector3());
-  const maxHoriz = Math.max(sz.x, sz.z) || 1;
-  const scale = tileS / maxHoriz;
-  pivot.scale.setScalar(scale);
-  pivot.updateMatrixWorld(true);
-
-  /* Centre and bottom-flush */
-  bb = new THREE.Box3().setFromObject(pivot);
-  const center = bb.getCenter(new THREE.Vector3());
-  pivot.position.x -= center.x;
-  pivot.position.z -= center.z;
-  pivot.position.y -= bb.min.y;   /* bottom → Y=0 */
-
-  /* Material pass */
-  pivot.traverse(c=>{
-    if(!c.isMesh) return;
-    const mats = Array.isArray(c.material) ? c.material : [c.material];
-    mats.forEach(m=>{
-      m.side = THREE.DoubleSide;
-      m.transparent = true;
-      m.opacity = S.opacity;
-      if(tex && !m.map){ m.map=tex; m.color.set(0xffffff); }
-      m.needsUpdate = true;
-    });
-    c.castShadow = true;
-    c.receiveShadow = true;
-  });
-
-  return pivot;
+const TILE_H=0.010;
+function buildTileMesh(p, mat, fy){
+  const geo=new THREE.BoxGeometry(p.w,TILE_H,p.h);
+  const mesh=new THREE.Mesh(geo,mat.clone());
+  mesh.castShadow=true; mesh.receiveShadow=true;
+  mesh.rotation.y=p.rot;
+  mesh.position.set(p.x, fy+TILE_H/2, p.z);
+  return mesh;
 }
 
 /* ═══════════════════════════════════════════
    PLACE TILE POLYGON
 ═══════════════════════════════════════════ */
 async function placeTilePolygon(poly3D){
-  const product = S.catalog.find(p=>p.id===S.selectedProductId);
-  if(!product){ setStatus('Sélectionnez un carrelage d\'abord','error'); return; }
+  const product=S.catalog.find(p=>p.id===S.selectedProductId);
+  if(!product){setStatus('Sélectionnez un carrelage','error');return;}
 
-  const fy = S.floorY;
-  const flatPoly = poly3D.map(p=>({ x:p.x, y:fy, z:p.z }));
-
-  const tileS = S.tileSize;
-  const positions = generateTilesInPolygon(flatPoly, tileS, S.selectedPattern);
-  const total = positions.length;
-
-  if(total===0){ setStatus('Aucune tuile (zone trop petite ?)','error'); return; }
+  const fy=S.floorY;
+  const flatPoly=poly3D.map(p=>({x:p.x,y:fy,z:p.z}));
+  const tileS=S.tileSize, grout=S.groutWidth;
+  const positions=generateTilesInPolygon(flatPoly,tileS,S.selectedPattern,grout);
+  const total=positions.length;
+  if(total===0){setStatus('Zone trop petite ?','error');return;}
 
   tilingProgress.classList.add('visible');
   tilingFill.style.width='0%';
-  tilingText.textContent='0 / '+total+' tuiles';
+  tilingText.textContent='0 / '+total;
 
-  const zoneGroup = new THREE.Group();
-  scene.add(zoneGroup);
-  zoneGroup.userData.isTileZone = true;
+  const zoneGroup=new THREE.Group(); scene.add(zoneGroup);
+  zoneGroup.userData.isTileZone=true;
+  zoneGroup.add(buildGroutBase(flatPoly,fy));
 
-  zoneGroup.add(buildGroutBase(flatPoly, fy));
+  const baseMat=buildTileMaterial(product,grout);
 
-  const tex = await loadOrGetTexture(product.imageUrl || '');
-
-  /* GLB load + orientation fix */
-  const useGlb = product.modelUrl && product.modelUrl.length > 4;
-  let baseModel = null;
-  if(useGlb){
-    setStatus('Chargement GLB…','scanning');
-    try{
-      const gltf = await new Promise((res,rej)=>loader.load(product.modelUrl,res,null,rej));
-      baseModel = flattenGlbOnFloor(gltf.scene, tileS, tex);
-    }catch(e){ console.warn('GLB load failed, using box tiles'); baseModel=null; }
-  }
-
-  /* Fallback box tile */
-  const fallbackMat = new THREE.MeshStandardMaterial({
-    roughness:0.28, metalness:0.08, transparent:true, opacity:S.opacity,
-    ...(tex ? {map:tex, color:new THREE.Color(0xffffff)} : {color:new THREE.Color(0xD4A96A)})
-  });
-  const tileColors = [0xD4A96A, 0xC09050, 0xE0B878, 0xB88040];
-  const TILE_H = 0.012;
-
-  for(let i=0; i<positions.length; i++){
-    const p = positions[i];
-    let tile;
-
-    if(baseModel){
-      tile = baseModel.clone(true);
-      tile.rotation.y = p.rot;
-      tile.position.set(p.x, fy, p.z);
-    } else {
-      const geo = new THREE.BoxGeometry(p.w - 0.004, TILE_H, p.h - 0.004);
-      const mat = fallbackMat.clone();
-      if(!tex) mat.color.set(tileColors[i % tileColors.length]);
-      tile = new THREE.Mesh(geo, mat);
-      tile.castShadow = true; tile.receiveShadow = true;
-      tile.rotation.y = p.rot;
-      tile.position.set(p.x, fy + TILE_H/2, p.z);
-    }
-
-    zoneGroup.add(tile);
-
-    if(i % 10 === 0){
-      const pct = Math.round((i+1)/total*100);
-      tilingFill.style.width = pct+'%';
-      tilingText.textContent = (i+1)+' / '+total+' tuiles';
+  const BATCH=8;
+  for(let i=0;i<positions.length;i++){
+    zoneGroup.add(buildTileMesh(positions[i],baseMat,fy));
+    if(i%BATCH===0){
+      const pct=Math.round((i+1)/total*100);
+      tilingFill.style.width=pct+'%';
+      tilingText.textContent=(i+1)+' / '+total+' tuiles';
       await new Promise(r=>requestAnimationFrame(r));
     }
   }
@@ -1302,108 +1239,72 @@ async function placeTilePolygon(poly3D){
   tilingProgress.classList.remove('visible');
   S.tileZoneGroups.push(zoneGroup);
 
-  const id = ++S.meshIdCounter;
-  S.placedObjects.push({
-    id, group: zoneGroup,
-    name: product.name+' (zone)',
-    productId: product.id,
-    scaleVal: 1, baseScale: 1, isTileZone: true
-  });
-  selectObject(id);
-  updatePlacedBadge();
-  setStatus('✓ '+total+' tuiles posées · '+S.selectedPattern,'ok');
-  postToFlutter({type:'tile_zone', count:total});
-  drawZoneBtn.className = 'qBtn qBtn-poly';
+  const id=++S.meshIdCounter;
+  S.placedObjects.push({id,group:zoneGroup,name:product.name+' (zone)',productId:product.id,scaleVal:1,baseScale:1,isTileZone:true});
+  selectObject(id); updatePlacedBadge();
+  const area=computePoly3DArea(flatPoly);
+  setStatus('✓ '+total+' tuiles · '+area.toFixed(1)+' m² · '+S.selectedPattern,'ok');
+  postToFlutter({type:'tile_zone',count:total,area:area.toFixed(2)});
+  drawZoneBtn.className='qBtn qBtn-poly';
 }
 
 /* ═══════════════════════════════════════════
    OBJECT MANAGEMENT
 ═══════════════════════════════════════════ */
-function selectObject(id){
-  S.selectedObjectId = id;
-  const obj = S.placedObjects.find(o=>o.id===id); if(!obj) return;
-  selProdName.textContent = obj.name || 'Objet';
-  actionBar.classList.add('visible');
-}
-function deselectObject(){ S.selectedObjectId=null; actionBar.classList.remove('visible'); }
-function scaleObject(obj,val){
-  const c=Math.max(0.05,Math.min(8,val)); obj.scaleVal=c;
-  if(obj.isTileZone) obj.group.scale.setScalar(c);
-  else if(obj.model) obj.model.scale.setScalar((obj.baseScale||1)*c);
-}
+function selectObject(id){S.selectedObjectId=id;const obj=S.placedObjects.find(o=>o.id===id);if(!obj)return;selProdName.textContent=obj.name||'Zone';actionBar.classList.add('visible');}
+function deselectObject(){S.selectedObjectId=null;actionBar.classList.remove('visible');}
+function scaleObject(obj,val){const c=Math.max(0.05,Math.min(8,val));obj.scaleVal=c;if(obj.isTileZone)obj.group.scale.setScalar(c);else if(obj.model)obj.model.scale.setScalar((obj.baseScale||1)*c);}
 function deleteSelected(){
-  const obj=S.placedObjects.find(o=>o.id===S.selectedObjectId); if(!obj)return;
-  scene.remove(obj.group);
-  S.placedObjects   = S.placedObjects.filter(o=>o.id!==S.selectedObjectId);
-  S.tileZoneGroups  = S.tileZoneGroups.filter(g=>g!==obj.group);
+  const obj=S.placedObjects.find(o=>o.id===S.selectedObjectId);if(!obj)return;
+  scene.remove(obj.group); S.placedObjects=S.placedObjects.filter(o=>o.id!==S.selectedObjectId);
+  S.tileZoneGroups=S.tileZoneGroups.filter(g=>g!==obj.group);
   deselectObject(); updatePlacedBadge();
-  deleteHint.classList.add('show');
-  setTimeout(()=>deleteHint.classList.remove('show'),600);
-  postToFlutter({type:'removed', count:S.placedObjects.length});
+  deleteHint.classList.add('show'); setTimeout(()=>deleteHint.classList.remove('show'),600);
+  postToFlutter({type:'removed',count:S.placedObjects.length});
 }
-function updatePlacedBadge(){
-  const n=S.placedObjects.length;
-  placedCountEl.textContent = n;
-  placedBadge.classList.toggle('visible', n>0);
-}
+function updatePlacedBadge(){const n=S.placedObjects.length;placedCountEl.textContent=n;placedBadge.classList.toggle('visible',n>0);}
 
-document.getElementById('aBtnConfirm').addEventListener('click', deselectObject);
-document.getElementById('aBtnDelete').addEventListener('click', deleteSelected);
+$('aBtnConfirm').addEventListener('click',deselectObject);
+$('aBtnDelete').addEventListener('click',deleteSelected);
 
 /* ═══════════════════════════════════════════
    SHEET DRAG
 ═══════════════════════════════════════════ */
-const PEEK=82, MID=260, FULL=Math.round(window.innerHeight*0.6);
-let shDragStartY=null, shDragStartH=0;
-function setSheetH(h,anim=true){
-  sheet.style.transition=anim?'height .35s cubic-bezier(.32,.72,0,1)':'none';
-  sheet.style.height=h+'px';
-}
-function snapSheet(h){
-  const m1=(PEEK+MID)/2, m2=(MID+FULL)/2;
-  setSheetH(h<m1?PEEK:h<m2?MID:FULL);
-}
-const handleEl=document.getElementById('sheetHandle');
+const PEEK=82,MID=260,FULL=Math.round(window.innerHeight*.6);
+let shDragStartY=null,shDragStartH=0;
+function setSheetH(h,anim=true){sheet.style.transition=anim?'height .35s cubic-bezier(.32,.72,0,1)':'none';sheet.style.height=h+'px';}
+function snapSheet(h){const m1=(PEEK+MID)/2,m2=(MID+FULL)/2;setSheetH(h<m1?PEEK:h<m2?MID:FULL);}
+const handleEl=$('sheetHandle');
 handleEl.addEventListener('mousedown',e=>{shDragStartY=e.clientY;shDragStartH=sheet.getBoundingClientRect().height;sheet.style.transition='none';});
 handleEl.addEventListener('touchstart',e=>{shDragStartY=e.touches[0].clientY;shDragStartH=sheet.getBoundingClientRect().height;sheet.style.transition='none';},{passive:true});
-window.addEventListener('mousemove',e=>{if(shDragStartY===null)return;const h=Math.max(PEEK,Math.min(FULL,shDragStartH+(shDragStartY-e.clientY)));sheet.style.height=h+'px';});
-window.addEventListener('touchmove',e=>{if(shDragStartY===null)return;const h=Math.max(PEEK,Math.min(FULL,shDragStartH+(shDragStartY-e.touches[0].clientY)));sheet.style.height=h+'px';},{passive:true});
-function onSheetDragEnd(){if(shDragStartY===null)return;const h=sheet.getBoundingClientRect().height;shDragStartY=null;snapSheet(h);}
+window.addEventListener('mousemove',e=>{if(shDragStartY===null)return;sheet.style.height=Math.max(PEEK,Math.min(FULL,shDragStartH+(shDragStartY-e.clientY)))+'px';});
+window.addEventListener('touchmove',e=>{if(shDragStartY===null)return;sheet.style.height=Math.max(PEEK,Math.min(FULL,shDragStartH+(shDragStartY-e.touches[0].clientY)))+'px';},{passive:true});
+function onSheetDragEnd(){if(shDragStartY===null)return;snapSheet(sheet.getBoundingClientRect().height);shDragStartY=null;}
 window.addEventListener('mouseup',onSheetDragEnd);
 window.addEventListener('touchend',onSheetDragEnd);
-handleEl.addEventListener('click',()=>{
-  const h=sheet.getBoundingClientRect().height;
-  setSheetH(h<=PEEK+10?MID:h>=FULL-20?PEEK:FULL);
-});
+handleEl.addEventListener('click',()=>{const h=sheet.getBoundingClientRect().height;setSheetH(h<=PEEK+10?MID:h>=FULL-20?PEEK:FULL);});
 
 /* ═══════════════════════════════════════════
    BUTTONS
 ═══════════════════════════════════════════ */
-drawZoneBtn.addEventListener('click',()=>{
-  if(S.drawingZone){ cancelZoneDrawing(); return; }
-  startZoneDrawing();
-});
-document.getElementById('resetBtn').addEventListener('click',()=>{
+drawZoneBtn.addEventListener('click',()=>{if(S.drawingZone){cancelZoneDrawing();return;}startZoneDrawing();});
+$('resetBtn').addEventListener('click',()=>{
   S.placedObjects.forEach(o=>scene.remove(o.group));
-  S.placedObjects=[]; S.tileZoneGroups=[];
-  deselectObject(); updatePlacedBadge();
+  S.placedObjects=[]; S.tileZoneGroups=[]; deselectObject(); updatePlacedBadge();
   S.selectedProductId=null; S.pendingPolyPts=null;
   polyCtx.clearRect(0,0,polyDrawCanvas.width,polyDrawCanvas.height);
-  hidePicker(); cancelZoneDrawing();
-  setStatus('Réinitialisé','ok');
+  hidePicker(); cancelZoneDrawing(); setStatus('Réinitialisé','ok');
   postToFlutter({type:'removed',count:0});
 });
-document.getElementById('captureBtn').addEventListener('click', doCapture);
+$('captureBtn').addEventListener('click',doCapture);
 
 /* ═══════════════════════════════════════════
    CAPTURE
 ═══════════════════════════════════════════ */
 async function doCapture(){
   const showSaveToast=(icon,txt)=>{
-    document.getElementById('saveToastIcon').textContent=icon;
-    document.getElementById('saveToastText').textContent=txt;
-    const t=document.getElementById('saveToast');
-    t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2200);
+    $('saveToastIcon').textContent=icon; $('saveToastText').textContent=txt;
+    const t=$('saveToast'); t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2200);
   };
   try{
     renderer3.render(scene,camera3);
@@ -1411,70 +1312,48 @@ async function doCapture(){
       if(!blob)return;
       const file=new File([blob],'placeAR.png',{type:'image/png'});
       if(navigator.canShare&&navigator.canShare({files:[file]})){
-        try{ await navigator.share({files:[file],title:'PlaceAR'}); showSaveToast('📸','Partagé !'); return; }catch{}
+        try{await navigator.share({files:[file],title:'PlaceAR'});showSaveToast('📸','Partagé !');return;}catch{}
       }
       const a=document.createElement('a'); a.download='placeAR.png'; a.href=URL.createObjectURL(blob); a.click();
-      setTimeout(()=>URL.revokeObjectURL(a.href),3000);
-      showSaveToast('💾','Image sauvegardée !');
+      setTimeout(()=>URL.revokeObjectURL(a.href),3000); showSaveToast('💾','Image sauvegardée !');
     },'image/png');
-  }catch(e){ showSaveToast('❌','Erreur capture'); }
+  }catch(e){showSaveToast('❌','Erreur capture');}
   postToFlutter({type:'capture'});
 }
 
 /* ═══════════════════════════════════════════
    CATALOG & BRIDGE
 ═══════════════════════════════════════════ */
-window.loadProductCatalog = function(products){ S.catalog = products; setStatus(products.length+' produit(s) chargé(s)','ok'); };
+window.loadProductCatalog=function(products){
+  S.catalog=products.map(p=>({...p,texType:p.texType||'marbre'}));
+  setStatus(products.length+' produit(s) chargé(s)','ok');
+};
 function postToFlutter(obj){
   try{
-    if(window.flutter_inappwebview){ window.flutter_inappwebview.callHandler('FlutterBridge',JSON.stringify(obj)); return; }
-    if(typeof FlutterBridge!=='undefined'){ FlutterBridge.postMessage(JSON.stringify(obj)); return; }
-    if(window.webkit?.messageHandlers?.FlutterBridge){ window.webkit.messageHandlers.FlutterBridge.postMessage(JSON.stringify(obj)); }
-  }catch(e){ console.log('[Bridge]',obj); }
+    if(window.flutter_inappwebview){window.flutter_inappwebview.callHandler('FlutterBridge',JSON.stringify(obj));return;}
+    if(typeof FlutterBridge!=='undefined'){FlutterBridge.postMessage(JSON.stringify(obj));return;}
+    if(window.webkit?.messageHandlers?.FlutterBridge){window.webkit.messageHandlers.FlutterBridge.postMessage(JSON.stringify(obj));}
+  }catch(e){console.log('[Bridge]',obj);}
 }
-window.receiveFromFlutter = function(jsonStr){
+window.receiveFromFlutter=function(jsonStr){
   try{
     const data=JSON.parse(jsonStr);
     if(data.type==='catalog'&&data.products) window.loadProductCatalog(data.products);
-    if(data.type==='clear'){
-      S.placedObjects.forEach(o=>scene&&scene.remove(o.group));
-      S.placedObjects=[]; S.tileZoneGroups=[];
-      deselectObject(); updatePlacedBadge();
-    }
-  }catch(e){ console.error('receiveFromFlutter',e); }
+    if(data.type==='clear'){S.placedObjects.forEach(o=>scene&&scene.remove(o.group));S.placedObjects=[];S.tileZoneGroups=[];deselectObject();updatePlacedBadge();}
+  }catch(e){console.error('receiveFromFlutter',e);}
 };
 
 function loadFromUrlParams(){
-  const params=new URLSearchParams(window.location.search);
-  const pp=params.get('products'); if(!pp)return;
+  const params=new URLSearchParams(window.location.search), pp=params.get('products');
+  if(!pp)return;
   try{
     const products=JSON.parse(decodeURIComponent(pp));
-    const mapped=products.map(p=>({
-      id:p.id||p._id, name:p.name,
-      modelUrl:p.modelUrl||p.model3D||'',
-      imageUrl:p.imageUrl||p.image||p.thumbnail||'',
-      category:p.category||'Carrelage'
-    }));
+    const mapped=products.map(p=>({id:p.id||p._id,name:p.name,modelUrl:p.modelUrl||'',imageUrl:p.imageUrl||'',category:p.category||'Carrelage',texType:p.texType||'marbre'}));
     setTimeout(()=>window.loadProductCatalog(mapped),500);
-  }catch(e){ console.error('URL params parse error',e); }
+  }catch(e){console.error('URL params',e);}
 }
 
-function escapeHtml(s){
-  if(!s)return'';
-  return s.toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-
-/* ═══════════════════════════════════════════
-   MOCK CATALOG
-═══════════════════════════════════════════ */
-const MOCK_CATALOG=[
-  {id:'t1',name:'Zellige Vert',         category:'Carrelage',modelUrl:'',imageUrl:'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=200'},
-  {id:'t2',name:'Marbre Blanc',         category:'Carrelage',modelUrl:'',imageUrl:'https://images.unsplash.com/photo-1615873968403-89e068629265?w=200'},
-  {id:'t3',name:'Carreaux Ciment',      category:'Carrelage',modelUrl:'',imageUrl:'https://images.unsplash.com/photo-1565193566173-7a0ee3dbe261?w=200'},
-  {id:'t4',name:'Tomettes Terre Cuite', category:'Carrelage',modelUrl:'',imageUrl:'https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?w=200'},
-  {id:'t5',name:'Mosaïque Bleue',       category:'Carrelage',modelUrl:'',imageUrl:'https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?w=200'},
-  {id:'t6',name:'Béton Ciré',           category:'Carrelage',modelUrl:'',imageUrl:'https://images.unsplash.com/photo-1567538096630-e0c55bd6374c?w=200'},
-];
+function escapeHtml(s){if(!s)return'';return s.toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 
 /* ═══════════════════════════════════════════
    INIT
@@ -1482,19 +1361,12 @@ const MOCK_CATALOG=[
 initThreeJS();
 loadFromUrlParams();
 
-startArBtn.addEventListener('click', async()=>{
+startArBtn.addEventListener('click',async()=>{
   startArBtn.disabled=true; startArBtn.textContent='Vérification…';
-  S.xrSupported = await checkXRSupport();
-  if(S.xrSupported){
-    await startXRSession(); setupXRSelect();
-  } else {
-    noXrMsg.style.display='block';
-    startArBtn.textContent='📷 Mode Caméra';
-    startArBtn.disabled=false;
-    startArBtn.onclick = startFallbackMode;
-    await startFallbackMode();
-  }
-  setTimeout(()=>{ if(S.catalog.length===0) window.loadProductCatalog(MOCK_CATALOG); },1500);
+  S.xrSupported=await checkXRSupport();
+  if(S.xrSupported){await startXRSession();setupXRSelect();}
+  else{noXrMsg.style.display='block';startArBtn.textContent='Caméra →';startArBtn.disabled=false;startArBtn.onclick=startFallbackMode;await startFallbackMode();}
+  setTimeout(()=>{if(S.catalog.length===0)window.loadProductCatalog(MOCK_CATALOG);},1200);
 });
 </script>
 </body>
