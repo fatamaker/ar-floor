@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no"/>
-<title>PlaceAR · Carrelage v8 FIXED</title>
+<title>Floor AR</title>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -41,6 +41,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:var
 @keyframes spin{to{transform:rotate(360deg)}}
 @keyframes tapRipple{0%{transform:scale(0);opacity:.8}100%{transform:scale(1);opacity:0}}
 @keyframes slideUp{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
+@keyframes fadeIn{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:scale(1)}}
 
 #glbLoader{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center;flex-direction:column;gap:14px}
 #glbLoader.visible{display:flex}
@@ -150,6 +151,41 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
 #tilingProgressText{font-size:11px;color:rgba(255,255,255,.7)}
 
 .tapRippleEl{position:fixed;pointer-events:none;z-index:24;width:60px;height:60px;margin:-30px 0 0 -30px;border-radius:50%;border:2px solid rgba(255,59,48,.7);animation:tapRipple .5s ease-out forwards}
+
+/* ══════════════════════════════
+   GUIDE MODAL
+══════════════════════════════ */
+#guideModal{position:fixed;inset:0;z-index:110;background:rgba(0,0,0,.88);display:none;align-items:flex-end;justify-content:center;animation:fadeIn .25s ease}
+#guideModal.visible{display:flex}
+#guideBox{background:var(--white);border-radius:var(--r-lg) var(--r-lg) 0 0;width:100%;max-height:88vh;overflow-y:auto;padding:0 0 36px;animation:slideUp .3s ease}
+#guideBox::-webkit-scrollbar{display:none}
+.guideHandle{width:100%;padding:12px 0 4px;display:flex;align-items:center;justify-content:center}
+.guideHandleBar{width:38px;height:4px;border-radius:3px;background:var(--lg)}
+.guideHeader{display:flex;align-items:center;justify-content:space-between;padding:6px 18px 14px}
+.guideHeaderTitle{font-size:15px;font-weight:700;color:var(--secondary)}
+.guideCloseBtn{background:var(--lg2);border:none;border-radius:50%;width:30px;height:30px;cursor:pointer;font-size:17px;color:var(--dg);display:flex;align-items:center;justify-content:center}
+.guideSection{padding:0 18px;margin-bottom:20px}
+.guideSectionTitle{font-size:9px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--grey);margin-bottom:10px;display:flex;align-items:center;gap:7px}
+.guideSectionTitle::after{content:'';flex:1;height:1px;background:var(--lg)}
+.guideCard{background:var(--lg2);border-radius:var(--r-md);padding:12px 14px;margin-bottom:8px;display:flex;gap:12px;align-items:flex-start}
+.guideCardIcon{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.guideCardIcon.red{background:rgba(255,59,48,.12)}
+.guideCardIcon.blue{background:rgba(40,79,117,.1)}
+.guideCardIcon.tile{background:rgba(212,169,106,.15)}
+.guideCardIcon.green{background:rgba(82,180,107,.12)}
+.guideCardIcon.orange{background:rgba(245,144,100,.12)}
+.guideCardBody{flex:1;min-width:0}
+.guideCardTitle{font-size:12px;font-weight:700;color:var(--hint);margin-bottom:3px}
+.guideCardDesc{font-size:11px;color:var(--grey);line-height:1.55}
+.guideTip{background:rgba(40,79,117,.06);border-left:3px solid var(--secondary);border-radius:0 var(--r-sm) var(--r-sm) 0;padding:9px 12px;margin-top:8px;font-size:11px;color:var(--hint);line-height:1.5}
+.guideStepRow{display:flex;align-items:flex-start;gap:10px;margin-bottom:10px}
+.guideStepNum{width:22px;height:22px;border-radius:50%;background:var(--secondary);color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+.guideStepText{font-size:12px;color:var(--hint);line-height:1.55;flex:1}
+.guideStepText strong{color:var(--secondary)}
+
+#infoBtn{position:fixed;bottom:100px;right:16px;z-index:31;width:42px;height:42px;border-radius:50%;background:rgba(40,79,117,.88);border:1.5px solid rgba(255,255,255,.2);color:#fff;font-size:18px;font-weight:700;cursor:pointer;box-shadow:0 4px 16px rgba(40,79,117,.35);display:none;align-items:center;justify-content:center;transition:all .2s;backdrop-filter:blur(8px)}
+#infoBtn:active{transform:scale(.92)}
+#infoBtn.visible{display:flex}
 </style>
 </head>
 <body>
@@ -214,6 +250,152 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
   <div id="tilingProgressText">0 / 0 tuiles</div>
 </div>
 
+<!-- ══ GUIDE MODAL ══ -->
+<div id="guideModal">
+  <div id="guideBox">
+    <div class="guideHandle"><div class="guideHandleBar"></div></div>
+    <div class="guideHeader">
+      <span class="guideHeaderTitle">Guide Floor AR</span>
+      <button class="guideCloseBtn" id="guideCloseBtn">✕</button>
+    </div>
+
+    <div class="guideSection">
+      <div class="guideSectionTitle">Workflow en 3 étapes</div>
+      <div class="guideStepRow">
+        <div class="guideStepNum">1</div>
+        <div class="guideStepText"><strong>Tracez la zone</strong> — Appuyez sur "Tracer la zone" puis tapez chaque coin de la surface à carreler. Minimum 3 points requis.</div>
+      </div>
+      <div class="guideStepRow">
+        <div class="guideStepNum">2</div>
+        <div class="guideStepText"><strong>Choisissez le carrelage</strong> — Sélectionnez le modèle, le motif de pose (droit, diagonal, chevron, opus) et la taille des tuiles.</div>
+      </div>
+      <div class="guideStepRow">
+        <div class="guideStepNum">3</div>
+        <div class="guideStepText"><strong>Posez et ajustez</strong> — Les tuiles remplissent la zone avec découpe précise aux bords. Faites pivoter ou zoomez avec les gestes.</div>
+      </div>
+    </div>
+
+    <div class="guideSection">
+      <div class="guideSectionTitle">Traçage du polygone</div>
+      <div class="guideCard">
+        <div class="guideCardIcon red">✏️</div>
+        <div class="guideCardBody">
+          <div class="guideCardTitle">Ajouter un point</div>
+          <div class="guideCardDesc">Tapez n'importe où sur le sol pour placer un coin. Un cercle rouge apparaît à chaque point ajouté.</div>
+        </div>
+      </div>
+      <div class="guideCard">
+        <div class="guideCardIcon red">⬡</div>
+        <div class="guideCardBody">
+          <div class="guideCardTitle">Fermer la zone</div>
+          <div class="guideCardDesc">Tapez sur le 1er point (cercle blanc) quand il y a au moins 3 points — ou utilisez le bouton "Fermer".</div>
+        </div>
+      </div>
+      <div class="guideCard">
+        <div class="guideCardIcon orange">↩</div>
+        <div class="guideCardBody">
+          <div class="guideCardTitle">Annuler un point</div>
+          <div class="guideCardDesc">Le bouton "Défaire" supprime le dernier point placé. Répétez pour revenir en arrière étape par étape.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="guideSection">
+      <div class="guideSectionTitle">Motifs de pose</div>
+      <div class="guideCard">
+        <div class="guideCardIcon tile">⬛</div>
+        <div class="guideCardBody">
+          <div class="guideCardTitle">Droit</div>
+          <div class="guideCardDesc">Tuiles alignées en grille orthogonale. Classique et polyvalent.</div>
+        </div>
+      </div>
+      <div class="guideCard">
+        <div class="guideCardIcon tile">◆</div>
+        <div class="guideCardBody">
+          <div class="guideCardTitle">Diagonal</div>
+          <div class="guideCardDesc">Grille pivotée à 45°. Agrandit visuellement l'espace.</div>
+        </div>
+      </div>
+      <div class="guideCard">
+        <div class="guideCardIcon tile">〰</div>
+        <div class="guideCardBody">
+          <div class="guideCardTitle">Chevron</div>
+          <div class="guideCardDesc">Tuiles rectangulaires en motif en V alterné. Effet dynamique et contemporain.</div>
+        </div>
+      </div>
+      <div class="guideCard">
+        <div class="guideCardIcon tile">▦</div>
+        <div class="guideCardBody">
+          <div class="guideCardTitle">Opus</div>
+          <div class="guideCardDesc">Mix de grandes et petites tuiles carré. Rendu romain authentique.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="guideSection">
+      <div class="guideSectionTitle">Gestes sur la zone posée</div>
+      <div class="guideCard">
+        <div class="guideCardIcon blue">☝️</div>
+        <div class="guideCardBody">
+          <div class="guideCardTitle">Tap simple</div>
+          <div class="guideCardDesc">Sélectionne la zone. La barre d'action apparaît en bas avec les options Supprimer et OK.</div>
+        </div>
+      </div>
+      <div class="guideCard">
+        <div class="guideCardIcon blue">✌️</div>
+        <div class="guideCardBody">
+          <div class="guideCardTitle">Pinch (2 doigts)</div>
+          <div class="guideCardDesc">Écartez pour agrandir la zone, rapprochez pour réduire. Plage : 5% à 800%.</div>
+        </div>
+      </div>
+      <div class="guideCard">
+        <div class="guideCardIcon blue">👆↔️</div>
+        <div class="guideCardBody">
+          <div class="guideCardTitle">Glisser (1 doigt)</div>
+          <div class="guideCardDesc">Faites glisser un doigt pour faire pivoter la zone sur les axes X et Y.</div>
+        </div>
+      </div>
+      <div class="guideCard">
+        <div class="guideCardIcon red">✕✕</div>
+        <div class="guideCardBody">
+          <div class="guideCardTitle">Double-tap</div>
+          <div class="guideCardDesc">Double-tap rapide (&lt; 300ms) sur une zone sélectionnée pour la supprimer.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="guideSection">
+      <div class="guideSectionTitle">Barre d'outils</div>
+      <div class="guideCard">
+        <div class="guideCardIcon green">🔄</div>
+        <div class="guideCardBody">
+          <div class="guideCardTitle">Réinitialiser (icône flèche)</div>
+          <div class="guideCardDesc">Efface toutes les zones posées et réinitialise la session.</div>
+        </div>
+      </div>
+      <div class="guideCard">
+        <div class="guideCardIcon red">✏️</div>
+        <div class="guideCardBody">
+          <div class="guideCardTitle">Tracer la zone</div>
+          <div class="guideCardDesc">Lance le mode dessin polygone. Tapez à nouveau pour annuler.</div>
+        </div>
+      </div>
+      <div class="guideCard">
+        <div class="guideCardIcon blue">📸</div>
+        <div class="guideCardBody">
+          <div class="guideCardTitle">Capture</div>
+          <div class="guideCardDesc">Prend une photo de la scène AR. Partage natif ou téléchargement selon l'appareil.</div>
+        </div>
+      </div>
+      <div class="guideTip">💡 Astuce : glissez le panneau du bas vers le haut pour accéder à plus d'options, ou tirez-le vers le bas pour le réduire.</div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══ INFO BUTTON ══ -->
+<button id="infoBtn" title="Guide d'utilisation">?</button>
+
 <div id="startScreen">
   <div class="startIcon">
     <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
@@ -223,7 +405,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
       <rect x="22" y="22" width="14" height="14" rx="2" fill="rgba(212,169,106,.7)"/>
     </svg>
   </div>
-  <div class="startTitle">PlaceAR</div>
+  <div class="startTitle">Floor AR</div>
   <div class="startSub">Délimitez une zone, choisissez le carrelage, posez !</div>
   <div class="startFeatures">
     <div class="startFeature"><div class="startFeature-dot poly"></div>1 · Tracez le polygone sur le sol</div>
@@ -243,7 +425,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
       <rect x="2" y="13" width="9" height="9" rx="1.5" fill="rgba(139,94,60,.6)"/>
       <rect x="13" y="13" width="9" height="9" rx="1.5" fill="rgba(212,169,106,.8)"/>
     </svg>
-    <span id="appLogoText">PlaceAR</span>
+    <span id="appLogoText">Floor AR</span>
   </div>
   <div id="topRight">
     <div id="placedBadge">
@@ -348,10 +530,17 @@ const cpConfirmBtn      = document.getElementById('cpConfirmBtn');
 const drawZoneBtn       = document.getElementById('drawZoneBtn');
 const polyCountLabel    = document.getElementById('polyCountLabel');
 const polyPointsBubbles = document.getElementById('polyPointsBubbles');
+const guideModal        = document.getElementById('guideModal');
+const infoBtn           = document.getElementById('infoBtn');
 
 let polyCtx;
 const ptDist = (a,b) => Math.hypot(a.x-b.x, a.y-b.y);
 function setStatus(msg,cls=''){statusText.textContent=msg;statusToast.className=cls;statusToast.style.display='flex';}
+
+/* ══ GUIDE ══ */
+document.getElementById('guideCloseBtn').addEventListener('click',()=>guideModal.classList.remove('visible'));
+guideModal.addEventListener('click',e=>{ if(e.target===guideModal) guideModal.classList.remove('visible'); });
+infoBtn.addEventListener('click',()=>guideModal.classList.add('visible'));
 
 /* ═══════════════════════════════════════════
    THREE.JS INIT
@@ -461,6 +650,7 @@ function showARUI(){
   topBar.style.display = 'flex';
   sheet.style.display  = 'flex';
   statusToast.style.display = 'flex';
+  infoBtn.classList.add('visible');
   setStatus('Tapez "Tracer la zone" pour commencer','scanning');
 }
 
@@ -514,7 +704,6 @@ async function startFallbackMode(){
 
   renderer3.setAnimationLoop(() => renderer3.render(scene, camera3));
   
-  /* POSITION INITIALE : CAMÉRA DROITE */
   camera3.position.set(0, 2.0, 0.1);
   camera3.lookAt(0, 0, -1);
   camera3.rotation.z = 0;
@@ -583,7 +772,6 @@ function startZoneDrawing(){
   drawZoneBtn.className = 'qBtn qBtn-poly-on';
   polyCtx.clearRect(0, 0, polyDrawCanvas.width, polyDrawCanvas.height);
   
-  /* CAMÉRA DROITE POUR LE DESSIN */
   if(S.fallbackMode){
     camera3.position.set(0, 2.0, 0.1);
     camera3.rotation.order = 'YXZ';
@@ -1008,35 +1196,20 @@ function generateTilesInPolygon(poly3D, tileS, pattern){
 
 function tileIntersectsPoly(cx, cz, w, h, rot, poly){
   if(pointInPoly(cx, cz, poly)) return true;
-
   const hw=w/2, hh=h/2;
-  const corners = [
-    {x: hw, z: hh}, {x:-hw, z: hh},
-    {x:-hw, z:-hh}, {x: hw, z:-hh}
-  ];
+  const corners = [{x:hw,z:hh},{x:-hw,z:hh},{x:-hw,z:-hh},{x:hw,z:-hh}];
   if(rot !== 0){
     const cos=Math.cos(rot), sin=Math.sin(rot);
-    for(const c of corners){
-      const rx=c.x*cos - c.z*sin;
-      const rz=c.x*sin + c.z*cos;
-      c.x=cx+rx; c.z=cz+rz;
-    }
-  } else {
-    for(const c of corners){ c.x+=cx; c.z+=cz; }
-  }
-
-  for(const c of corners)
-    if(pointInPoly(c.x, c.z, poly)) return true;
-
-  for(const v of poly)
-    if(pointInRotatedRect(v.x, v.z, cx, cz, w, h, rot)) return true;
-
+    for(const c of corners){ const rx=c.x*cos-c.z*sin; const rz=c.x*sin+c.z*cos; c.x=cx+rx; c.z=cz+rz; }
+  } else { for(const c of corners){ c.x+=cx; c.z+=cz; } }
+  for(const c of corners) if(pointInPoly(c.x, c.z, poly)) return true;
+  for(const v of poly) if(pointInRotatedRect(v.x, v.z, cx, cz, w, h, rot)) return true;
   const tileEdges = [[corners[0],corners[1]],[corners[1],corners[2]],[corners[2],corners[3]],[corners[3],corners[0]]];
   const n = poly.length;
   for(let i=0;i<n;i++){
     const pa=poly[i], pb=poly[(i+1)%n];
     for(const [ta,tb] of tileEdges)
-      if(segmentsIntersect(pa.x,pa.z, pb.x,pb.z, ta.x,ta.z, tb.x,tb.z)) return true;
+      if(segmentsIntersect(pa.x,pa.z,pb.x,pb.z,ta.x,ta.z,tb.x,tb.z)) return true;
   }
   return false;
 }
@@ -1044,17 +1217,16 @@ function tileIntersectsPoly(cx, cz, w, h, rot, poly){
 function pointInRotatedRect(px, pz, cx, cz, w, h, rot){
   const dx=px-cx, dz=pz-cz;
   const cos=Math.cos(-rot), sin=Math.sin(-rot);
-  const lx=dx*cos - dz*sin;
-  const lz=dx*sin + dz*cos;
-  return Math.abs(lx) <= w/2 && Math.abs(lz) <= h/2;
+  const lx=dx*cos-dz*sin, lz=dx*sin+dz*cos;
+  return Math.abs(lx)<=w/2 && Math.abs(lz)<=h/2;
 }
 
 function segmentsIntersect(ax,ay,bx,by,cx,cy,dx,dy){
-  const d1x=bx-ax, d1y=by-ay, d2x=dx-cx, d2y=dy-cy;
-  const denom=d1x*d2y - d1y*d2x;
+  const d1x=bx-ax,d1y=by-ay,d2x=dx-cx,d2y=dy-cy;
+  const denom=d1x*d2y-d1y*d2x;
   if(Math.abs(denom)<1e-10) return false;
-  const t=((cx-ax)*d2y - (cy-ay)*d2x)/denom;
-  const u=((cx-ax)*d1y - (cy-ay)*d1x)/denom;
+  const t=((cx-ax)*d2y-(cy-ay)*d2x)/denom;
+  const u=((cx-ax)*d1y-(cy-ay)*d1x)/denom;
   return t>=0&&t<=1&&u>=0&&u<=1;
 }
 
@@ -1068,20 +1240,13 @@ function buildStencilMask(poly3D, floorY, stencilId){
   shape.moveTo(poly3D[0].x, poly3D[0].z);
   for(let i=1; i<poly3D.length; i++) shape.lineTo(poly3D[i].x, poly3D[i].z);
   shape.closePath();
-
   const geo = new THREE.ShapeGeometry(shape);
   geo.rotateX(-Math.PI / 2);
-
   const mat = new THREE.MeshBasicMaterial({
-    colorWrite: false,
-    depthWrite: false,
-    side: THREE.DoubleSide,
-    stencilWrite: true,
-    stencilFunc: THREE.AlwaysStencilFunc,
-    stencilRef: stencilId,
-    stencilZPass: THREE.ReplaceStencilOp,
+    colorWrite:false, depthWrite:false, side:THREE.DoubleSide,
+    stencilWrite:true, stencilFunc:THREE.AlwaysStencilFunc,
+    stencilRef:stencilId, stencilZPass:THREE.ReplaceStencilOp,
   });
-
   const mesh = new THREE.Mesh(geo, mat);
   mesh.position.y = floorY + 0.0005;
   mesh.renderOrder = 0;
@@ -1093,20 +1258,13 @@ function applyStencilToObject(obj, stencilId){
     if(!c.isMesh) return;
     const mats = Array.isArray(c.material) ? c.material : [c.material];
     mats.forEach(m=>{
-      m.stencilWrite = false;
-      m.stencilFunc  = THREE.EqualStencilFunc;
-      m.stencilRef   = stencilId;
-      m.stencilFail  = THREE.KeepStencilOp;
-      m.stencilZFail = THREE.KeepStencilOp;
-      m.stencilZPass = THREE.KeepStencilOp;
-      m.needsUpdate  = true;
+      m.stencilWrite=false; m.stencilFunc=THREE.EqualStencilFunc; m.stencilRef=stencilId;
+      m.stencilFail=THREE.KeepStencilOp; m.stencilZFail=THREE.KeepStencilOp; m.stencilZPass=THREE.KeepStencilOp;
+      m.needsUpdate=true;
     });
   });
 }
 
-/* ═══════════════════════════════════════════
-   GROUT BASE
-═══════════════════════════════════════════ */
 function buildGroutBase(poly3D, floorY, stencilId){
   const shape = new THREE.Shape();
   shape.moveTo(poly3D[0].x, poly3D[0].z);
@@ -1115,9 +1273,8 @@ function buildGroutBase(poly3D, floorY, stencilId){
   const geo = new THREE.ShapeGeometry(shape);
   geo.rotateX(-Math.PI / 2);
   const mat = new THREE.MeshStandardMaterial({
-    color: 0x9A8878, roughness: 0.95,
-    transparent: true, opacity: S.opacity * 0.85,
-    side: THREE.DoubleSide, depthWrite: false,
+    color:0x9A8878, roughness:0.95, transparent:true, opacity:S.opacity*0.85,
+    side:THREE.DoubleSide, depthWrite:false,
   });
   const mesh = new THREE.Mesh(geo, mat);
   mesh.position.y = floorY + 0.001;
@@ -1126,135 +1283,64 @@ function buildGroutBase(poly3D, floorY, stencilId){
   return mesh;
 }
 
-/* ═══════════════════════════════════════════
-   TEXTURE CACHE
-═══════════════════════════════════════════ */
 let _cachedTex=null, _cachedTexUrl='';
 function loadOrGetTexture(url){
   return new Promise(res=>{
     if(!url){ res(null); return; }
     if(url===_cachedTexUrl && _cachedTex){ res(_cachedTex); return; }
     new THREE.TextureLoader().load(url, t=>{
-      t.wrapS = t.wrapT = THREE.RepeatWrapping;
+      t.wrapS=t.wrapT=THREE.RepeatWrapping;
       _cachedTex=t; _cachedTexUrl=url; res(t);
     }, null, ()=>res(null));
   });
 }
 
-/* ═══════════════════════════════════════════
-   GLB ORIENTATION FIX v8 — FRONT FACE ONLY
-   ✓ Teste 24 orientations pour la meilleure horizontale
-   ✓ Corrige les normals après rotation
-   ✓ Utilise FrontSide au lieu de DoubleSide
-   ✓ Évite l'inversion du design
-═══════════════════════════════════════════ */
 function flattenGlbOnFloor(gltfScene, tileS, tex){
-  const CANDIDATES = [
-    new THREE.Euler(0,          0,          0),
-    new THREE.Euler(0,          Math.PI/2,  0),
-    new THREE.Euler(0,          Math.PI,    0),
-    new THREE.Euler(0,          3*Math.PI/2,0),
-    new THREE.Euler(Math.PI/2,  0,          0),
-    new THREE.Euler(Math.PI/2,  Math.PI/2,  0),
-    new THREE.Euler(Math.PI/2,  Math.PI,    0),
-    new THREE.Euler(Math.PI/2,  3*Math.PI/2,0),
-    new THREE.Euler(-Math.PI/2, 0,          0),
-    new THREE.Euler(-Math.PI/2, Math.PI/2,  0),
-    new THREE.Euler(-Math.PI/2, Math.PI,    0),
-    new THREE.Euler(-Math.PI/2, 3*Math.PI/2,0),
-    new THREE.Euler(Math.PI,    0,          0),
-    new THREE.Euler(Math.PI,    Math.PI/2,  0),
-    new THREE.Euler(Math.PI,    Math.PI,    0),
-    new THREE.Euler(Math.PI,    3*Math.PI/2,0),
-    new THREE.Euler(Math.PI/4,  Math.PI/4,  0),
-    new THREE.Euler(Math.PI/4,  -Math.PI/4, 0),
-    new THREE.Euler(-Math.PI/4, Math.PI/4,  0),
-    new THREE.Euler(-Math.PI/4, -Math.PI/4, 0),
-    new THREE.Euler(0,          0,          Math.PI/2),
-    new THREE.Euler(Math.PI/2,  0,          Math.PI/2),
-    new THREE.Euler(-Math.PI/2, 0,          Math.PI/2),
-    new THREE.Euler(Math.PI,    0,          Math.PI/2),
+  const CANDIDATES=[
+    new THREE.Euler(0,0,0), new THREE.Euler(0,Math.PI/2,0),
+    new THREE.Euler(0,Math.PI,0), new THREE.Euler(0,3*Math.PI/2,0),
+    new THREE.Euler(Math.PI/2,0,0), new THREE.Euler(Math.PI/2,Math.PI/2,0),
+    new THREE.Euler(Math.PI/2,Math.PI,0), new THREE.Euler(Math.PI/2,3*Math.PI/2,0),
+    new THREE.Euler(-Math.PI/2,0,0), new THREE.Euler(-Math.PI/2,Math.PI/2,0),
+    new THREE.Euler(-Math.PI/2,Math.PI,0), new THREE.Euler(-Math.PI/2,3*Math.PI/2,0),
+    new THREE.Euler(Math.PI,0,0), new THREE.Euler(Math.PI,Math.PI/2,0),
+    new THREE.Euler(Math.PI,Math.PI,0), new THREE.Euler(Math.PI,3*Math.PI/2,0),
   ];
-
-  let bestEuler = CANDIDATES[0];
-  let bestRatio = Infinity;
-  
-  const testGroup = new THREE.Group();
-  const clonedScene = gltfScene.clone();
+  let bestEuler=CANDIDATES[0], bestRatio=Infinity;
+  const testGroup=new THREE.Group();
+  const clonedScene=gltfScene.clone();
   testGroup.add(clonedScene);
-
   for(const euler of CANDIDATES){
-    testGroup.rotation.order = 'XYZ';
-    testGroup.rotation.copy(euler);
-    testGroup.updateMatrixWorld(true);
-    
-    const bb = new THREE.Box3().setFromObject(testGroup);
-    const sz = bb.getSize(new THREE.Vector3());
-    
-    if(sz.x < 0.001 || sz.z < 0.001) continue;
-    
-    const footprint = Math.max(sz.x, sz.z);
-    const ratio = sz.y / footprint;
-    
-    if(ratio < bestRatio){
-      bestRatio = ratio;
-      bestEuler = euler;
-    }
+    testGroup.rotation.order='XYZ'; testGroup.rotation.copy(euler); testGroup.updateMatrixWorld(true);
+    const bb=new THREE.Box3().setFromObject(testGroup);
+    const sz=bb.getSize(new THREE.Vector3());
+    if(sz.x<0.001||sz.z<0.001) continue;
+    const ratio=sz.y/Math.max(sz.x,sz.z);
+    if(ratio<bestRatio){ bestRatio=ratio; bestEuler=euler; }
   }
-  
-  testGroup.parent && testGroup.parent.removeFromParent();
-
-  const pivot = new THREE.Group();
+  testGroup.parent&&testGroup.parent.removeFromParent();
+  const pivot=new THREE.Group();
   pivot.add(gltfScene);
-  pivot.rotation.order = 'XYZ';
-  pivot.rotation.copy(bestEuler);
-  pivot.updateMatrixWorld(true);
-
-  let bb = new THREE.Box3().setFromObject(pivot);
-  let sz = bb.getSize(new THREE.Vector3());
-  
-  if(sz.x < 0.001) sz.x = 0.001;
-  if(sz.z < 0.001) sz.z = 0.001;
-  
-  const maxHoriz = Math.max(sz.x, sz.z);
-  const scale = Math.min(tileS / maxHoriz, 2.0);
-  
-  pivot.scale.setScalar(scale);
-  pivot.updateMatrixWorld(true);
-
-  bb = new THREE.Box3().setFromObject(pivot);
-  const center = bb.getCenter(new THREE.Vector3());
-  
-  pivot.position.x = -center.x;
-  pivot.position.z = -center.z;
-  pivot.position.y = -bb.min.y;
-
-  /* CORRECTION POUR ÉVITER L'INVERSION */
+  pivot.rotation.order='XYZ'; pivot.rotation.copy(bestEuler); pivot.updateMatrixWorld(true);
+  let bb=new THREE.Box3().setFromObject(pivot);
+  let sz=bb.getSize(new THREE.Vector3());
+  if(sz.x<0.001)sz.x=0.001; if(sz.z<0.001)sz.z=0.001;
+  const scale=Math.min(tileS/Math.max(sz.x,sz.z),2.0);
+  pivot.scale.setScalar(scale); pivot.updateMatrixWorld(true);
+  bb=new THREE.Box3().setFromObject(pivot);
+  const center=bb.getCenter(new THREE.Vector3());
+  pivot.position.x=-center.x; pivot.position.z=-center.z; pivot.position.y=-bb.min.y;
   pivot.traverse(c=>{
     if(!c.isMesh) return;
-    
-    /* Recalculer les normals après rotation */
-    if(c.geometry && c.geometry.computeVertexNormals) {
-      c.geometry.computeVertexNormals();
-      c.geometry.normalizeNormals();
-    }
-    
-    const mats = Array.isArray(c.material) ? c.material : [c.material];
+    if(c.geometry&&c.geometry.computeVertexNormals){ c.geometry.computeVertexNormals(); c.geometry.normalizeNormals(); }
+    const mats=Array.isArray(c.material)?c.material:[c.material];
     mats.forEach(m=>{
-      /* Utiliser FrontSide pour éviter les faces inversées */
-      m.side = THREE.FrontSide;
-      m.transparent = true;
-      m.opacity = S.opacity;
-      if(tex && !m.map){
-        m.map = tex;
-        m.color.set(0xffffff);
-      }
-      m.needsUpdate = true;
+      m.side=THREE.FrontSide; m.transparent=true; m.opacity=S.opacity;
+      if(tex&&!m.map){ m.map=tex; m.color.set(0xffffff); }
+      m.needsUpdate=true;
     });
-    c.castShadow = true;
-    c.receiveShadow = true;
+    c.castShadow=true; c.receiveShadow=true;
   });
-
   return pivot;
 }
 
@@ -1267,7 +1353,6 @@ async function placeTilePolygon(poly3D){
 
   const fy = S.floorY;
   const flatPoly = poly3D.map(p=>({ x:p.x, y:fy, z:p.z }));
-
   const tileS = S.tileSize;
   const positions = generateTilesInPolygon(flatPoly, tileS, S.selectedPattern);
   const total = positions.length;
@@ -1279,7 +1364,7 @@ async function placeTilePolygon(poly3D){
   tilingText.textContent='0 / '+total+' tuiles';
 
   const stencilId = stencilIdCounter++;
-  if(stencilIdCounter > 254) stencilIdCounter = 1;
+  if(stencilIdCounter>254) stencilIdCounter=1;
 
   const zoneGroup = new THREE.Group();
   scene.add(zoneGroup);
@@ -1301,73 +1386,46 @@ async function placeTilePolygon(poly3D){
     setStatus('Chargement GLB…','scanning');
     try{
       const gltf = await new Promise((res,rej)=>{
-        loader.load(
-          product.modelUrl,
-          res,
-          (progress) => {
-            const pct = Math.round((progress.loaded / progress.total) * 100);
-            tilingText.textContent = `Chargement GLB: ${pct}%`;
-          },
-          rej
-        );
+        loader.load(product.modelUrl, res, p=>{
+          tilingText.textContent='Chargement GLB: '+Math.round((p.loaded/p.total)*100)+'%';
+        }, rej);
       });
-      
-      const sceneCopy = gltf.scene.clone();
-      baseModel = flattenGlbOnFloor(sceneCopy, tileS, tex);
-      
-      if(!baseModel){
-        console.warn('GLB flatten failed, using box tiles');
-        baseModel = null;
-      }
-    }catch(e){ 
-      console.warn('GLB load failed:', e);
-      setStatus('Erreur GLB, utilisation carrelage basique','error');
-      baseModel = null; 
-    }
+      baseModel = flattenGlbOnFloor(gltf.scene.clone(), tileS, tex);
+    }catch(e){ console.warn('GLB load failed:',e); baseModel=null; }
   }
 
   const fallbackMat = new THREE.MeshStandardMaterial({
     roughness:0.28, metalness:0.08, transparent:true, opacity:S.opacity,
-    ...(tex ? {map:tex, color:new THREE.Color(0xffffff)} : {color:new THREE.Color(0xD4A96A)})
+    ...(tex?{map:tex,color:new THREE.Color(0xffffff)}:{color:new THREE.Color(0xD4A96A)})
   });
-  const tileColors = [0xD4A96A, 0xC09050, 0xE0B878, 0xB88040];
-  const TILE_H = 0.005;
+  const tileColors=[0xD4A96A,0xC09050,0xE0B878,0xB88040];
+  const TILE_H=0.005;
 
   for(let i=0; i<positions.length; i++){
     const p = positions[i];
     let tile;
-
     if(baseModel){
-      tile = baseModel.clone(true);
-      tile.rotation.y = p.rot;
-      tile.position.set(p.x, fy, p.z);
-      
-      tile.traverse(c => {
-        if(c.isMesh){
-          c.castShadow = true;
-          c.receiveShadow = true;
-        }
-      });
+      tile=baseModel.clone(true);
+      tile.rotation.y=p.rot;
+      tile.position.set(p.x,fy,p.z);
+      tile.traverse(c=>{ if(c.isMesh){ c.castShadow=true; c.receiveShadow=true; } });
     } else {
-      const geo = new THREE.BoxGeometry(p.w - 0.002, TILE_H, p.h - 0.002);
-      const mat = fallbackMat.clone();
-      if(!tex) mat.color.set(tileColors[i % tileColors.length]);
-      tile = new THREE.Mesh(geo, mat);
-      tile.castShadow = true; 
-      tile.receiveShadow = true;
-      tile.rotation.y = p.rot;
-      tile.position.set(p.x, fy, p.z);
+      const geo=new THREE.BoxGeometry(p.w-0.002,TILE_H,p.h-0.002);
+      const mat=fallbackMat.clone();
+      if(!tex) mat.color.set(tileColors[i%tileColors.length]);
+      tile=new THREE.Mesh(geo,mat);
+      tile.castShadow=true; tile.receiveShadow=true;
+      tile.rotation.y=p.rot;
+      tile.position.set(p.x,fy,p.z);
     }
-
-    tile.renderOrder = 2;
+    tile.renderOrder=2;
     applyStencilToObject(tile, stencilId);
-
     zoneGroup.add(tile);
 
-    if(i % 10 === 0){
-      const pct = Math.round((i+1)/total*100);
-      tilingFill.style.width = pct+'%';
-      tilingText.textContent = (i+1)+' / '+total+' tuiles';
+    if(i%10===0){
+      const pct=Math.round((i+1)/total*100);
+      tilingFill.style.width=pct+'%';
+      tilingText.textContent=(i+1)+' / '+total+' tuiles';
       await new Promise(r=>requestAnimationFrame(r));
     }
   }
@@ -1377,25 +1435,25 @@ async function placeTilePolygon(poly3D){
 
   const id = ++S.meshIdCounter;
   S.placedObjects.push({
-    id, group: zoneGroup,
-    name: product.name+' (zone)',
-    productId: product.id,
-    scaleVal: 1, baseScale: 1, isTileZone: true
+    id, group:zoneGroup,
+    name:product.name+' (zone)',
+    productId:product.id,
+    scaleVal:1, baseScale:1, isTileZone:true
   });
   selectObject(id);
   updatePlacedBadge();
   setStatus('✓ '+total+' tuiles · clip polygone actif','ok');
-  postToFlutter({type:'tile_zone', count:total});
-  drawZoneBtn.className = 'qBtn qBtn-poly';
+  postToFlutter({type:'tile_zone',count:total});
+  drawZoneBtn.className='qBtn qBtn-poly';
 }
 
 /* ═══════════════════════════════════════════
    OBJECT MANAGEMENT
 ═══════════════════════════════════════════ */
 function selectObject(id){
-  S.selectedObjectId = id;
-  const obj = S.placedObjects.find(o=>o.id===id); if(!obj) return;
-  selProdName.textContent = obj.name || 'Objet';
+  S.selectedObjectId=id;
+  const obj=S.placedObjects.find(o=>o.id===id); if(!obj) return;
+  selProdName.textContent=obj.name||'Objet';
   actionBar.classList.add('visible');
 }
 function deselectObject(){ S.selectedObjectId=null; actionBar.classList.remove('visible'); }
@@ -1407,47 +1465,41 @@ function scaleObject(obj,val){
 function deleteSelected(){
   const obj=S.placedObjects.find(o=>o.id===S.selectedObjectId); if(!obj)return;
   scene.remove(obj.group);
-  S.placedObjects   = S.placedObjects.filter(o=>o.id!==S.selectedObjectId);
-  S.tileZoneGroups  = S.tileZoneGroups.filter(g=>g!==obj.group);
+  S.placedObjects=S.placedObjects.filter(o=>o.id!==S.selectedObjectId);
+  S.tileZoneGroups=S.tileZoneGroups.filter(g=>g!==obj.group);
   deselectObject(); updatePlacedBadge();
   deleteHint.classList.add('show');
   setTimeout(()=>deleteHint.classList.remove('show'),600);
-  postToFlutter({type:'removed', count:S.placedObjects.length});
+  postToFlutter({type:'removed',count:S.placedObjects.length});
 }
 function updatePlacedBadge(){
   const n=S.placedObjects.length;
-  placedCountEl.textContent = n;
-  placedBadge.classList.toggle('visible', n>0);
+  placedCountEl.textContent=n;
+  placedBadge.classList.toggle('visible',n>0);
 }
 
-document.getElementById('aBtnConfirm').addEventListener('click', deselectObject);
-document.getElementById('aBtnDelete').addEventListener('click', deleteSelected);
+document.getElementById('aBtnConfirm').addEventListener('click',deselectObject);
+document.getElementById('aBtnDelete').addEventListener('click',deleteSelected);
 
 /* ═══════════════════════════════════════════
    SHEET DRAG
 ═══════════════════════════════════════════ */
-const PEEK=82, MID=260, FULL=Math.round(window.innerHeight*0.6);
-let shDragStartY=null, shDragStartH=0;
+const PEEK=82,MID=260,FULL=Math.round(window.innerHeight*0.6);
+let shDragStartY=null,shDragStartH=0;
 function setSheetH(h,anim=true){
   sheet.style.transition=anim?'height .35s cubic-bezier(.32,.72,0,1)':'none';
   sheet.style.height=h+'px';
 }
-function snapSheet(h){
-  const m1=(PEEK+MID)/2, m2=(MID+FULL)/2;
-  setSheetH(h<m1?PEEK:h<m2?MID:FULL);
-}
+function snapSheet(h){ const m1=(PEEK+MID)/2,m2=(MID+FULL)/2; setSheetH(h<m1?PEEK:h<m2?MID:FULL); }
 const handleEl=document.getElementById('sheetHandle');
 handleEl.addEventListener('mousedown',e=>{shDragStartY=e.clientY;shDragStartH=sheet.getBoundingClientRect().height;sheet.style.transition='none';});
 handleEl.addEventListener('touchstart',e=>{shDragStartY=e.touches[0].clientY;shDragStartH=sheet.getBoundingClientRect().height;sheet.style.transition='none';},{passive:true});
-window.addEventListener('mousemove',e=>{if(shDragStartY===null)return;const h=Math.max(PEEK,Math.min(FULL,shDragStartH+(shDragStartY-e.clientY)));sheet.style.height=h+'px';});
-window.addEventListener('touchmove',e=>{if(shDragStartY===null)return;const h=Math.max(PEEK,Math.min(FULL,shDragStartH+(shDragStartY-e.touches[0].clientY)));sheet.style.height=h+'px';},{passive:true});
-function onSheetDragEnd(){if(shDragStartY===null)return;const h=sheet.getBoundingClientRect().height;shDragStartY=null;snapSheet(h);}
+window.addEventListener('mousemove',e=>{ if(shDragStartY===null)return; const h=Math.max(PEEK,Math.min(FULL,shDragStartH+(shDragStartY-e.clientY))); sheet.style.height=h+'px'; });
+window.addEventListener('touchmove',e=>{ if(shDragStartY===null)return; const h=Math.max(PEEK,Math.min(FULL,shDragStartH+(shDragStartY-e.touches[0].clientY))); sheet.style.height=h+'px'; },{passive:true});
+function onSheetDragEnd(){ if(shDragStartY===null)return; const h=sheet.getBoundingClientRect().height; shDragStartY=null; snapSheet(h); }
 window.addEventListener('mouseup',onSheetDragEnd);
 window.addEventListener('touchend',onSheetDragEnd);
-handleEl.addEventListener('click',()=>{
-  const h=sheet.getBoundingClientRect().height;
-  setSheetH(h<=PEEK+10?MID:h>=FULL-20?PEEK:FULL);
-});
+handleEl.addEventListener('click',()=>{ const h=sheet.getBoundingClientRect().height; setSheetH(h<=PEEK+10?MID:h>=FULL-20?PEEK:FULL); });
 
 /* ═══════════════════════════════════════════
    BUTTONS
@@ -1466,7 +1518,7 @@ document.getElementById('resetBtn').addEventListener('click',()=>{
   setStatus('Réinitialisé','ok');
   postToFlutter({type:'removed',count:0});
 });
-document.getElementById('captureBtn').addEventListener('click', doCapture);
+document.getElementById('captureBtn').addEventListener('click',doCapture);
 
 /* ═══════════════════════════════════════════
    CAPTURE
@@ -1482,11 +1534,11 @@ async function doCapture(){
     renderer3.render(scene,camera3);
     threeCanvas.toBlob(async blob=>{
       if(!blob)return;
-      const file=new File([blob],'placeAR.png',{type:'image/png'});
+      const file=new File([blob],'floor-ar.png',{type:'image/png'});
       if(navigator.canShare&&navigator.canShare({files:[file]})){
-        try{ await navigator.share({files:[file],title:'PlaceAR'}); showSaveToast('📸','Partagé !'); return; }catch{}
+        try{ await navigator.share({files:[file],title:'Floor AR'}); showSaveToast('📸','Partagé !'); return; }catch{}
       }
-      const a=document.createElement('a'); a.download='placeAR.png'; a.href=URL.createObjectURL(blob); a.click();
+      const a=document.createElement('a'); a.download='floor-ar.png'; a.href=URL.createObjectURL(blob); a.click();
       setTimeout(()=>URL.revokeObjectURL(a.href),3000);
       showSaveToast('💾','Image sauvegardée !');
     },'image/png');
@@ -1497,7 +1549,7 @@ async function doCapture(){
 /* ═══════════════════════════════════════════
    CATALOG & BRIDGE
 ═══════════════════════════════════════════ */
-window.loadProductCatalog = function(products){ S.catalog = products; setStatus(products.length+' produit(s) chargé(s)','ok'); };
+window.loadProductCatalog=function(products){ S.catalog=products; setStatus(products.length+' produit(s) chargé(s)','ok'); };
 function postToFlutter(obj){
   try{
     if(window.flutter_inappwebview){ window.flutter_inappwebview.callHandler('FlutterBridge',JSON.stringify(obj)); return; }
@@ -1505,7 +1557,7 @@ function postToFlutter(obj){
     if(window.webkit?.messageHandlers?.FlutterBridge){ window.webkit.messageHandlers.FlutterBridge.postMessage(JSON.stringify(obj)); }
   }catch(e){ console.log('[Bridge]',obj); }
 }
-window.receiveFromFlutter = function(jsonStr){
+window.receiveFromFlutter=function(jsonStr){
   try{
     const data=JSON.parse(jsonStr);
     if(data.type==='catalog'&&data.products) window.loadProductCatalog(data.products);
@@ -1537,9 +1589,6 @@ function escapeHtml(s){
   return s.toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-/* ═══════════════════════════════════════════
-   MOCK CATALOG
-═══════════════════════════════════════════ */
 const MOCK_CATALOG=[
   {id:'t1',name:'Zellige Vert',         category:'Carrelage',modelUrl:'',imageUrl:'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=200'},
   {id:'t2',name:'Marbre Blanc',         category:'Carrelage',modelUrl:'',imageUrl:'https://images.unsplash.com/photo-1615873968403-89e068629265?w=200'},
@@ -1555,16 +1604,16 @@ const MOCK_CATALOG=[
 initThreeJS();
 loadFromUrlParams();
 
-startArBtn.addEventListener('click', async()=>{
+startArBtn.addEventListener('click',async()=>{
   startArBtn.disabled=true; startArBtn.textContent='Vérification…';
-  S.xrSupported = await checkXRSupport();
+  S.xrSupported=await checkXRSupport();
   if(S.xrSupported){
     await startXRSession(); setupXRSelect();
   } else {
     noXrMsg.style.display='block';
     startArBtn.textContent='📷 Mode Caméra';
     startArBtn.disabled=false;
-    startArBtn.onclick = startFallbackMode;
+    startArBtn.onclick=startFallbackMode;
     await startFallbackMode();
   }
   setTimeout(()=>{ if(S.catalog.length===0) window.loadProductCatalog(MOCK_CATALOG); },1500);
