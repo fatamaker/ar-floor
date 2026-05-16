@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no"/>
-<title>PlaceAR · Carrelage v7 FIXED</title>
+<title>PlaceAR · Carrelage v8 FIXED</title>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -1142,78 +1142,48 @@ function loadOrGetTexture(url){
 }
 
 /* ═══════════════════════════════════════════
-   GLB ORIENTATION FIX — Horizontal Loading
-   Teste 24 orientations pour trouver la meilleure
-   orientation HORIZONTALE (ratio hauteur/largeur minimal)
-   + Détection face avant/arrière
+   GLB ORIENTATION FIX v8 — FRONT FACE ONLY
+   ✓ Teste 24 orientations pour la meilleure horizontale
+   ✓ Corrige les normals après rotation
+   ✓ Utilise FrontSide au lieu de DoubleSide
+   ✓ Évite l'inversion du design
 ═══════════════════════════════════════════ */
 function flattenGlbOnFloor(gltfScene, tileS, tex){
-  /* 48 orientations = 24 + 24 avec flip Y */
-  const BASE_ORIENTATIONS = [
-    /* X-axis rotations */
+  const CANDIDATES = [
     new THREE.Euler(0,          0,          0),
     new THREE.Euler(0,          Math.PI/2,  0),
     new THREE.Euler(0,          Math.PI,    0),
     new THREE.Euler(0,          3*Math.PI/2,0),
-    
-    /* Y-axis rotations */
     new THREE.Euler(Math.PI/2,  0,          0),
     new THREE.Euler(Math.PI/2,  Math.PI/2,  0),
     new THREE.Euler(Math.PI/2,  Math.PI,    0),
     new THREE.Euler(Math.PI/2,  3*Math.PI/2,0),
-    
-    /* Z-axis rotations */
     new THREE.Euler(-Math.PI/2, 0,          0),
     new THREE.Euler(-Math.PI/2, Math.PI/2,  0),
     new THREE.Euler(-Math.PI/2, Math.PI,    0),
     new THREE.Euler(-Math.PI/2, 3*Math.PI/2,0),
-    
-    /* Inverted Y */
     new THREE.Euler(Math.PI,    0,          0),
     new THREE.Euler(Math.PI,    Math.PI/2,  0),
     new THREE.Euler(Math.PI,    Math.PI,    0),
     new THREE.Euler(Math.PI,    3*Math.PI/2,0),
-    
-    /* Diagonal rotations for complex models */
     new THREE.Euler(Math.PI/4,  Math.PI/4,  0),
     new THREE.Euler(Math.PI/4,  -Math.PI/4, 0),
     new THREE.Euler(-Math.PI/4, Math.PI/4,  0),
     new THREE.Euler(-Math.PI/4, -Math.PI/4, 0),
-    
-    /* Additional combinations */
     new THREE.Euler(0,          0,          Math.PI/2),
     new THREE.Euler(Math.PI/2,  0,          Math.PI/2),
     new THREE.Euler(-Math.PI/2, 0,          Math.PI/2),
     new THREE.Euler(Math.PI,    0,          Math.PI/2),
   ];
 
-  /* Combiner avec rotations Y pour éviter les modèles à l'envers */
-  const CANDIDATES = [];
-  const Y_ROTATIONS = [0, Math.PI]; // Normal + Flipped (180°)
-  
-  for(const baseEuler of BASE_ORIENTATIONS){
-    for(const yRot of Y_ROTATIONS){
-      const euler = new THREE.Euler(
-        baseEuler.x,
-        baseEuler.y + yRot,
-        baseEuler.z,
-        'XYZ'
-      );
-      CANDIDATES.push(euler);
-    }
-  }
-
   let bestEuler = CANDIDATES[0];
   let bestRatio = Infinity;
-  let bestFaceUp = 0; // 0 = normal, 1 = flipped
   
-  /* Clone pour tester sans modifier l'original */
   const testGroup = new THREE.Group();
   const clonedScene = gltfScene.clone();
   testGroup.add(clonedScene);
 
-  for(let idx = 0; idx < CANDIDATES.length; idx++){
-    const euler = CANDIDATES[idx];
+  for(const euler of CANDIDATES){
     testGroup.rotation.order = 'XYZ';
     testGroup.rotation.copy(euler);
     testGroup.updateMatrixWorld(true);
@@ -1221,66 +1191,58 @@ function flattenGlbOnFloor(gltfScene, tileS, tex){
     const bb = new THREE.Box3().setFromObject(testGroup);
     const sz = bb.getSize(new THREE.Vector3());
     
-    /* Ignorer les dimensions nulles */
     if(sz.x < 0.001 || sz.z < 0.001) continue;
     
-    /* Ratio : on veut HEIGHT/WIDTH le plus petit possible */
     const footprint = Math.max(sz.x, sz.z);
     const ratio = sz.y / footprint;
     
-    /* 
-       Bonus pour les orientations non-flipped (idx < 24)
-       Préférer les modèles face avant plutôt que dos
-    */
-    const isFaceUp = idx < CANDIDATES.length / 2 ? 0 : 1;
-    const adjustedRatio = ratio + (isFaceUp * 0.05); // Léger bonus pour face avant
-    
-    if(adjustedRatio < bestRatio){
-      bestRatio = adjustedRatio;
+    if(ratio < bestRatio){
+      bestRatio = ratio;
       bestEuler = euler;
-      bestFaceUp = isFaceUp;
     }
   }
   
   testGroup.parent && testGroup.parent.removeFromParent();
 
-  /* Créer le groupe pivot final avec la meilleure orientation */
   const pivot = new THREE.Group();
   pivot.add(gltfScene);
   pivot.rotation.order = 'XYZ';
   pivot.rotation.copy(bestEuler);
   pivot.updateMatrixWorld(true);
 
-  /* Calculer bounding box et dimensions */
   let bb = new THREE.Box3().setFromObject(pivot);
   let sz = bb.getSize(new THREE.Vector3());
   
-  /* Vérifier les dimensions valides */
   if(sz.x < 0.001) sz.x = 0.001;
   if(sz.z < 0.001) sz.z = 0.001;
   
   const maxHoriz = Math.max(sz.x, sz.z);
-  const scale = Math.min(tileS / maxHoriz, 2.0); /* Limiter le zoom */
+  const scale = Math.min(tileS / maxHoriz, 2.0);
   
-  /* Appliquer le scale */
   pivot.scale.setScalar(scale);
   pivot.updateMatrixWorld(true);
 
-  /* Recalculer après scale */
   bb = new THREE.Box3().setFromObject(pivot);
   const center = bb.getCenter(new THREE.Vector3());
   
-  /* Centrer horizontalement, positionner au sol */
   pivot.position.x = -center.x;
   pivot.position.z = -center.z;
-  pivot.position.y = -bb.min.y; /* Y position = sol */
+  pivot.position.y = -bb.min.y;
 
-  /* Appliquer les matériaux */
+  /* CORRECTION POUR ÉVITER L'INVERSION */
   pivot.traverse(c=>{
     if(!c.isMesh) return;
+    
+    /* Recalculer les normals après rotation */
+    if(c.geometry && c.geometry.computeVertexNormals) {
+      c.geometry.computeVertexNormals();
+      c.geometry.normalizeNormals();
+    }
+    
     const mats = Array.isArray(c.material) ? c.material : [c.material];
     mats.forEach(m=>{
-      m.side = THREE.DoubleSide; /* ← Important pour voir les deux faces */
+      /* Utiliser FrontSide pour éviter les faces inversées */
+      m.side = THREE.FrontSide;
       m.transparent = true;
       m.opacity = S.opacity;
       if(tex && !m.map){
@@ -1297,19 +1259,13 @@ function flattenGlbOnFloor(gltfScene, tileS, tex){
 }
 
 /* ═══════════════════════════════════════════
-   PLACE TILE POLYGON  — v7 FIXED
-   ✓ Tuiles positionnées exactement dans la zone
-   ✓ Épaisseur minimale (y très proche de 0)
-   ✓ Clipping parfait avec stencil
+   PLACE TILE POLYGON
 ═══════════════════════════════════════════ */
 async function placeTilePolygon(poly3D){
   const product = S.catalog.find(p=>p.id===S.selectedProductId);
   if(!product){ setStatus('Sélectionnez un carrelage d\'abord','error'); return; }
 
-  /* Utiliser le floorY détecté ou 0 */
   const fy = S.floorY;
-  
-  /* Projeter les points du polygone sur le plan du sol */
   const flatPoly = poly3D.map(p=>({ x:p.x, y:fy, z:p.z }));
 
   const tileS = S.tileSize;
@@ -1322,7 +1278,6 @@ async function placeTilePolygon(poly3D){
   tilingFill.style.width='0%';
   tilingText.textContent='0 / '+total+' tuiles';
 
-  /* Stencil ID unique pour cette zone */
   const stencilId = stencilIdCounter++;
   if(stencilIdCounter > 254) stencilIdCounter = 1;
 
@@ -1330,19 +1285,16 @@ async function placeTilePolygon(poly3D){
   scene.add(zoneGroup);
   zoneGroup.userData.isTileZone = true;
 
-  /* 1 — Stencil mask (écrit stencilId) */
   const stencilMesh = buildStencilMask(flatPoly, fy, stencilId);
   stencilMesh.renderOrder = 0;
   zoneGroup.add(stencilMesh);
 
-  /* 2 — Grout base (base de joint) */
   const grout = buildGroutBase(flatPoly, fy, stencilId);
   grout.renderOrder = 1;
   zoneGroup.add(grout);
 
   const tex = await loadOrGetTexture(product.imageUrl || '');
 
-  /* 3 — Tuiles GLB ou box */
   const useGlb = product.modelUrl && product.modelUrl.length > 4;
   let baseModel = null;
   if(useGlb){
@@ -1360,7 +1312,6 @@ async function placeTilePolygon(poly3D){
         );
       });
       
-      /* Cloner le modèle et l'aplatir horizontalement */
       const sceneCopy = gltf.scene.clone();
       baseModel = flattenGlbOnFloor(sceneCopy, tileS, tex);
       
@@ -1380,7 +1331,6 @@ async function placeTilePolygon(poly3D){
     ...(tex ? {map:tex, color:new THREE.Color(0xffffff)} : {color:new THREE.Color(0xD4A96A)})
   });
   const tileColors = [0xD4A96A, 0xC09050, 0xE0B878, 0xB88040];
-  /* ÉPAISSEUR MINIMALE */
   const TILE_H = 0.005;
 
   for(let i=0; i<positions.length; i++){
@@ -1388,12 +1338,10 @@ async function placeTilePolygon(poly3D){
     let tile;
 
     if(baseModel){
-      /* Cloner et positionner le GLB */
       tile = baseModel.clone(true);
       tile.rotation.y = p.rot;
       tile.position.set(p.x, fy, p.z);
       
-      /* S'assurer que le modèle reste au sol */
       tile.traverse(c => {
         if(c.isMesh){
           c.castShadow = true;
@@ -1401,7 +1349,6 @@ async function placeTilePolygon(poly3D){
         }
       });
     } else {
-      /* Fallback : Box simple */
       const geo = new THREE.BoxGeometry(p.w - 0.002, TILE_H, p.h - 0.002);
       const mat = fallbackMat.clone();
       if(!tex) mat.color.set(tileColors[i % tileColors.length]);
@@ -1409,11 +1356,9 @@ async function placeTilePolygon(poly3D){
       tile.castShadow = true; 
       tile.receiveShadow = true;
       tile.rotation.y = p.rot;
-      /* Positionner la tuile AU SOL (y = fy) */
       tile.position.set(p.x, fy, p.z);
     }
 
-    /* Clipping stencil */
     tile.renderOrder = 2;
     applyStencilToObject(tile, stencilId);
 
