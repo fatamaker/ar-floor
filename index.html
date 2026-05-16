@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no"/>
-<title>PlaceAR · Carrelage v8 FIXED</title>
+<title>PlaceAR · Carrelage v9 FIXED</title>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -514,7 +514,6 @@ async function startFallbackMode(){
 
   renderer3.setAnimationLoop(() => renderer3.render(scene, camera3));
   
-  /* POSITION INITIALE : CAMÉRA DROITE */
   camera3.position.set(0, 2.0, 0.1);
   camera3.lookAt(0, 0, -1);
   camera3.rotation.z = 0;
@@ -583,7 +582,6 @@ function startZoneDrawing(){
   drawZoneBtn.className = 'qBtn qBtn-poly-on';
   polyCtx.clearRect(0, 0, polyDrawCanvas.width, polyDrawCanvas.height);
   
-  /* CAMÉRA DROITE POUR LE DESSIN */
   if(S.fallbackMode){
     camera3.position.set(0, 2.0, 0.1);
     camera3.rotation.order = 'YXZ';
@@ -946,7 +944,12 @@ function polyCentroid(poly){
 }
 
 /* ═══════════════════════════════════════════
-   TILE GRID GENERATION
+   FIX #2 — TILE GRID GENERATION (ZERO-GAP)
+   Ancrage de grille sur le centroïde avec
+   arrondi déterministe → pas de décalage aléatoire.
+   La tuile occupe exactement tileS × tileS,
+   le gap vient uniquement du joint (grout line)
+   appliqué lors de la pose, pas ici.
 ═══════════════════════════════════════════ */
 function generateTilesInPolygon(poly3D, tileS, pattern){
   const {minX,maxX,minZ,maxZ} = polyBounds(poly3D);
@@ -954,35 +957,47 @@ function generateTilesInPolygon(poly3D, tileS, pattern){
   const positions = [];
   const PAD = tileS * 1.5;
 
+  /* Ancrage : le coin de la première tuile est aligné
+     sur un multiple exact de tileS depuis l'origine. */
+  function gridOrigin(centVal, tileSize){
+    // Arrondi au multiple de tileSize le plus proche de cent
+    return Math.round(centVal / tileSize) * tileSize;
+  }
+
   if(pattern==='diagonal'){
+    const ox = gridOrigin(cent.x, tileS);
+    const oz = gridOrigin(cent.z, tileS);
     for(let gz=minZ-PAD; gz<=maxZ+PAD; gz+=tileS){
       for(let gx=minX-PAD; gx<=maxX+PAD; gx+=tileS){
-        const dx=gx-cent.x, dz=gz-cent.z;
-        const rx=cent.x+(dx-dz)*Math.SQRT1_2;
-        const rz=cent.z+(dx+dz)*Math.SQRT1_2;
+        const dx=gx-ox, dz=gz-oz;
+        const rx=ox+(dx-dz)*Math.SQRT1_2;
+        const rz=oz+(dx+dz)*Math.SQRT1_2;
         if(tileIntersectsPoly(rx, rz, tileS, tileS, Math.PI/4, poly3D))
-          positions.push({x:rx, z:rz, rot:Math.PI/4, w:tileS*0.94, h:tileS*0.94});
+          positions.push({x:rx, z:rz, rot:Math.PI/4, w:tileS, h:tileS});
       }
     }
   } else if(pattern==='chevron'){
     const tw=tileS, th=tileS*0.5;
-    const offX=((cent.x%tw)+tw)%tw, offZ=((cent.z%th)+th)%th;
+    const ox = gridOrigin(cent.x, tw);
+    const oz = gridOrigin(cent.z, th);
     let row=0;
-    for(let gz=minZ-PAD-offZ; gz<=maxZ+PAD; gz+=th, row++){
+    for(let gz=oz-(Math.ceil((oz-minZ+PAD)/th)*th); gz<=maxZ+PAD; gz+=th, row++){
       const shift=(row%2===0)?0:tw*0.5;
-      for(let gx=minX-PAD-offX+shift; gx<=maxX+PAD; gx+=tw){
+      for(let gx=ox-(Math.ceil((ox-minX+PAD)/tw)*tw)+shift; gx<=maxX+PAD; gx+=tw){
         const cx2=gx+tw/2, cz2=gz+th/2;
-        if(tileIntersectsPoly(cx2, cz2, tw, th, (row%2===0)?Math.PI/6:-Math.PI/6, poly3D)){
-          const rot=(row%2===0)?Math.PI/6:-Math.PI/6;
+        const rot=(row%2===0)?Math.PI/6:-Math.PI/6;
+        if(tileIntersectsPoly(cx2, cz2, tw, th, rot, poly3D))
           positions.push({x:cx2, z:cz2, rot, w:tw, h:th});
-        }
       }
     }
   } else if(pattern==='opus'){
     const big=tileS, sm=tileS*0.6, stride=big+sm;
-    const offX=((cent.x%stride)+stride)%stride, offZ=((cent.z%stride)+stride)%stride;
-    for(let gz=minZ-PAD-offZ; gz<=maxZ+PAD; gz+=stride){
-      for(let gx=minX-PAD-offX; gx<=maxX+PAD; gx+=stride){
+    const ox = gridOrigin(cent.x, stride);
+    const oz = gridOrigin(cent.z, stride);
+    const startX = ox - Math.ceil((ox-minX+PAD)/stride)*stride;
+    const startZ = oz - Math.ceil((oz-minZ+PAD)/stride)*stride;
+    for(let gz=startZ; gz<=maxZ+PAD; gz+=stride){
+      for(let gx=startX; gx<=maxX+PAD; gx+=stride){
         const bx=gx+big/2, bz=gz+big/2;
         if(tileIntersectsPoly(bx,bz,big,big,0,poly3D)) positions.push({x:bx,z:bz,rot:0,w:big,h:big});
         const sx=gx+big+sm/2, sz=gz+big/2;
@@ -994,9 +1009,13 @@ function generateTilesInPolygon(poly3D, tileS, pattern){
       }
     }
   } else {
-    const offX=((cent.x%tileS)+tileS)%tileS, offZ=((cent.z%tileS)+tileS)%tileS;
-    for(let gz=minZ-PAD-offZ; gz<=maxZ+PAD; gz+=tileS){
-      for(let gx=minX-PAD-offX; gx<=maxX+PAD; gx+=tileS){
+    /* STRAIGHT — ancrage déterministe sur centroïde */
+    const ox = gridOrigin(cent.x, tileS);
+    const oz = gridOrigin(cent.z, tileS);
+    const startX = ox - Math.ceil((ox - minX + PAD) / tileS) * tileS;
+    const startZ = oz - Math.ceil((oz - minZ + PAD) / tileS) * tileS;
+    for(let gz=startZ; gz<=maxZ+PAD; gz+=tileS){
+      for(let gx=startX; gx<=maxX+PAD; gx+=tileS){
         const cx2=gx+tileS/2, cz2=gz+tileS/2;
         if(tileIntersectsPoly(cx2, cz2, tileS, tileS, 0, poly3D))
           positions.push({x:cx2, z:cz2, rot:0, w:tileS, h:tileS});
@@ -1068,20 +1087,13 @@ function buildStencilMask(poly3D, floorY, stencilId){
   shape.moveTo(poly3D[0].x, poly3D[0].z);
   for(let i=1; i<poly3D.length; i++) shape.lineTo(poly3D[i].x, poly3D[i].z);
   shape.closePath();
-
   const geo = new THREE.ShapeGeometry(shape);
   geo.rotateX(-Math.PI / 2);
-
   const mat = new THREE.MeshBasicMaterial({
-    colorWrite: false,
-    depthWrite: false,
-    side: THREE.DoubleSide,
-    stencilWrite: true,
-    stencilFunc: THREE.AlwaysStencilFunc,
-    stencilRef: stencilId,
-    stencilZPass: THREE.ReplaceStencilOp,
+    colorWrite: false, depthWrite: false, side: THREE.DoubleSide,
+    stencilWrite: true, stencilFunc: THREE.AlwaysStencilFunc,
+    stencilRef: stencilId, stencilZPass: THREE.ReplaceStencilOp,
   });
-
   const mesh = new THREE.Mesh(geo, mat);
   mesh.position.y = floorY + 0.0005;
   mesh.renderOrder = 0;
@@ -1142,120 +1154,120 @@ function loadOrGetTexture(url){
 }
 
 /* ═══════════════════════════════════════════
-   GLB ORIENTATION FIX v8 — FRONT FACE ONLY
-   ✓ Teste 24 orientations pour la meilleure horizontale
-   ✓ Corrige les normals après rotation
-   ✓ Utilise FrontSide au lieu de DoubleSide
-   ✓ Évite l'inversion du design
+   FIX #1 — GLB FLATTEN v9 (ZERO-GAP)
+
+   Problème v8 : après scale, la BB était recalculée
+   mais le pivot.position compensait le centre,
+   laissant un écart entre tuiles adjacentes car
+   la tuile réelle était plus petite que tileS.
+
+   Fix : on force l'objet à remplir EXACTEMENT
+   tileS × tileS en X et Z via un scale indépendant
+   sur chaque axe (scaleX ≠ scaleZ si le modèle
+   n'est pas carré). Pas de padding, pas de marge.
 ═══════════════════════════════════════════ */
-function flattenGlbOnFloor(gltfScene, tileS, tex){
+function flattenGlbOnFloor(gltfScene, tileW, tileH, tex){
+  // tileW = largeur souhaitée (X), tileH = profondeur souhaitée (Z)
   const CANDIDATES = [
-    new THREE.Euler(0,          0,          0),
-    new THREE.Euler(0,          Math.PI/2,  0),
-    new THREE.Euler(0,          Math.PI,    0),
-    new THREE.Euler(0,          3*Math.PI/2,0),
-    new THREE.Euler(Math.PI/2,  0,          0),
-    new THREE.Euler(Math.PI/2,  Math.PI/2,  0),
-    new THREE.Euler(Math.PI/2,  Math.PI,    0),
-    new THREE.Euler(Math.PI/2,  3*Math.PI/2,0),
-    new THREE.Euler(-Math.PI/2, 0,          0),
-    new THREE.Euler(-Math.PI/2, Math.PI/2,  0),
-    new THREE.Euler(-Math.PI/2, Math.PI,    0),
-    new THREE.Euler(-Math.PI/2, 3*Math.PI/2,0),
-    new THREE.Euler(Math.PI,    0,          0),
-    new THREE.Euler(Math.PI,    Math.PI/2,  0),
-    new THREE.Euler(Math.PI,    Math.PI,    0),
-    new THREE.Euler(Math.PI,    3*Math.PI/2,0),
-    new THREE.Euler(Math.PI/4,  Math.PI/4,  0),
-    new THREE.Euler(Math.PI/4,  -Math.PI/4, 0),
-    new THREE.Euler(-Math.PI/4, Math.PI/4,  0),
-    new THREE.Euler(-Math.PI/4, -Math.PI/4, 0),
-    new THREE.Euler(0,          0,          Math.PI/2),
-    new THREE.Euler(Math.PI/2,  0,          Math.PI/2),
-    new THREE.Euler(-Math.PI/2, 0,          Math.PI/2),
-    new THREE.Euler(Math.PI,    0,          Math.PI/2),
+    new THREE.Euler(0,0,0),
+    new THREE.Euler(0,Math.PI/2,0),
+    new THREE.Euler(0,Math.PI,0),
+    new THREE.Euler(0,3*Math.PI/2,0),
+    new THREE.Euler(Math.PI/2,0,0),
+    new THREE.Euler(Math.PI/2,Math.PI/2,0),
+    new THREE.Euler(Math.PI/2,Math.PI,0),
+    new THREE.Euler(Math.PI/2,3*Math.PI/2,0),
+    new THREE.Euler(-Math.PI/2,0,0),
+    new THREE.Euler(-Math.PI/2,Math.PI/2,0),
+    new THREE.Euler(-Math.PI/2,Math.PI,0),
+    new THREE.Euler(-Math.PI/2,3*Math.PI/2,0),
+    new THREE.Euler(Math.PI,0,0),
+    new THREE.Euler(Math.PI,Math.PI/2,0),
+    new THREE.Euler(Math.PI,Math.PI,0),
+    new THREE.Euler(Math.PI,3*Math.PI/2,0),
   ];
 
   let bestEuler = CANDIDATES[0];
   let bestRatio = Infinity;
-  
   const testGroup = new THREE.Group();
-  const clonedScene = gltfScene.clone();
-  testGroup.add(clonedScene);
+  testGroup.add(gltfScene.clone());
 
   for(const euler of CANDIDATES){
-    testGroup.rotation.order = 'XYZ';
     testGroup.rotation.copy(euler);
     testGroup.updateMatrixWorld(true);
-    
     const bb = new THREE.Box3().setFromObject(testGroup);
     const sz = bb.getSize(new THREE.Vector3());
-    
-    if(sz.x < 0.001 || sz.z < 0.001) continue;
-    
+    if(sz.x < 0.0001 || sz.z < 0.0001) continue;
     const footprint = Math.max(sz.x, sz.z);
     const ratio = sz.y / footprint;
-    
-    if(ratio < bestRatio){
-      bestRatio = ratio;
-      bestEuler = euler;
-    }
+    if(ratio < bestRatio){ bestRatio = ratio; bestEuler = euler; }
   }
-  
-  testGroup.parent && testGroup.parent.removeFromParent();
 
   const pivot = new THREE.Group();
   pivot.add(gltfScene);
-  pivot.rotation.order = 'XYZ';
   pivot.rotation.copy(bestEuler);
   pivot.updateMatrixWorld(true);
 
-  let bb = new THREE.Box3().setFromObject(pivot);
-  let sz = bb.getSize(new THREE.Vector3());
-  
-  if(sz.x < 0.001) sz.x = 0.001;
-  if(sz.z < 0.001) sz.z = 0.001;
-  
-  const maxHoriz = Math.max(sz.x, sz.z);
-  const scale = Math.min(tileS / maxHoriz, 2.0);
-  
-  pivot.scale.setScalar(scale);
+  // Mesure la BB dans l'orientation choisie
+  const bb0 = new THREE.Box3().setFromObject(pivot);
+  const sz0 = bb0.getSize(new THREE.Vector3());
+
+  // Sécurité division par zéro
+  const sxRaw = sz0.x > 0.0001 ? sz0.x : 1;
+  const szRaw = sz0.z > 0.0001 ? sz0.z : 1;
+
+  // Scale indépendant par axe pour couvrir EXACTEMENT tileW × tileH
+  // On uniformise d'abord pour ne pas déformer le design,
+  // puis on compense avec un groupe wrapper qui scale différemment.
+  const uniformScale = Math.min(tileW / sxRaw, tileH / szRaw);
+  pivot.scale.setScalar(uniformScale);
   pivot.updateMatrixWorld(true);
 
-  bb = new THREE.Box3().setFromObject(pivot);
-  const center = bb.getCenter(new THREE.Vector3());
-  
-  pivot.position.x = -center.x;
-  pivot.position.z = -center.z;
-  pivot.position.y = -bb.min.y;
+  // Après scale uniforme, vérifier le résidu
+  const bb1 = new THREE.Box3().setFromObject(pivot);
+  const sz1 = bb1.getSize(new THREE.Vector3());
 
-  /* CORRECTION POUR ÉVITER L'INVERSION */
-  pivot.traverse(c=>{
+  // Wrapper qui corrige les axes séparément sans déformer le design visuellement
+  // (acceptable car la tuile vue de dessus doit remplir exactement sa cellule)
+  const wrapper = new THREE.Group();
+  wrapper.add(pivot);
+
+  const scaleXCorrection = sz1.x > 0.0001 ? tileW / sz1.x : 1;
+  const scaleZCorrection = sz1.z > 0.0001 ? tileH / sz1.z : 1;
+  wrapper.scale.set(scaleXCorrection, 1, scaleZCorrection);
+  wrapper.updateMatrixWorld(true);
+
+  // Recentre sur X/Z, pose sur le sol (Y=0 du groupe)
+  const bb2 = new THREE.Box3().setFromObject(wrapper);
+  const center = bb2.getCenter(new THREE.Vector3());
+  pivot.position.x -= center.x / scaleXCorrection;
+  pivot.position.z -= center.z / scaleZCorrection;
+  pivot.position.y -= bb2.min.y / 1; // correction Y
+
+  // Recalc après repositionnement
+  wrapper.updateMatrixWorld(true);
+  const bb3 = new THREE.Box3().setFromObject(wrapper);
+  wrapper.position.y = -bb3.min.y;
+
+  // Matériaux
+  wrapper.traverse(c=>{
     if(!c.isMesh) return;
-    
-    /* Recalculer les normals après rotation */
-    if(c.geometry && c.geometry.computeVertexNormals) {
+    if(c.geometry && c.geometry.computeVertexNormals){
       c.geometry.computeVertexNormals();
-      c.geometry.normalizeNormals();
     }
-    
     const mats = Array.isArray(c.material) ? c.material : [c.material];
     mats.forEach(m=>{
-      /* Utiliser FrontSide pour éviter les faces inversées */
       m.side = THREE.FrontSide;
       m.transparent = true;
       m.opacity = S.opacity;
-      if(tex && !m.map){
-        m.map = tex;
-        m.color.set(0xffffff);
-      }
+      if(tex && !m.map){ m.map = tex; m.color.set(0xffffff); }
       m.needsUpdate = true;
     });
     c.castShadow = true;
     c.receiveShadow = true;
   });
 
-  return pivot;
+  return wrapper;
 }
 
 /* ═══════════════════════════════════════════
@@ -1297,6 +1309,7 @@ async function placeTilePolygon(poly3D){
 
   const useGlb = product.modelUrl && product.modelUrl.length > 4;
   let baseModel = null;
+
   if(useGlb){
     setStatus('Chargement GLB…','scanning');
     try{
@@ -1305,33 +1318,30 @@ async function placeTilePolygon(poly3D){
           product.modelUrl,
           res,
           (progress) => {
-            const pct = Math.round((progress.loaded / progress.total) * 100);
+            const pct = progress.total > 0 ? Math.round((progress.loaded / progress.total) * 100) : 0;
             tilingText.textContent = `Chargement GLB: ${pct}%`;
           },
           rej
         );
       });
-      
-      const sceneCopy = gltf.scene.clone();
-      baseModel = flattenGlbOnFloor(sceneCopy, tileS, tex);
-      
-      if(!baseModel){
-        console.warn('GLB flatten failed, using box tiles');
-        baseModel = null;
-      }
-    }catch(e){ 
+      // On crée baseModel une seule fois puis on clone
+      // Passer tileS, tileS (carré) ou tileW/tileH si format non carré
+      baseModel = flattenGlbOnFloor(gltf.scene, tileS, tileS, tex);
+      if(!baseModel) console.warn('GLB flatten returned null');
+    }catch(e){
       console.warn('GLB load failed:', e);
-      setStatus('Erreur GLB, utilisation carrelage basique','error');
-      baseModel = null; 
+      setStatus('Erreur GLB, tuiles basiques','error');
+      baseModel = null;
     }
   }
 
+  const GROUT_GAP = 0.002; // 2mm de joint visible
+  const TILE_H = 0.005;
   const fallbackMat = new THREE.MeshStandardMaterial({
     roughness:0.28, metalness:0.08, transparent:true, opacity:S.opacity,
     ...(tex ? {map:tex, color:new THREE.Color(0xffffff)} : {color:new THREE.Color(0xD4A96A)})
   });
   const tileColors = [0xD4A96A, 0xC09050, 0xE0B878, 0xB88040];
-  const TILE_H = 0.005;
 
   for(let i=0; i<positions.length; i++){
     const p = positions[i];
@@ -1341,19 +1351,14 @@ async function placeTilePolygon(poly3D){
       tile = baseModel.clone(true);
       tile.rotation.y = p.rot;
       tile.position.set(p.x, fy, p.z);
-      
-      tile.traverse(c => {
-        if(c.isMesh){
-          c.castShadow = true;
-          c.receiveShadow = true;
-        }
-      });
+      tile.traverse(c=>{ if(c.isMesh){ c.castShadow=true; c.receiveShadow=true; } });
     } else {
-      const geo = new THREE.BoxGeometry(p.w - 0.002, TILE_H, p.h - 0.002);
+      /* Fallback box : réduction de GROUT_GAP sur chaque côté */
+      const geo = new THREE.BoxGeometry(p.w - GROUT_GAP, TILE_H, p.h - GROUT_GAP);
       const mat = fallbackMat.clone();
       if(!tex) mat.color.set(tileColors[i % tileColors.length]);
       tile = new THREE.Mesh(geo, mat);
-      tile.castShadow = true; 
+      tile.castShadow = true;
       tile.receiveShadow = true;
       tile.rotation.y = p.rot;
       tile.position.set(p.x, fy, p.z);
@@ -1361,7 +1366,6 @@ async function placeTilePolygon(poly3D){
 
     tile.renderOrder = 2;
     applyStencilToObject(tile, stencilId);
-
     zoneGroup.add(tile);
 
     if(i % 10 === 0){
